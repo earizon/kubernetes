@@ -1,45 +1,47 @@
-REF: @[./kubernetes_core_v1_types.go.html] (/core/v1/types.go)
+● About Kubernetes [[{101,02_doc_has.keypoint]]
+- Kubernetes gets in charge of managing (up to thousands of!!!) containers in
+  a pool of "node workers". Management takes care of:
+  - distribution of application(container) images.
+  - storage for apps.
+  - networking (including load balancing)
+  - Application life-cycle (launch, scale, upgrade, rollback, ...)
+[[}]]
 
-● Kubernetes 101 [[{101,02_doc_has.keypoint]]
+● Kubernetes is/is-not for you!!  [[{01_PM.101]]
 
-- Kubernetes gets in charge of managing (up to thousands of!!!) containers, in particular:
-  - distribution of images:
-  - storage for file-systems/objects:
-  - networking:
-  - life-cycle scheduling:
-  - load balancing: both of traffic comming to N containers (maybe peer replicas)
-                    and of containers themself balanced to different CPUs in different
-                    servers.
+● WARN! Kubernetes is for you!  [[{]]
+  ============================
+- You plan to have a running infrastructure for years,
+  and you know in advance that you will need to automate
+  lot of RESTfull deployments in an standard way.
 
-- Kubernetes uses labels as “nametags” to identify and query for "Kubernetes resources".
-- A "kubernetes resource" can be tagged with N simultaneous labels to mark its
-  role, target-enviroment, billing account, "anything else" ...
+- You want to bet for a technology that is well known
+  by software industry, so you can hire people that already
+  are familiar with it.
 
-- Pods: runnable "unit of work". Ussually a single container, but maybe a container
-  and "extension" containers (or side-cars). For example PostgreSQL + Postgraphile.
-  Containers inside a Pods are scheduled togheter and share the same network and
-  file-system.
+- Distributed systems are complex are is better to skip,
+  but you can not avoid them. Then k8s is the most familiar
+  approach.
 
-- Replication controllers: Pod template to be replicated N times.
-  (they way we talk to Kubernetes so that it can take sensible action to scale up/down
-   a given Pod one or more times).
+- Your company has different isolated teams with random knowledge
+  and skills, from finances, to science, to marketing, .....
+    They all want a common base and future-resistant virtual
+  computing infrastructure.
+    They all want to share computer resources, and balance
+  computation when needed, as well as reuse DevOps knowledge
+  for databases, web servers, networking, ...
+    You known that at least they will be share common support
+  for the Kubernetes cluster.
 
-- Services: external INMUTABLE VIEW of our Application (IP address, ports, ...)
-        (vs internal "moving" Pods)
-
-- Volumes: Reserved space seen as a local filesystem by Pods.
-  Internally the can be backed by:
-  - local Hard Disk storage
-  - Ceph   : (Hyperscalable networked and clustered file-system compatible with POSIX)
-  - Gluster: (Yet another Ceph altern
-  - Elastic Block Storage
-  - ...
-- Namespaces: Virtual Kubernetes clusters (similar to DDBB Schemas, ...)
-  ( It's a good habit to split projects by namespace (vs using "default" )
+- Some k8s operator automate all the life-cycle of software
+  management for a given database, CMS, ... You want to profit
+  from such existing operator and the knowledge and experience
+  of the operator developers.
 [[}]]
 
 ● WARN! Kubernetes is NOT for you! [[{]]
-Extracted from @[https://pythonspeed.com/articles/dont-need-kubernetes/]
+  Kubernetes is designed for microservices architectures.
+  Extracted from @[https://pythonspeed.com/articles/dont-need-kubernetes/]
   """...
     MICROSERVICES ARE AN ORGANIZATIONAL SCALING TECHNIQUE: WHEN YOU HAVE
     500 DEVELOPERS WORKING ON ONE LIVE WEBSITE, IT MAKES SENSE TO PAY THE
@@ -54,35 +56,55 @@ Extracted from @[https://pythonspeed.com/articles/dont-need-kubernetes/]
     COMPANY HAS, YOU HAVE 0.25 PEOPLE PER SERVICE.
   """
 
-- Extracted from Local Persistent Volume documentation:
-  """  Because of these constraints,   IT’S BEST TO EXCLUDE NODES WITH
+- Kubernetes is more complex to manage than standard Linux boxes:
+  Example extracted from Local Persistent Volume documentation:
+  """  Because of these constraints, IT’S BEST TO EXCLUDE NODES WITH
     LOCAL VOLUMES FROM AUTOMATIC UPGRADES OR REPAIRS, and in fact some
     cloud providers explicitly mention this as a best practice. """
 
-  Basically most of the benefits of k8s are lost for apps managing
+    Basically most of the benefits of k8s are lost for apps managing
   storage at App level. This is the case with most modern DDBBs and stream
   architectures (PostgreSQL, MySQL, kafka, p2p-alike Ethereum, ....).
+   Such apps needs to be running "for always" and the "moving Pods"
+  abstractions of K8s is lost.
 
 - As a reference Google, original creator of K8s, launches
   2 BILLION CONTAINERS PER WEEK!!! in its infrastructures.
   This is not excatly a normal IT load.
 
-- See also:
+- Related. Avoid distributed computing and microservices as much as possible.
 @[https://en.wikipedia.org/wiki/Fallacies_of_distributed_computing]
-   1.- "The network is reliable"
-   2.- "Latency is zero"
+                                         BEFORE opting for Microservices (and K8s) ...
+                                         ----------------------------------------------
+   1.- "The network is reliable"    <··· Get sure network SLA is higher than Service SLA contract.
+   2.- "Latency is zero"            <··· Get sure your system can cache data locally
    3.- "Bandwidth is infinite"
-   4.- "The network is secure"
+   4.- "The network is secure"      <··· Get sure your traffic uses TLS and PKI is in place.
    5.- "Topology doesn't change"
-   6.- "There is one administrator"
-   7.- "Transport cost is zero"
+   6.─ "There is one administrator" <··· Get sure this is true after deployment in production
+   7.- "Transport cost is zero"     <··· Get sure your system doesn't slow down with REMOTE DATA
    8.- "The network is homogeneous"
 
-See also: Reasons NOT to use k8s:
-https://thenewstack.io/question-the-current-dogma-is-kubernetes-hyper-scale-necessary-for-everyone/
 
 ● Why Coinbase Is Not Using Kubernetes to Run Their Container Workloads
 @[https://www.infoq.com/news/2020/07/coinbase-kubernetes/]
+  - Coinbase uses containers, but they run them in VMs.
+    and Odin for deployments.
+    """ Adopting Kubernetes adds unnecessary complexity
+        to their current deployment pipeline.···
+    Managed k8s services from cloud providers, like EKS or GKE,
+    are not mature enough yet. """
+
+  - For application service discovery, they use Route53 in
+    conjunction with application load balancers and Envoy.
+  - They scale their services through auto-scaling groups (ASGs).
+  - Odin has all the logic for doing deployments progressively
+    using health checks and can even perform rollbacks when needed.
+
+    """"... they don't think Kubernetes is a bad tool ...
+    Knative or Fargate are increasing the level of abstraction to
+    solve many of these challenges."""
+
 
 ● Real Problems when applying Readiness Probes that will not appear
   when not using Readiness Probes
@@ -103,251 +125,411 @@ https://thenewstack.io/question-the-current-dogma-is-kubernetes-hyper-scale-nece
   """
   Unfortunately this problem will appear at random depending on storage/CPU speed.
   It can pass all tests and fail in production due to "parallel" tasks slowing down
-  storage.
+  storage.  [[}]]
+[[01_PM.101}]]
+
+● BOOTSTRAPPING NEW CLUSTERS [[{cluster_admin.bootstrap.101,101,01_PM.low_code]]
+
+• "Kind": lightweight cluster "over" Docker @[kind_summary]
+  @[https://kind.sigs.k8s.io/]
+  @[https://github.com/kubernetes-sigs/kind/releases] (latest releases)
+
+- Cite from "Cloud_Native_Spring_in_Action_v7.pdf" (Chapter 2.4)
+  """... recommended when you have already installed Docker on your dev machine."""
+- Kind replaces "k8s server nodes" by "k8s Docker nodes".
+  Features:
+  - support for multi-node (including HA) clusters
+  - easy switch to a different Kubernetes version/release (from source)
+  - Support for Linux, macOS and Windows
+
+- PRE_SETUP) Install 'kind' cli tool:
+  (More options available at: @[https://kind.sigs.k8s.io/docs/user/quick-start])
+  $ KIND_V="v0.11.1"
+  $ SRC_URL="https://kind.sigs.k8s.io/dl"
+  $ SRC_URL="${SRC_URL}/${KIND_V}/kind-linux-amd64"
+  $ curl -Lo ./kind ${SRC_URL}
+  $ chmod +x ./kind
+
+- USSAGE)
+  $ kind create cluster      ← bootstrap k8s cluster, 1 single command!!!
+
+  $ kind load docker-image \ ← Import image from local docker registry
+       $imgName:$imgVer
+
+  $ kind delete cluster      ← Remove cluster, 1 single command!!!
 
 
-● WARN! Kubernetes is for you!
-- You plan to have a running infrastructure for years,
-  and you know in advance that you will need to automate
-  lot of RESTfull deployments in an standard way.
-- You want to bet for a technology that is well known
-  by software industry, so you can hire people that already
-  are familiar with it.
-- Distributed systems are complex are is better to skip,
-  but you can not avoid them. Then k8s is the most familiar
-  approach.
-- Your company has different isolated teams with random knowledge
-  and skills, from finances, to science, to marketing, .....
-    They all want a common base and future-resistent virtual
-  computing infrastructure.
-    They all want to share computer resources, and balance
-  computation when needed, as well as reuse DevOps knowledge
-  for databases, web servers, networking, ...
-- Some k8s operator automate all the life-cycle of software
-  management for a given database, CMS, ... You want to profit
-  from such existing operator and the knowledge and experience
-  of the operator developers.
+● k0s:
+@[https://docs.k0sproject.io/]
+  All-inclusive Kubernetes distribution, well suited for
+  - bootstrap in minutes with no special skills or expertise.
+  - Any cloud, Bare metal, Edge&IoT.
+  - CNCF certified.
+  - straightforward to keep the clusters up-to-date and secure.
+    with a single single binary (zero dependencies) for any Linux.
+  - Preferred to Kind when targeting production enviroments.
+
+● Other cluster bootstrap alternatives:
+- Kubespray: Cluster Bootstrap
+  @[https://github.com/kubernetes-sigs/kubespray/blob/master/docs/comparisons.md]
+  - Formed by a set of Ansible playbooks to create a production-ready cluster
+    (mono/multi-master, single/distributed etcd, Flannel|Calico|Weave|... network...).
+
+- KOPS: Deploy on Cloud:
+  @[https://github.com/tldr-pages/tldr/blob/master/pages/common/kops.md]
+  @[https://github.com/kubernetes/kops/blob/master/README.md]
+[[cluster_admin.bootstrap.101}]]
+
+● k8s UI Control Panels [[{qa.UX,01_PM.low_code,monitoring.application]]
+- 'kubectl' command line tool is probably the most powerful tool to manage k8s clusters
+  but for newcomers a UI can be simpler to start with.
+
+- 'kube-dashboard' UI is the  official Dashboard. Install it like:
+  $ kubectl apply -f \
+    https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+  $ kubectl proxy # makes UI available at:
+    http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/.
+
+
+- Alternatives to kube-dashboard include:
+  └ Lens """...most powerful UI Panel for K8s ...""" acording to some sources.
+  · - Features:
+  ·   - Electron based.
+  ·   - Supports 'Custom Resource Definitions' (CRD) and Helm3 Package Manager.
+  ·   - Built-in Terminal (to launch 'kubectl' inside the UI)
+  ·
+  └ Octant [easy to install and most portable]
+  · · homepage shows overview of Deployments/Pods/ReplicaSets/Services/...
+  · · It allows to enable port-forwarding on a pod, read logs, modify pods manifest,
+  ·   check pod conditions (initialized, ready, containersReady, PodsScheduled, ...)
+  · $ octant # ← creates dashboard at http://localhost:7777 by default.
+  ·
+  └ 'kubenav' [Android and iOS support]
 [[}]]
 
-● External Links
-- About Desired State management   @[https://www.youtube.com/watch?v=PH-2FfFD2PU]
-
-- Online training:
-@[https://www.katacoda.com/courses/kubernetes/playground]
-@[https://labs.play-with-k8s.com/]
-
-- @[https://kubernetes.io/]
-- @[https://kubectl.docs.kubernetes.io/]   ← Book
-- @[https://kubernetes.io/docs/reference/] (Generated from source)
-- @[https://kubernetes.io/docs/reference/glossary/]
-- @[https://kubernetes.io/docs/reference/tools/]
-
-- Most voted questions k8s on serverfault:
-@[https://serverfault.com/questions/tagged/kubernetes?sort=votes]
-- Most voted questions k8s on stackoverflow:
-@[https://stackoverflow.com/questions/tagged/kubernetes?sort=votes]
-
-- Real app Examples:
-@[https://github.com/kubernetes/examples]
-
-ºk8s Issues:º
-- @[https://kubernetes.io/docs/reference/issues-security/issues/]
-- @[https://kubernetes.io/docs/reference/issues-security/security/]
-
-ºk8s Enhancements/Backlogº
-- @[https://github.com/kubernetes/enhancements]
-
-
-ºSIG-Appsº
-- @[https://github.com/kubernetes/community/blob/master/sig-apps/README.md]
-  Special Interest Group for deploying and operating apps in Kubernetes.
-  - They meet each week to demo and discuss tools and projects.
-   """ Covers deploying and operating applications in Kubernetes. We focus
-    on the developer and devops experience of running applications in
-    Kubernetes. We discuss how to define and run apps in Kubernetes, demo
-    relevant tools and projects, and discuss areas of friction that can lead
-    to suggesting improvements or feature requests """
-- Yaml Tips:
-@[https://www.redhat.com/sysadmin/yaml-tips]
-● k8s UI Control Panels [[{01_PM.low_code,monitoring,]]
-- Kubernetes Dashboard (kube-dashboard) [most mature and popular]
-  · WARN: Filtering ability is limited.
-- Lens [most powerful one]:
-  · Electro based.
-  · Supports CRD and Helm3
-  · Built-in Terminal (for kubectl)
-
-- Octant [easy to install and most portable]
-  · homepage shows overview of Deployments/Pods/ReplicaSets/Services/...
-  · It allows to enable port-forwarding on a pod, read logs, modify pods manifest,
-    check pod conditions (initialized, ready, containersReady, PodsScheduled, ...)
-  $ octant # ← creates dashboard at http://localhost:7777 by default.
-- kubenav [Android and iOS support]
+● K8s networking 101 [[{101,cluster_admin,network.101,troubleshooting ]]
+- Max Node Lattency:
+@[https://stackoverflow.com/questions/46891273/kubernetes-what-is-the-maximum-distance-latency-supported-between-kubernetes-no]
+- There is no latency limitation between nodes in kubernetes cluster.
+  They are configurable parameters.
+  └ For kubelet@worker-node:
+    --node-status-update-frequency secs
+      Sets how often kubelet posts node status to master.
+      Note: be cautious when changing the constant, it must work
+      with nodeMonitorGracePeriod in nodecontroller. (default 10s)
+  └ For controller-manager on master node:
+    --node-monitor-grace-period secs
+      Amount of time which we allow running Node to be unresponsive
+      before marking it unhealthy. Must be N times more than kubelet's
+      'nodeStatusUpdateFrequency', where N means number of retries
+      allowed for kubelet to post node status. (default 40s)
+    --node-monitor-period secs
+      Period for syncing NodeStatus in NodeController. (default 5s)
+    --node-startup-grace-period secs
+      Amount of time which we allow starting Node to be unresponsive before
+      marking it unhealthy. (default 1m0s)
 [[}]]
 
-[[}]]
+● Kubernetes DevOps 101 [[{101]]
+- Ussually referred to as k8s ( k + "ubernete" + s )
 
-● K8S Summary [[{]]
-- k8s: orchestates pools-of-CPUs, local/lan-storage and networks balancing
-       load to a pool of N VMs/physical machines.
+- k8s orchestrates pools-of-CPUs, local/remote-storage and networks balancing
+      load to a pool of N VMs/physical machines.
 
-- Kubernetes Cluster Components:
+- Main Cluster Components and architecture incluse:
 
- ºetcdº: k8s "brain memory"        ºcluster of 1+ mastersº:
- - High availability key/value      - manages the cluster.
-   ddbb used to save the cluster    - keeps tracks of:
-   metadata, service registrat.       -ºdesired stateº
-   and discovery                      - application scalation
-                                      - rolling updates
-                                    - Raft consensus used in multimaster mode
-                                      (requires 1,3,5,... masters)
-                                     └────────┬─────────────────┘
-        ┌───────────────┬────────────┬────────┴────────────────┬──────────┬─────────────────────┐
- kube─apiserver         │ kube─controller─manager              │ kube-scheduler                 │
- ─ (REST) Wrapper around│ ─ EMBEDS K8S CORE CONTROL LOOPS!!!   │ ─ Assigns workloads to nodes   │
-   k8s objects          │ ─ handles a number of controllers:   │ ─ tracks host-resource ussage  │
- - Listen for management│   ─ regulating the state of  cluster │ ─ tracks total resources       │
-   tools (kubectl,      │   ─ perform routine tasks            │   available per server and     │
-   dashboard,...)       │     ─ ensures number of replicas for │   resources allocated to       │
-                        │       a service,                     │   existing workloads assigned  │
-                        │     ─ ...                            │   to each server               │
-                        │                                      │ ─ Manages availability,        │
-                        │                                      │   performance and capacity     │
-                        │                                      │                                │
-       |federation-apiserver|         |federation-controller-manager|     |cloud─controller─manager|
-       - API server for federated     - embeds the core control loops      - k8s (alpha in v1.6)
-         clusters                       shipped with k8s federation.       - runs controllers
-                                                                             interacting with
-                                                                             cloud provider
-                                                                           - affected controllers:
-                                                                             - Node    Controller
-     NOTE:                                                                   - Route   Controller
-     An "Application" will contain also app. related Controllers             - Service Controller
-     (replica-sets, batch, Deployments ...) not shown in the diagram         - Volume  Controller
+  * etcd: k8s "brain memory": High availability key/value ddbb used to save the cluster
+          metadata, service registrar and discovery. It favors consistency over speed.
+          NOTE for UNIX newcomers: In UNIX configuration is placed inside /etc. etcd is
+          sort of a distributed /etc for cloud (distributed) machines, offering a central
+          configuration place.
 
-  ┌─ K8S──┐      ┌─────────┐      ┌─────────────┐
-  │CLUSTER│1 ←→ N│Namespace│ 1 ←→ │"Application"│
-  └┬──────┘      └──┬──────┘      └──────┬──────┘
-   ├ etcd      "Virtual cluster"  In practice it could be something similar to:
-   ├ Master    *1                   1 DDBB     Deployment
-   └ Node Pool for App            + 1 ESB      Deployment
-     └┬──────────────┘            + 1 Middlewa.Deployment
-      ├ node 1 exec. App pods     + ...        └────┬───┘
-      ├ node 2 exec. App pods         0+ PVCs, 1 Service, N ConfigMaps+Secrets, 0-1 Ingress,...)
-        └┬───┘                      + Desired states for pods (Containers, #replicas, live-probes, ...)
-         ├ kubelet agent:           + Rolling policies
-         │  monitor that containers are running
-         │  as described in (Pod)Specs
-         ├ Container Runtime
-         │ (Docker/rkt/...)
-         └ kube-proxy: Soft. Defined Network "Enabler" @[#kube-proxy_summary]
+● k8s MASTER-NODE: (or cluster of master nodes for HA)
+  - manages the cluster.
+  - keeps tracks of:
+    - DESIRED STATE  (how many replicas, what entry-points, file-system space, ... We want for our app)
+    - APPLICATION ESCALATION.
+    - ROLLING UPDATES.
+  - Raft consensus used in multi-master mode (requires 1,3,5,... masters)
 
-        Pod     1 ←················→ 1+ Container (core/v1/types.go)
-        ====                            =========
-     - Minimum Unit of Exec/Sched.      - executable OCI ("Docker") image
-     - At creation time resource        -ºLifecycle Hooksº
-       limits for CPU/memory are          - PostStart
-       defined (min and max-opt)          - PreStop
-     - Ussually Pod 1←→1 Container      - containers in a Pod are co-located/co-scheduled
-       (rarely 2 when such containers    on the same cluster node.
-        are closely related)
-     -**Pods are ephemeral.**
-     - Define shared resources for its container/s:
-       · Volumes:    (Shared Storage)
-       · Networking: (Shared unique internal cluster IP)
-       · Metadata:   (ports to use,...)
-     - Represent a "logical host"
-     - It is tied to the Node where it has been scheduler to run,
-       and remains there until termination. In case of failure,
-       they can be scheduled to run on other available Nodes.
-       (Controllers takes charge of scalling /"healing" pods)
+● MASTER-NODE is composed of:
+  ├ kube-apiserver: (REST) Wrapper around k8s objects (containers, volumes, network interfaces, pods, ...)
+  │ - It keeps listening for orders from management tools ('kubectl' and UI-like tools)
+  │
+  ├ kube-controller-manager: EMBEDS k8s CORE CONTROL LOOPS!!!
+  │ - handles a number of controllers, regulating the state of  cluster,
+  │   performing routine tasks (ensures number of replicas for a service, ...
+  │   see later for more info)
+  │
+  ├ kube─scheduler:
+  │ - Assigns workloads to nodes.
+  │ - tracks host-resource usage.
+  │ - tracks total resources available per server and resources allocated to
+  │   existing workloads assigned to each server.
+  │ - Manages availability, performance and capacity.
+  │
+  ├ federation-apiserver: (optional) API server for federated clusters.
+  ├ federation-controller-manager: (optional) embeds the core control loops shipped with k8s federation.
+  │
+  └ cloud-controller-manager: (optional, k8s v1.7+)
+    └─┬────────────────────┘
+      runs controllers interacting with cloud providers (AWS, GPC, Scaleway, Azure, ...)
+      Clouds have extra network services not available in standard Linux boxes and this
+      controller allows to use them when available. For example, when balancing an HTTP
+      RESTfull service k8s will usually delegate in some Linux application (Envoy,
+      Nginx, ...), but in AWS it will be able to use AWS ELB. When requesting new storage
+      it will be able to sync with CLOUD storage services (AWS EFS, Ceph, ...)
 
-     - NODE STATUS: (USED TO DE/SCHEDULE PODS)  (core/v1/types.go)
-     - Addresses  ←─(HostName, ExternalIP, InternalIP)
-     - Capacity (CPU, memory,  max.number of pods supported)
-     - Info: (kernel/k8s/docker version, OS name, ...)
-     - Condition: status of ALL Running nodes.
-       Node               Description
-       ─────────────────  ────────────────────────────────────────────────
-       OutOfDisk          True → insufficient free space to add new pods
-       Ready              True → node healthy, ready to accept pods
-                          False after ºpod─eviction─timeoutº (5 minutes by default):
-                          reschedule in another Pod.
-       MemoryPressure     True → pressure exists on the node memory
-       PIDPressure        True → pressure exists on the processes
-       DiskPressure       True → pressure exists on the disk size
-       NetworkUnavailable True → node network not correctly configured
 
-● k8s Application
-┌─ KEY POINT: ───────────────────────────────────────────────────────────────┐
-│ A K8S APPLICATION CAN BE DEFINED AS THE SUM OF PODS, SERVICE, INGRESS,     │
-│ CONFIGMAP, SECRETS, VOLUMES, DEPLOYMENT AND STATEFULSET DESCRIBING IT:     │
-│ (ALSO WE CAN SEE A "SOLUTION" AS A SET OF APPLICATION AND EACH APPLICATION │
-│ AS A DEPLOYMENT ─OR DAEMONSET, JOB, ...)                                   │
-│ **WARN: THIS DEFINITION IS INFORMAL**                                      │
-└────────────────────────────────────────────────────────────────────────────┘
- Creating Pods   ╶╶╶╶▷ Create Volumes  ╶╶╶╶▷ Create ConfigMap⅋
- running the app       to store input/       Secrets for initial
- listening for         ouput data.           parametrizable config.
- network requests                               ┆
-     ┌╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴┘
-     ▽
- Creating Services     ╶╶╶╶▷ Creating Ingress Rules       ╶╶╶╶▷  Creating Deployment|
- to offer a fixes IP/DNS     to expose HTTP/S Services           StatefulSet|Daemons
- to "moving" Pods.           externally allowing to              |(Batch)Jobs
- Pod creating/destruction    split requests based on host name,
- will fastly trigger         HTTP path/subpaths, ...
- kube-proxy updates on each
- working node.
- network requests
+  │CLUSTER│1 ←→ N│Namespace│ 1 ←→ N│"Application"│
+   └┬────┘        └──┬────┘         └──┬────────┘
+    ├ etcd         "Virtual         "informal" term
+    │               cluster"        usually referring to a "Service" or Job
+    │                               (explained later on) containing storage,
+    │                               injected config files, CPU resources,
+    │
+    ├ Master-node/s  (kube-apiserver, kube-controller-manager, kube-scheduler, ...)
+    │
+    └ Pool of node workers: [worker-node 1, worker-node 2, worker-node 3, ...]
+                             └┬────────┘
+    ┌─────────────────────────┘
+    A worker node is composed of:
+    ├ kubelet agent: "daemon" monitoring that containers are running as described in (Pod) Specs
+    ├ Container runtime  Different compatible implementations exist from different vendors: runc/crun/rkt/...
+    ├ kube-proxy: Virtualized the node network. @[#kube-proxy_summary]
+    └ Running Pods: [ Pod1, Pod2, Pod3, .... ]
+                      └┬─┘
+    ┌──────────────────┘
+    A POD IS THE MINIMUM UNIT OF EXECUTION TO BE SCHEDULED BY k8s.
+    │ - They can be seen as "virtual machines" that can be moved from
+    │   a worker-node to a different worker-node if resources are scarce.
+    │ - At creation time resource-limits for CPU/memory are defined.
+    │   This allows the kube-scheduler@master to opt for a suitable worker-node.
+    └ Container 1,  Container 2, <··· OCI "Docker" images in practice.
+      └───────────┬─────────────┘
+    ┌─────────────┘
+    Usually a single container per Pod, but sometime "related" containers
+    get also executed. E.g.: A "main" container contains the PostgreSQL
+    ddbb and other "closely related" containers in the same pod get in
+    charge of schema initialization, cleaning, backups, GraphQL API, ...
+      Containers in a Pod are co-located/co-scheduled and they share storage
+    and IP network.
 
-● Config. Secrets and ConfigMaps
-- A Pods references the secrets in 2 ways:
-  - as files in a mounted volume.
-  - as ENVIRONMENT variables.
-  (Also used by kubelet when pulling images for the pod)
+      Pods are ephemeral and can be moved from worker-node to [[{02_DOC_HAS.KEYPOINT]]
+    worker-node at random.  They can be created in
+    "peaks-of-load" and killed when not needed anymore.  If the
+    Pod definition uses a network volume, data is persisted.  [[}]]
+
+● Deploying a k8s "Application" in practice means: [[{application.101]]
+  0) (Cluster Admin)    : Create Namespace ("Virtual Kubernetes") for team/project.
+  1) (Cluster Admin)    : Prepare Volumes (assign physical drivers to k8s PV)
+
+  2) (Developer)        : Create containerized app/s.
+  3) (Developer/DevOps) : Create custom configuration (ConfigMaps, SecretMaps)
+  4) (Developer/DevOps) : Define Desired State for running app:
+                          containers, replicas, image version, service
+                          Probably that means declaring a "Service" (RESTfull like apps)
+                          a (Batch)Job, StatefulSet.
+  5) (Developer/DevOps) : For Services (Remote HTTP RPC like apps) create "Ingress Rules"
+                          exposing inmutable HTTP/S Services balancing to internal
+                          (moving) Pods.        [[application.101}]]
+
+● LABELS & LABELS-SELECTORS:                                              [[{101.labels]]
+- Kubernetes uses namespace to divide the cluster into virtual clusters.
+- Inside a given namespace, it uses labels to organize resources in logical "groups".
+  A "kubernetes resource" can be tagged with N simultaneous labels to mark its
+  role, target-enviroment, billing account, "anything else" ...
+  Usually a label key represents a "dimension" axis and the value assigned the "coordinate".
+
+  LABEL SELECTORS: Similar (in concept) to CSS selectors.
+  Target to group of objects (Pods, services, ...) by matching labels.
+
+
+     key=tier                      ┌─ Lecture ─────────────────────┐
+        ^                          │ ◦ == Resource: Pod, Volume,   │
+  ... ··┤                          │       LoadBalancerIngress,...)│
+        │                          └───────────────────────────────┘
+        │   ┌···┐ <······························· selector:
+ front··┤   · ◦ ·    ◦      ◦      ◦◦    ◦◦◦◦      'tier=front,enviroment=dev'
+        │   └···┘
+        │   ┌································┐<··· selector:
+ cache··┤   · ◦      ◦      ◦◦           ◦◦◦◦·     'tier=cache'
+        │   └································┘
+        │
+ back···┤     ◦      ◦      ◦◦           ◦◦◦◦
+        │
+        +─────┬──────┬──────┬──────┬──────┬──··> key=environment
+              ·      ·      ·      ·      ·
+             dev    QA     pre   canary  pro
+
+-  Ex. labels:
+   Key                              | Description       | Example
+   ================================   ==================  ================
+   app.kubernetes.io/name           | app-name          | useronboarding ┐
+   app.kubernetes.io/instance       | unique ID         | mysql-abcxzy-1 │  STANDARD
+   app.kubernetes.io/version        | app-version       | 5.7.21         ├  (RECOMMENDED)
+   app.kubernetes.io/component      |                   | database       │  LABELS
+   app.kubernetes.io/part-of        |                   | wordpress      │
+   app.kubernetes.io/managed-by     | mgn.tool used     | helm           ┘
+   ================================   ==================  ================
+   kubernetes.io/arch               |                   |                ┐
+   kubernetes.io/os                 |                   |                │  NON-STANDARD BUT
+   kubernetes.io/hostname           |                   |                ├  WELL-KNOWN
+   beta.kubernetes.io/instance-type |                   |                │  LABELS
+   failure-domain.beta.kubernetes.io/region             |                │
+   failure-domain.beta.kubernetes.io/zone               |                ┘
+   ================================   ==================  ================
+   helm.sh/chart	                  | chart name/ver    |                <·· required by HELM
+   ================================   ==================  ================
+   release                          | canary|stable|... | stable         ┐
+┌> environment                      | dev|qa|pre|pro    | test           │  CUSTOM  BY
+|  tier                             | front|back|mesg...| front          ├  namespace
+|  track                            | daily|weekly|...  | daily          ·
+|  ...                                                                   ·
+└ NOTE: Probably is saffer and beter to use a different namespace for    ·
+        each enviroment, allowing for different quotas, team managing
+        passwords, ...
+
+-  Ex. LABEL SELECTORS:
+
+  environment=production,tier!=front   ┐ EQUALITY SELECTOR
+                        ^              ┘ "AND" condition
+                        └·················┘
+
+  all resources with                   ┐
+     ( key    == "tier" AND            │ SET-BASED SELECTOR
+       values != frontend OR backend ) │ 'IN', 'NOTIN' 'EXISTS'
+  AND                                  │
+  all resources with (key != "tier")   ┘
+
+
+  key equal to environment  and        │ SET─BASED SELECTOR
+  value equal to production or qa      │
+
+  environment in (production, qa)      │ SET-BASED SELECTOR
+
+  tier notin (frontend, backend)       │ SET-BASED SELECTOR
+
+
+  'partition'                          │ "all resources including a label
+                                         with key 'partition'
+                                         (or '!partition') to neglect
+
+- LIST and WATCH operations may specify label selectors to filter the sets
+  of objects returned using a query parameter. Ex.:
+  $ kubectl get pods -l environment=production,tier=frontend
+  $ kubectl get pods -l 'environment in (production),tier in (frontend)'
+  $ kubectl get pods -l 'environment in (production, qa)'
+  $ kubectl get pods -l 'environment,environment notin (frontend)'
+[[101.labels}]]
+
+
+● ConfigSecrets and ConfigMaps:  [[{application.configuration]]
+  Custom configuration is injected into Pods as either enviroment variables or configuration
+  files (mounted as a volume in the Pod).
+  Secrets add some extra layer of protection and they are also use by 'kubelet'@working-node
+  to download container images from the container registry if needed.
+
+  - To create a ConfigMap:
+    .../config1/                      STEP 1) Setup INPUT DATA
+        ├─ game.properties
+        └─   ui.properties
+
+    $ kubectl create configmap \      STEP 2) Alt 1. CREATE ConfigMap  from config/ files
+      config1 --from-file=config1/
+
+    $ kubectl create configmap \      STEP 2) Alt 2). Create ConfigMap as params.
+      config1 \
+      --from-literal=key1.sub=val1 \
+      --from-literal=...
+
+    $ kubectl get configmaps \        STEP 3)  VERIFY ConfigMap created
+      config1 -o yaml
+      ...
+        data:
+        game.properties:
+          ...
+        ui.properties:
+
+    ┌──────────────────────────────┐
+    │kind: Pod                     │
+    │...                           │
+    │spec:                         │
+    │ containers:                  │
+    │  ─ name: test-container      │
+    │    ...                       │
+    │    env:                      │   STEP 4) Declare config1 to be injected in Pod.
+    │     ─ name: config1          <·· INJECT "config1" ConfigMap into Pod.
+    │       valueFrom:             │
+    │         configMapKeyRef:     │
+    │           name: game-config  <·· Subconfig in ConfigMap
+    │           key: enemies.cheat │
+    ...
 
 - k8s Built-in Secrets
   - Service Accounts automatically create and attach secrets with API Credentials.
   - k8s automatically creates secrets with credentials granting API access.
   **NOTE: Pods are automatically modified to use them.**
 
-- CREATING USER SECRETS
-  =====================
-  - STEP 1) DECLARE SECRETS
+                                       CREATING USER SECRETS ALT 1
+  ================================================================
+  $ echo -n .... > ./user.txt          <·· STEP 1) Alt 1. As "secret owner" create un-encrypted secrets
+  $ echo -n .... > ./pass.txt                      in local machine.
+            ^^^
+            └──┴─······························ special characters must be '\' escaped.
+  $ kubectl create secret  \           <·· STEP 2) Create k8s Secret
+     generic **db-user-pass**\
+      --from-file=./user.txt \
+      --from-file=./pass.txt
 
-    ALTERNATIVE 1               │ ALTERNATIVE 2                 │ ALTERNATIVE 3
-    Create un-encrypted secrets │ Create Secret with data       │ Create Secret with stringData
-    locally                     │                               │
-    $ echo -n ... > ./user.txt  │ cat << EOF > secret.yaml      │ apiVersion: v1
-    $ echo -n ... > ./pass.txt  │ apiVersion: v1                │ kind:ºSecretº
-              ^^^               │ kind:ºSecretº                 │ metadata:
-      special chars. must       │ metadata:                     │   name: mysecret
-      be '\' escaped.           │   name: mysecret              │ type: Opaque
-                                │ type: Opaque                  │ stringData:
-                                │ data:                         │   config.yaml: |-
-                                │   user:$(echo -n .. | base64) │     apiUrl: "https://.../api/v1"
-                                │   pass:$(echo -n .. | base64) │     user: admin
-                                │ EOF                           │     pass: 1f2...
-                                ·
-  - STEP 2) SAVE TO CLUSTER     ·
-                                │   $ kubectl apply -f ./secret.yaml
-    $ kubectl create secret  \  │
-     generic **db-user-pass**\  │
-      --from-file=./user.txt \  │
-      --from-file=./pass.txt    │
+  $ shred -n 2 -z -v -u pass.txt       <·· Safe delete secrets on disk
+  $ shred -n 2 -z -v -u user.txt           (vs just a 'rm pass.txt')
 
-  - STEP 3) VERIFY/CHECK CREATED SECRET
-      $ kubectl get secrets                        $ kubectl describe secrets/db-user-pass
-      → NAME           TYPE    DATA  AGE           Name: **db-user-pass**
-    **→ db-user-pass   Opaque  2     51s*          ...
-                                                   Data
-                                                   ====
-                                                   user.txt:    5 bytes
-                                                   pass.txt:    12 bytes
+                                       CREATING USER SECRETS ALT 2
+  ================================================================
+  $ cat << EOF > secret.yaml           <·· STEP 1) Alt 2.1. As "secret owner" create k8s Secret  base64 encoded
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: mysecret
+  type: Opaque
+  data:                                        'base64': standard Unix tool
+    user:$(echo -n .. | base64)            <·· $(...) : Bash syntax suggar: Execute '...' command,
+    pass:$(echo -n .. | base64)                         then replace command output as effective value.
+  EOF
 
-- "INJECTING" SECRETS INTO POD's CONTAINERS:
-  Alt 1.a:                        │ Alt 1.b:                              │ Alt 2: Consume as ENV.VAR
+  $ cat << EOF > secret.yaml           <·· STEP 1) Alt 2.1. As "secret owner" create k8s Secret
+  apiVersion: v1                                 with stringData
+  kind: Secret
+  metadata:
+    name: mysecret
+  type: Opaque
+  stringData:
+    config.yaml: |-
+      apiUrl: "https://.../api/v1"
+      user: admin
+      pass: 1f2...
+
+  $ kubectl apply -f secret.yaml       <·· STEP 2) Apply secret.
+  $ shred -n 2 -z -v -u secret.yaml     <·· Safe delete secrets on disk
+
+  $ kubectl get secrets                <·· STEP 3) VERIFY/CHECK CREATED SECRET
+  > NAME           TYPE    DATA  AGE
+  > db-user-pass   Opaque  2     51s
+
+
+  $ kubectl describe secrets/db-user-pass
+  Name: **db-user-pass**
+  ...
+      Data
+      ====
+      user.txt:    5 bytes
+      pass.txt:    12 bytes
+
+
+- "INJECTING" SECRETS INTO POD'S CONTAINERS: (As Developer/DevOps)
+
+  ALT 1.A:                        │ ALT 1.B:                              │ ALT 2: CONSUME AS ENV.VAR
   Mount file as volume            │ Mount items file as volume            │ (App will read env.vars to fetch
                                   │                                       │  the secrets)
                                   │                                       │
@@ -374,208 +556,7 @@ https://thenewstack.io/question-the-current-dogma-is-kubernetes-hyper-scale-nece
            JSON does NOT support     · username will be seen in container as:
            octal notation.             /etc/foo/my-group/my-username
            256 = 0400                · password secret is not projected
-
-
-- CREATING A ConfigMap:
-   INPUT DATA                   CREATE ConfigMap                   VERIFY ConfigMap created
-   =======================   →  STEP 1.Alt 1)                      ========================
-   ../config1/                 $ kubectl create configmap \        $ kubectl get configmaps \
-      ├─ºgame.propertiesº        config1 --from-file=config1/        config1 -o yaml
-      └─º  ui.propertiesº                                          ...
-                                                                     data:
-                               STEP 1.Alt 2)                         game.properties:
-                               $ kubectl create configmap \            ...
-                                 --from-literal=key1.sub=val1 \      ui.properties:
-                                 --from-literal=...
-
-    ┌────────────────────────────────┐
-    │kind: Pod                       │
-    │...                             │
-    │spec:                           │
-    │ containers:                    │
-    │  ─ name: test─container        │
-    │    ...                         │
-    │    env:                        ← INJECTING IN CONTAINER
-    │    º─ name: ENEMIES_CHEAT     º│ =======================
-    │    º  valueFrom:              º│
-    │    º    configMapKeyRef:      º│
-    │    º      name: game─config   º│
-    │    º      key: enemies.cheat  º│
-    ...
-
-● Service: INMUTABLE VIEW OF "APP" (set of moving Pods) [[{101.service]]
-- Pods and Pods config is mutable. Pods can move to a different working node in the k8s pool
-  "at random", changing their internal IP.
-- The Service provides the INMUTABLE VIEW (as seen by other Pods/Apps) of the moving
-  pods with a PERMANENT internal Cluster IP|DNS name by grouping Pods in a "logical set"
-  with a NETWORK POLICY to access them.
-
-  NOTE: The "kube-proxy" gets in charge of the "network magic": @[#kube-proxy_summary]
-
-   Time0 ·················> Time1 ·······> Time2 ·············...
-     v                        v              v
-   client ··> Service ··┐                  client ··> Service ··┐
-   request              ·                  request              ·
-              Pod@Node1<┘   ┌···· Node1                         ·
-                            ·                                   ·
-                  Node2     └>Pod@Node2               Pod@Node2<┘
-
-- SERVICE TYPES:
-  =============
-  · ClusterIP    : (default) internal-to-cluster virtual IP.
-                   No IP exposed outside the cluster.
-
-  · ExternalName : Maps apps (Pods services) to an externally
-                   visible DNS entry (ex: foo.example.com)
-
-┌ · NodePort     : (L4) Directly Exposes an external Node-IP:Port to internal Pods.
-│
-├ · LoadBalancer : (L4) Exposes 'Service' externally using cloud provider's load
-│                       balancer. NodePort⅋ClusterIP services are automa. created.
-│
-└→ Alternatively 'Ingress' (L7) can be used to expose HTTP/S services externally.
-   'NodePort'/'LoadBalancer' Services allows for TCP,UDP,PROXY and SCTP(k8s 1.2+)
-   - Advanced load balancing (persistent sessions, dynamic weights) are NOT yet
-     supported by Ingress rules (20??-??)
-   - 'Ingress' allows to expose services based on HTTP HEADER 'host' (virtual hosting),
-      HTTP paths/path regex) ,...  not available to 'NodePort'/'LoadBalancer' Services
-
-              ┌Cloud Provider┐
-          ┌···│ LoadBalancer │······┐
-          ·   └──────────────┘      ·
-          v                         v
-      ClusterIP          │       NodePort             │      ExternalName
-      =========          │       ========             │      ============
-                         │                            │
-            ┌···>:80     │   :3100             :80    │           ┌·>|node1├·>:80
-            ·    │Pod│   │   ┌··>│node├··┐  ┌─>│Pod│  │           ·           │Pod│
-  Internal  ·            │   ·           ·  ·         │ External  ·
-  Traffic   ·            │ Incomming     v  ·         │ Traffic   ·
-  └·······> ClusterIP:80 │ traffic      │NodePort│    │ └·····> ExternalIP:80
-            ·            │   ·           ^  ·         │     │   │LoadBalancer│
-            ·            │   ·           ·  ·         │     │     ·
-            ·    │Pod│   │   └··>│node├··┘  └·>│Pod│  │ Incomming ·            Pod│
-            └···>:80     │   :3100          :80       │   traffic └·>│node2├·>:80
-                         │   ^                ^       │
-                         │   Creates mapping between  │
-                         │   node port(3100) and      │
-                         │   Pod port (80)            │
-
-
-  ┌ service.yaml ────────┐   $ kubectl expose deployment/my-nginx # <- alt1:
-  │ apiVersion: v1       │   $ kubectl apply -f service.yaml      # <- alt2:
-  │ kind: Service        │
-  │ metadata:            │
-  │   name: Redis        │ ← Must be valid DNS mapping to DNS entry 'redis.namespace01'
-  │ spec:                │    (when using strongly recommended k8s DNS add-on).
-  │                      │
-  │   selector:          │ ← Targeted Pods (logical group of Pods) *1
-  │     app: MyApp       │   ← Matching label/s (ussually something like an App or App Sub-service)
-  │                      │
-  │   clusterIP: 1.1.1.1 │ ← Optional (discouraged). Used to force IP matching existing DNS entry
-  │                      │   or hardcoded ("legacy") IPs difficult to reconfigure to new k8s
-  │                      │   deployments (by default clusterIP is  auto-assigned).
-  │                      │   KEY-POINT: When the service is up, Pods will be injected ENV.VARs like:
-  │                      │     REDIS_SERVICE_HOST : 1.1.1.1   REDIS_PORT: ...
-  │   ports:             │     REDIS_SERVICE_PORT : 6379      REDIS_PORT_6379_TCP_...
-  │   - name: http       │
-  │     protocol: TCP    │ ← := TCP* | UDP | HTTP | PROXY | SCTP(k8s 1.2+)
-  │     port: 80         │ ← Request to port 80 will be forwarded to Port 9376
-  │     targetPort: 9376 │   on "any" pod matching the selector.
-  │   - name: https      │
-  │     ...              │
-  │   sessionAffinity: "ClientIP" ← Optionally set timeout (defaults to 10800)     [[{troubleshooting.network]]
-  └──────────────────────┘          sessionAffinityConfig.clientIP.timeoutSeconds  [[}]]
-
-    *1: There is a particular scenario where the selector is empty:
-        'Service' pointing to an 'Endpoint' object  ┌ kind: Endpoints ─────────────────┐
-         representing an existing external          │ metadata: { name: ddbb01 }       │
-         (TCP) service (DDBB, ERP, API REST, ...)   │ subsets:                         │
-         in a different namespace, cluster,         │   - addresses: {  ip: 10.0.0.10 }│
-         VM or non-k8s controlled IP                │   - ports:     { port: 5432 }    │
-                                                    └──────────────────────────────────┘
-  NOTE:  (Much more) detailed info available at
-  @[https://kubernetes.io/docs/concepts/services-networking/service/]
-   (Section: about kube-proxy + iptables +... advanced config settings)
-
-[[101.service}]]
-
-● Ingress Rules/Controller: [[{network.101.ingress]]
-  - Load Balancer      : layer 4, unaware of the actual apps.       [[{02_doc_has.comparative]]
-                         persistent session, dynamic weights.
-                         (better for non-HTTP like apps)
-  - Ingress controllers: layer 7, can use advanced rules based on
-                         inbound URL, ..., apply TLS termination    [[{network.TLS,security.TLS}]]
-                         removing TLS cert.complexity from Apps
-                         (Better for HTTP like apps)                [[}]]
-
-                           Ingress                   ┌············┐
-      POST               | controller │              · ┌ node1 -┐ ·┌ node2  ┐
-      Host: app1.com ····>····┐    ┌··│··>│ServiceA├·┤ │        │ ·│        │
-                         |  ┌······┘  │              └·> │PodA│ │ └> │PodA│ │
-      POST               │  · ·       │                │        │  │        │
-      Host: app2.com ····>··┘ └··········>│ServiceB├···> │PodB│ │  │        │
-                         │            │                │        │  │        │
-                         │            │                │        │  │        │
-                   external HTTP/s                     └────────┘  └────────┘
-                    endpoing
-
-
-- PRE-SETUP) an ingress controller must be in place: ingress-(linkerd|istio|nginx...)
-  **WARN: Different Ingress controllers operate slightly differently. **
-
-  ┌─ app1_tls_secrets.yml ─────────┐                                                    [[{security.tls]]
-  │ apiVersion: v1                 │
-  │ kind: Secret                   ← We need to setup secrets with private cert. key
-  │ type: kubernetes.io/tls        │ The secret will be "injected" to the ingress controller.
-  │ metadata:                      │ (nginx, istio,...)
-┌→│   name: secretTLSPrivateKey    │
-· │   namespace: default           │
-· │ data:                          │
-· │   tls.key: base64 encoded key  ← Secret to protect
-· │   tls.crt: base64 encoded cert ← Not really secret.  Public certificate.
-· └────────────────────────────────┘                                                    [[}]]
-· ┌─ app1_ingress.yml ────────────────────┐
-· │ apiVersion: networking.k8s.io/v1beta1 │
-· │ kind: Ingress                         │
-· │ metadata:                             │
-· │   name: test-ingress                  │
-· │   annotations:                        │
-· │     nginx.ingress.kubernetes.io/rewrite-target: / ← Annotation used before IngressClass was added
-· │                                       │             to define the underlying controller implementation.
-· │                                       │             .ingressClassName can replace it now.
-· │ spec:                                 │
-· │   tls:                                ← Optional but recomended. Only 443 port supported.
-· │     - hosts:                          │
-· │         - secure.foo.com              ← values must  match cert CNs
-· │                                       │
-└·│······ secretName: secretTLSPrivateKey │
-  │   rules:                              ← A backend with no rules could be use to expose a single service
-  │   - host: reddis.bar.com              ← Optional. filter-out HTTP requests not addressing this host
-  │     http:                             │
-  │       paths:                          ← If 2+ paths in list match input request, longest match "wins".
-  │       - path: /reddis                 │
-  │         pathType: Prefix              ← Implementation Specific: delegate matching to IngressClass (nginx,...)
-  │                                       │ Exact : Matches case-sensitive URL path exactly
-  │         backend:                      │ Prefix: Matches case-sensitive based on request URL prefix
-  │           serviceName: reddissrv      ← targeted k8s service
-  │           servicePort: 80             ← Need if Service defines 2+ ports
-  │                                       │
-  │   - host: monit.bar.com               ← Optional. filter-out HTTP requests not matching host
-  │     http:                             │
-  │       - path: /grafana                │
-  │         pathType: Prefix              │
-  │         backend:                      │
-  │           serviceName: grafanasrv     │ ← targeted k8s service
-  │       - path: /prometheus             │
-  │         ...                           │
-  │   - http:                             ← Default service for non-matching/not-defined host
-  │       - path: /                       │
-  │         pathType: Prefix              │
-  │         backend:                      │
-  │           serviceName: httpdsrv       │ ← targeted k8s service
-  └───────────────────────────────────────┘
-[[network.101.ingress}]]
+[[application.configuration}]]
 
 ● Controllers [[{101.controllers]]
 • ReplicaSet Controller:   [[{101.controllers.replicaset]]
@@ -591,7 +572,7 @@ https://thenewstack.io/question-the-current-dogma-is-kubernetes-hyper-scale-nece
 
   ┌─ app1_frontend_repset.yaml  ┐   $ kubectl create -f http:...app1_frontend_repset.yaml
   │ apiVersion: apps/v1         │   · replicaset.apps/frontend created
-  │ kind: ReplicaSet            │   $ kubectl describe rs/frontend
+  │ kind: ReplicaSet            │   $ kubectl describe rs/frontend -l app=guestbook
   │                             │   · ...
   │                             │   · Replicas:  **3 current / 3 desired**
   │                             │   · Pod Template: ...
@@ -640,9 +621,13 @@ https://thenewstack.io/question-the-current-dogma-is-kubernetes-hyper-scale-nece
 ● **Deployment** [[{101.controllers.deployment,application.101]]
 
  - An application is "blur" term in Kubernetes. "Deployment" object is the    [[{02_doc_has.keypoint]]
-   most similar entity mapping to the intuitive concept of "Application".
+   most similar entity mapping to the intuitive concept of "Application",
+   declaring the "desired set of resources" fot the life-cycle of an application.
+   (An application is also called "solution" using Microsoft nomenclature or
+    service -discouraged sin "service" is used in k8s with other meaning relating
+    to network inmutable view of the app).
 
- - Deployments Adds application lifecycle to ReplicaSet (creation, updates,...)
+ - Deployments adds application lifecycle to ReplicaSet (creation, updates,...)
    e.g: Pod definition changed: Deployment takes care of gradually moving from
         a running (old) ReplicaSet to a new (automatically created) ReplicaSet.
    Deployments also rollback to (old) ReplicaSet if the new one is not stable.
@@ -751,221 +736,196 @@ https://thenewstack.io/question-the-current-dogma-is-kubernetes-hyper-scale-nece
 [[101.controllers.deployment}]]
 [[101.controllers}]]
 
-● Object Management:
-- REF:
-  - @[https://kubernetes.io/docs/concepts/overview/object-management-kubectl/overview/]
-  - @[https://kubernetes.io/docs/concepts/overview/working-with-objects/object-management/]
-  - @[https://github.com/kubernetes/api/blob/master/core/v1/types.go]
+● Service: NETWORK INMUTABLE VIEW OF a "HTTP RPC" (RESTfull, GraphQL, GRP,...) "Application" [[{101.service]]
 
-   ┌──────────┐                       ┌───────────┐
-   │k8s object│                    ┌··→ metadata  │
-   ├──────────┤                    ·  ├───────────┤
-   │kind      < core/v1/types.go   ·  │name       < maps to /api/v1/pods/name
-   │metadata  <····················┘  │UID        < Distinguish between historical
-   │spec      < desired state         │namespace  │ occurrences of similar object
-   │state     < present state         │labels     │
-   └──────────┘                       │annotations│
-                                      └───────────┘
-                         BºMETADATA IS ORGANIZED AROUND THE CONCEPT OF AN APPLICATION.º
-                           K8S DOES NOT ENFORCE A FORMAL NOTION OF APPLICATION.
-                           APPS ARE DESCRIBED THORUGH METADATA IN A LOOSE DEFINITION.
+- Pods and Pod's network (IPs) are mutable. Pods can move to a different working node
+  in the k8s pool "at random", changing their internal IP.
+- The k8s "Service" provides the INMUTABLE VIEW (as seen by other Pods/Apps) of the moving
+  pods with a PERMANENT internal Cluster IP|DNS name by grouping Pods in a "logical set"
+  with a NETWORK POLICY to access them.
 
-● kubectl
-                                           (/openapi/v2)
-  etcd     ←······ k8s objects ←·········→ kube-apiserver ←···→  $ kubectl $action $resource
-  (serialized     Represent API resources      ┌───────────────────────────┴─────┘
-   states)        (apps running on nodes,      ├ get     : list resources
-                   resources available to a    ├ describe: show details (and events for pods)
-                   a given app, policies       ├ logs    : print container logs
-                   (restart, upgrades, ...)    ├ exec    : exec command on container
-                                               └ apply   : creates and updates resources
-                                                 ...
-• kubectl pre-setup:
-  $ KUBE_EDITOR="vim"
-  $ source <(kubectl completion bash)           < autocompletion for bash
-  $ source <(kubectl completion zsh)            < autocompletion for bash
+  NOTE: The "kube-proxy" gets in charge of the "network magic": @[#kube-proxy_summary]
 
-  $ KUBECONFIG=${KUBECONFIG}:~/.kube/config     < using multiple kubeconfig files
-  $ KUBECONFIG=${KUBECONFIG}:~/.kube/kubconfig2
-  $ kubectl config view                         < Show merged kubeconfig settings.
+   Time0 ·················> Time1 ·······> Time2 ·············...
+     v                        v              v
+   client ··> Service ··┐                  client ··> Service ··┐
+   request              ·                  request              ·
+              Pod@Node1<┘   ┌···· Node1                         ·
+                            ·                                   ·
+                  Node2     └>Pod@Node2               Pod@Node2<┘
 
-  $ kubectl config current-context
-  $ kubectl config use-context my-cluster-name
+- SERVICE TYPES:
+  =============
+  · ClusterIP    : (default) internal-to-cluster virtual IP.
+                   No IP exposed outside the cluster.
 
-  $ kubectl run nginx --image=nginx
-  $ kubectl explain pods,svc
+  · ExternalName : Maps apps (Pods services) to an externally
+                   visible DNS entry (ex: foo.example.com)
 
-  $ kubectl edit svc/my-service-1               < Edit resource
+┌ · NodePort     : (L4) Directly Exposes an external Node-IP:Port to internal Pods.
+│
+├ · LoadBalancer : (L4) Exposes 'Service' externally using cloud provider's load
+│                       balancer. NodePort⅋ClusterIP services are automa. created.
+│
+└→ Alternatively 'Ingress' (L7) can be used to expose HTTP/S services externally.
+   'NodePort'/'LoadBalancer' Services allows for TCP,UDP,PROXY and SCTP(k8s 1.2+)
+   - Advanced load balancing (persistent sessions, dynamic weights) are NOT yet
+     supported by Ingress rules (20??-??)
+   - 'Ingress' allows to expose services based on HTTP HEADER 'host' (virtual hosting),
+      HTTP paths/path regex) ,...  not available to 'NodePort'/'LoadBalancer' Services
 
-  $ kubectl get pods  \                         < filter objects using field selectors.
-    --field-selector  spec.restartPolicy=Always   fields depends on each object type/kind.
-  $ kubectl get pods \                            'metadata.name' and 'metadata.namespace'
-    --field-selector status.phase!=Running,..      are common to all types.
-
-• kubectl common flags :  [[{throubleshooting.101]]
-  --all-namespaces
-  -o wide
-  --include-uninitialized
-  --sort-by=.metadata.name
-  --sort-by='.status.containerStatuses[0].restartCount'
-  --selector=app=cassandra
-  --field-selector=....  [[}]]
-
-● Labels/Selectors:
-- labels are used to specify ºidentifying attributes of objectsº.
- ºmeaningful and relevant to application concerns/taxonomyº. (vs k8s core system)
-  ex labels/app-taxonomies:
-  "release"    : "stable"   # := "canary" ...
-  "environment": "dev"      # := "qa", "pre",  "production"
-  "tier"       : "frontend" # := "backend" "cache"
-  "track"      : "daily"    # := "weekly" "monthly" ...
-
-- ºRecommended ("standard") Labelsº
-  Key                          |  Description             | Example
-  ============================    =======================   ================
-  app.kubernetes.io/name       |  app-name                | mysql
-  app.kubernetes.io/instance   |  unique ID for instance  | wordpress-abcxzy
-  app.kubernetes.io/version    |  app-version             | 5.7.21
-  app.kubernetes.io/component  |                          | database
-  app.kubernetes.io/part-of    |                          | wordpress
-  app.kubernetes.io/managed-by |  tool used to manage ops | helm
-
-- See also recommended labels for Helm charts:
-@[https://helm.sh/docs/chart_best_practices/labels/]
-
-- WELL-KNOWN LABEL KEY ANNOTATIONS AND TAINTS
-  ===========================================
-  kubernetes.io/arch
-  kubernetes.io/os
-  beta.kubernetes.io/arch (deprecated)
-  beta.kubernetes.io/os (deprecated)
-  kubernetes.io/hostname
-  beta.kubernetes.io/instance-type
-  failure-domain.beta.kubernetes.io/region
-  failure-domain.beta.kubernetes.io/zone
-
-● Label selectors
-- Similar in concept to CSS selectors. They allow to point to k8s objects
-  (Pods, services, ...) by matching labels.
-- two types of selectors:
-  - equility selectors. Ex.:
-    environment=production,tier!=frontend  ← "," == "AND"
-
-  - set-based selectors: 'in', 'notin' 'exists'. Ex:
-    - 'key equal to environment and value equal to production or qa'
-    - 'environment in (production, qa)'
-    - 'tier notin (frontend, backend)'
-       └───────────┬────────────────┘
-       all resources with (key == "tier" AND
-                           values != frontend or backend )
-       AND
-       all resources with (key != "tier")
-
-    - 'partition'   ← all resources including a label with key 'partition'
-    - '!partition'  ← all resources without a label with key 'partition'
-
-- LIST and WATCH operations may specify label selectors to filter the sets
-  of objects returned using a query parameter. Ex.:
-  $ kubectl get pods -l environment=production,tier=frontend
-  $ kubectl get pods -l 'environment in (production),tier in (frontend)'
-  $ kubectl get pods -l 'environment in (production, qa)'
-  $ kubectl get pods -l 'environment,environment notin (frontend)'
-
-● Resource Types
-- RESOURCE TYPES SUMMARY:
-      clusters            │ podtemplates               │ statefulsets
-  (cs)componentstatuses   │ (rs)replicasets            │ (pvc)persistentvolumeclaims
-  (cm)configmaps          │ (rc)replicationcontrollers │ (pv) persistentvolumes
-  (ds)daemonsets          │ (quota)resourcequotas      │ (po) pods
-  (deploy)deployments     │ cronjob                    │ (psp)podsecuritypolicies
-  (ep)endpoints           │ jobs                       │ secrets
-  (ev)event               │ (limits)limitranges        │ (sa)serviceaccount
-  (hpa)horizon...oscalers │ (ns)namespaces             │ (svc)services
-  (ing)ingresses          │ networkpolicies            │ storageclasses
-                          │ (no)nodes                  │ thirdpartyresources
-
-- RESOURCE TYPES EXTENDED:
-  https://github.com/kubernetes/api/blob/master/core/v1/types.go
-  https://github.com/kubernetes/kubernetes/blob/master/pkg/apis/core/types.go
+              ┌Cloud Provider┐
+          ┌···│ LoadBalancer │······┐
+          ·   └──────────────┘      ·
+          v                         v
+      ClusterIP          │       NodePort             │      ExternalName
+      =========          │       ========             │      ============
+                         │                            │
+            ┌···>:80     │   :3100             :80    │           ┌·>|node1├·>:80
+            ·    │Pod│   │   ┌··>│node├··┐  ┌─>│Pod│  │           ·           │Pod│
+  Internal  ·            │   ·           ·  ·         │ External  ·
+  Traffic   ·            │ Incomming     v  ·         │ Traffic   ·
+  └·······> ClusterIP:80 │ traffic      │NodePort│    │ └·····> ExternalIP:80
+            ·            │   ·           ^  ·         │     │   │LoadBalancer│
+            ·            │   ·           ·  ·         │     │     ·
+            ·    │Pod│   │   └··>│node├··┘  └·>│Pod│  │ Incomming ·            Pod│
+            └···>:80     │   :3100          :80       │   traffic └·>│node2├·>:80
+                         │   ^                ^       │
+                         │   Creates mapping between  │
+                         │   node port(3100) and      │
+                         │   Pod port (80)            │
 
 
+  ┌ service.yaml ────────┐   $ kubectl expose deployment/my-nginx # <- alt1:
+  │ apiVersion: v1       │   $ kubectl apply -f service.yaml      # <- alt2:
+  │ kind: Service        │
+  │ metadata:            │
+  │   name: Redis        │ ← Must be valid DNS mapping to DNS entry 'redis.namespace01'
+  │ spec:                │    (when using strongly recommended k8s DNS add-on).
+  │                      │
+  │   selector:          │ ← Targeted Pods (logical group of Pods) *1
+  │     app: MyApp       │   ← Matching label/s (ussually something like an App or App Sub-service)
+  │                      │
+  │   clusterIP: 1.1.1.1 │ ← Optional (discouraged). Used to force IP matching existing DNS entry
+  │                      │   or hardcoded ("legacy") IPs difficult to reconfigure to new k8s
+  │                      │   deployments (by default clusterIP is  auto-assigned).
+  │                      │   KEY-POINT: When the service is up, Pods will be injected ENV.VARs like:
+  │                      │     REDIS_SERVICE_HOST : 1.1.1.1   REDIS_PORT: ...
+  │   ports:             │     REDIS_SERVICE_PORT : 6379      REDIS_PORT_6379_TCP_...
+  │   - name: http       │
+  │     protocol: TCP    │ ← := TCP* | UDP | HTTP | PROXY | SCTP(k8s 1.2+)
+  │     port: 80         │ ← Request to port 80 will be forwarded to Port 9376
+  │     targetPort: 9376 │   on "any" pod matching the selector.
+  │   - name: https      │
+  │     ...              │
+  │   sessionAffinity: "ClientIP" ← Optionally set timeout (defaults to 10800)     [[{troubleshooting.network]]
+  └──────────────────────┘          sessionAffinityConfig.clientIP.timeoutSeconds  [[}]]
 
-● k8s (def.)TCP Ports
-REF @[https://kubernetes.io/docs/tasks/tools/install-kubeadm/]
-                                       ┌───────┬───────┐
-                                       │Master │Worker │
-                                       │node(s)│node(s)│
-┌──────────────────────────────────────┼───────┼───────┤
-│Port Range   │ Purpose                │   X   │       │
-├──────────────────────────────────────┼───────┼───────┤
-│6443*        │ Kubernetes API server  │   X   │       │
-├──────────────────────────────────────┼───────┼───────┤
-│2379─2380    │ etcd server client API │   X   │       │
-├──────────────────────────────────────┼───────┼───────┤
-│10250        │ Kubelet API            │   X   │  X    │
-├──────────────────────────────────────┼───────┼───────┤
-│10251        │ kube─scheduler         │   X   │       │
-├──────────────────────────────────────┼───────┼───────┤
-│10252        │ kube─controller─manager│   X   │       │
-├──────────────────────────────────────┼───────┼───────┤
-│10255        │ Read─only Kubelet API  │   X   │  X    │
-├──────────────────────────────────────┼───────┼───────┤
-│ 30000─32767 │ NodePort Services      │       │  X    │
-└──────────────────────────────────────┴───────┴───────┘
-[[}]]
+    *1: There is a particular scenario where the selector is empty:
+        'Service' pointing to an 'Endpoint' object  ┌ kind: Endpoints ─────────────────┐
+         representing an existing external          │ metadata: { name: ddbb01 }       │
+         (TCP) service (DDBB, ERP, API REST, ...)   │ subsets:                         │
+         in a different namespace, cluster,         │   - addresses: {  ip: 10.0.0.10 }│
+         VM or non-k8s controlled IP                │   - ports:     { port: 5432 }    │
+                                                    └──────────────────────────────────┘
+  NOTE:  (Much more) detailed info available at
+  @[https://kubernetes.io/docs/concepts/services-networking/service/]
+   (Section: about kube-proxy + iptables +... advanced config settings)
+
+[[101.service}]]
+
+● Ingress Rules/Controller. [[{network.101.ingress]]
+  - Add an extra L7 indirection on top of Services.
+
+  - Load Balancer      : layer 4, unaware of the actual apps.       [[{02_doc_has.comparative]]
+                         persistent session, dynamic weights.
+                         (better for non-HTTP like apps)
+  - Ingress controllers: layer 7, can use advanced rules based on
+                         inbound URL, ..., apply TLS termination    [[{network.TLS,security.TLS}]]
+                         removing TLS cert.complexity from Apps
+                         (Better for HTTP like apps)                [[}]]
+
+                            Ingress                            ┌············┐
+      POST               ||controller│                         · ┌ node1 -┐ ·┌ node2  ┐
+      Host: app1.com ·····>····┐  ┌··│···········>│ServiceA├···┤ │        │ ·│        │
+                         ||  ┌····┘  │                         └·> │PodA│ │ └> │PodA│ │
+      POST               ││  · ·     │                           │        │  │        │
+      Host: app2.com ·····>··┘ └·················>│ServiceB├·····> │PodB│ │  │        │
+                         ││          │                           │        │  │        │
+       external HTTP/s···┴┘          │                           │ │... │ │  │        │
+        endpoint       ^               ^        ^            ^   └────────┘  └────────┘
+        endpoing       ·               ·        ·            ·
+                       └─ Ingress Con-─┘        └ Services───┘  └─ Pool of working nodes ─┘
+                          troller:
+                        Layer 7 indirection      Layer 4 indirection.
+                       Forward to service        Forward FIX IP to Pod's
+                       based on                  (moving) IPs
+                       HTTP header|URL path|...
+
+- PRE-SETUP) (by cluster admin) an Ingress controller must be in place: ingress-(linkerd|istio|nginx...)
+
+  **WARN: Different Ingress controllers operate slightly differently. **
+
+  ┌─ app1_tls_secrets.yml ─────────┐                                                    [[{security.tls]]
+  │ apiVersion: v1                 │
+  │ kind: Secret                   ← We need to setup secrets with private cert. key
+  │ type: kubernetes.io/tls        │ The secret will be "injected" to the ingress controller.
+  │ metadata:                      │ (nginx, istio,...)
+┌→│   name: secretTLSPrivateKey    │
+· │   namespace: default           │
+· │ data:                          │
+· │   tls.key: base64 encoded key  ← Secret to protect
+· │   tls.crt: base64 encoded cert ← Not really secret.  Public certificate.
+· └────────────────────────────────┘                                                    [[}]]
+· ┌─ app1_ingress.yml ────────────────────┐
+· │ apiVersion: networking.k8s.io/v1beta1 │
+· │ kind: Ingress                         │
+· │ metadata:                             │
+· │   name: test-ingress                  │
+· │   annotations:                        │
+· │     nginx.ingress.kubernetes.io/rewrite-target: / ← Annotation used before IngressClass was added
+· │                                       │             to define the underlying controller implementation.
+· │                                       │             .ingressClassName can replace it now.
+· │ spec:                                 │
+· │   tls:                                ← Optional but recomended. Only 443 port supported.
+· │     - hosts:                          │
+· │         - secure.foo.com              ← values must  match cert CNs
+· │                                       │
+└·│······ secretName: secretTLSPrivateKey │
+  │   rules:                              ← A backend with no rules could be use to expose a single service
+  │   - host: reddis.bar.com              ← Optional. filter-out HTTP requests not addressing this host
+  │     http:                             │
+  │       paths:                          ← If 2+ paths in list match input request, longest match "wins".
+  │       - path: /reddis                 │
+  │         pathType: Prefix              ← Implementation Specific: delegate matching to IngressClass (nginx,...)
+  │                                       │ Exact : Matches case-sensitive URL path exactly
+  │         backend:                      │ Prefix: Matches case-sensitive based on request URL prefix
+  │           serviceName: reddissrv      ← targeted k8s service
+  │           servicePort: 80             ← Need if Service defines 2+ ports
+  │                                       │
+  │   - host: monit.bar.com               ← Optional. filter-out HTTP requests not matching host
+  │     http:                             │
+  │       - path: /grafana                │
+  │         pathType: Prefix              │
+  │         backend:                      │
+  │           serviceName: grafanasrv     │ ← targeted k8s service
+  │       - path: /prometheus             │
+  │         ...                           │
+  │   - http:                             ← Default service for non-matching/not-defined host
+  │       - path: /                       │
+  │         pathType: Prefix              │
+  │         backend:                      │
+  │           serviceName: httpdsrv       │ ← targeted k8s service
+  └───────────────────────────────────────┘
+[[network.101.ingress}]]
 
 
-● kube-proxy Service setup @ kube-proxy [[{network.service]] #[kube-proxy_summary]
+[[101}]]
 
-  kube-proxy, installed on each k8s working node, get in charge of the network 'magic'.
-  It is more reliable than DNS (no problems with TTLs, client DNS cache,...).
+● "APPLICATION" TROUBLESHOOTING [[{troubleshooting.101]]
 
-  ┌─ Service registry seq USER-SPACE PROXY MODE ("legacy mode") ──────────────────┐
-  │ master →     kube─proxy: Event  +Service.EndPoint                             │
-  │ kube─proxy → kube─proxy: Open Random Port 01 and setup round─robin from       │
-  │                          random─port 01 to ºall existingº Backend Pods        │
-  │                          matching the Service selector.                       │
-  │ kube─proxy → iptables  : Install iptables rule in kernel to capture traffic to│
-  │                          (virtual) clusterIP:port to Random Port 01           │
-  │ ...                                                                           │
-  │ app        → kernel    : request to clusterIP:port                            │
-  │ kernel     → iptables  : request to clusterIP:port                            │
-  │ iptables   → kube─proxy: request to random port                               │
-  │ kube─proxy → kube─proxy: Round─robin amongst all availables Pods.             │
-  │                          (The kube─proxy keeps a list of live─Pods matching   │
-  │                           Service.Selector using also SessionAffinity for     │
-  │                           better balancing)                                   │
-  │ kube─proxy → Pod N     : request                                              │
-  └───────────────────────────────────────────────────────────────────────────────┘
-  ┌─ Service registry seq IPTABLES PROXY MODE ────────────────────────────────────┐
-  │ master →     kube─proxy: Event +Service.EndPoint                              │
-  │ kube─proxy → iptables  : Install iptables rule in kernel to capture traffice to
-  │                          (virtual) clusterIP:port to some Pod_i(and just one) │
-  │                          from all Pods matching the Service.selecotr          │
-  │ ...                                                                           │
-  │ app        → kernel    : request to clusterIP:port                            │
-  │ kernel     → iptables  : request to clusterIP:port                            │
-  │ iptables   → Pod i     : request  (Request fails if pod is down, readiness    │
-  │                          probes must be set to skip faulty Pods               │
-  └───────────────────────────────────────────────────────────────────────────────┘
-  ┌─ Service registry seq IPVS PROXY MODE ────────────────────────────────────────┐
-  │  PRE─SETUP: IPVS module must be available on the node.                        │
-  │                                                                               │
-  │  master     → kube-proxy: Event +Service.EndPoint                             │
-  │  kube─proxy → netlink   : Create IPVS rules (sync status periodically)        │
-  │                           to all Pods in Selector (allowing for balancing)    │
-  │  app        → kernel    : request to clusterIP:port                           │
-  │  kernel     → netlink   : request to clusterIP:port                           │
-  │  netlink    → Pod i     : request                                             │
-  └──^────────────────────────────────────────────────────────────────────────────┘
-   netlink allows next balancing options:
-   · rr: round-robin                 · sh: source hashing
-   · lc: least connection (smallest  · sed: shortest expected delay
-         number of open con.)        · nq: never queue
-   · dh: destination hashing
-[[}]]
-
-● POD MONITORING 101 [[{101,troubleshooting.101,01_PM.low_code,02_doc_has.diagram.decission_tree,101.kubectl,application]] #[k8s_troubleshooting_summary]
+● POD MONITORING 101 [[{101,troubleshooting.101,monitoring.application.pods,]] #[k8s_troubleshooting_summary]
+                     [[01_PM.low_code,02_doc_has.diagram.decission_tree,101.kubectl,application]]
   $ kubectl get pods                           # <·· List pods (in default namespace)
   $ kubectl get pod my-pod                     # <·· ensure pod is running
   $ kubectl top pod POD_NAME --containers      #
@@ -981,13 +941,10 @@ REF @[https://kubernetes.io/docs/tasks/tools/install-kubeadm/]
                                                      at container startup.
 [[}]]
 
-● "APPLICATION" TROUBLESHOOTING [[{troubleshooting.101]]
-REF: @[https://learnk8s.io/]
-
 - @[https://kubernetes.io/docs/tasks/debug-application-cluster/debug-application/]
 
-  On a separate (tmux)window monitor kubectl resources ike:
-  $  watch -n 4 "kubectl get pods,services,... -n $namespace"
+  TRICK: On a separate (tmux)window monitor kubectl resources ike:
+         $  watch -n 4 "kubectl get pods,services,... -n $namespace"
 
   $ kubectl get pods
     └─────┬────────┘
@@ -1430,7 +1387,6 @@ NOTE: @[https://www.infoworld.com/article/3541608/kubernetes-helm-gets-full-cncf
                                              to be ready state before marking release as
                                              successful.
 
-
    $ kubectl delete hr/my-release  ← force reinstall Helm release
                                      (upgrade fails, ... )
                                      Helm Operator will receive delete-event and force
@@ -1468,9 +1424,7 @@ NOTE: @[https://www.infoworld.com/article/3541608/kubernetes-helm-gets-full-cncf
     available Service Brokers.
 [[}]]
 
-
-
-● ServiceAccount [[{security.101,security.aaa]]
+● ServiceAccount [[{security.101,security.aaa]] @ma
 - Useful for k8s internal pods (and knative apps?) that want to
   interact with k8s apiserver.
   Running processes (at pod-containers) are authenticated trough
@@ -1791,135 +1745,50 @@ REF:@[https://www.youtube.com/watch?v=OulmwTYTauI]
         (Basically most of the benefits of k8s are lost for apps managing
          storage at App level. This is the case with most DDBBs and stream
          architectures).
-[[}]]
 
-● Running storage services [[{storage.101,01_PM.TODO]]
-(GlusterFS,iSCSI,...)
-@[https://opensource.com/article/17/12/storage-services-kubernetes]
-[[}]]
+@[https://kubernetes.io/docs/concepts/storage/volume-snapshot-classes/]
+- Dynamic Provisioning (when supported by the underlying StorageClass)  [[{cloud.billing]]
+  allows to provising storage on-demand                                 [[}]]
 
-● Rook.io [[{storage.distributed.101,01_PM.low_code,01_PM.TODO]]
-@[https://rook.io/]
-@[https://www.infoq.com/news/2019/08/rook-v1-release/]
-- Rook turns distributed storage systems into self-managing, self-scaling,
-  self-healing storage services AUTOMATING THE TASKS OF A STORAGE
-  ADMINISTRATOR: DEPLOYMENT, BOOTSTRAPPING, CONFIGURATION,
-  PROVISIONING, SCALING, UPGRADING, MIGRATION, DISASTER RECOVERY,
-  MONITORING, AND RESOURCE MANAGEMENT.
+- Dynamic volume limits (k8s v1.17+)
+@[https://kubernetes.io/docs/concepts/storage/storage-limits/]
+  Allowed for Amazon EBS, Google Persistent Disk, Azure Disk, CSI (2023-02)
+  - On GCE       : up to 127 volumes per node.
+  - On Amazon EBS: M5,C5,R5,T3 and Z1D instance types, up to 25 volumes per Node.
+                   Other               instance types, up to 39 volumes per Node.
+  - Azure        : up to 64 disks per node.
 
-- 2019-08: release v1.0 for production-ready workloads that use file,
-  block, and object storage in containers.
-  storage providers through operators include:
-  - Ceph Nautilus
-  - EdgeFS
-  - NFS.
-  eg: pod requests an NFS file system, Rook provisions it without any
-      manual intervention.
+● StorageClass: [[{storage.tunning]]
+Map to different I/O performance level, SLAs, backups and custom policies.
 
-- 1st storage project accepted by (CNCF)
-[[}]]
+kubernetes.io/... <··· AzureFile,AzureDisk,AWSElasticBlockStore,CephFS,Cinder,
+                       FC,FlexVolume,GCEPersistentDisk,iSCSI,NFS,RBD,
+                       VsphereVolume,PortworxVolume,Local
+aws-ebs.gp2       <··· Custom StorageClass: aws supports io1, gp2, sc1, st1.
+                       (and for each one we can tune iopsPerGB, fsType, encryption, ..)
+                       can be customized)
 
-● Ceph [[{storage.distributed,01_PM.TODO]]
-@[https://ceph.io/]
-[[}]]
+- Different Storage Classes allows for different tunning  (fstype, replication-type,
+  encryption, magnetic or SSD, ...)
 
-● Noobaa [[{storage.object.S3,storage.distributed,application.knative,cloud,01_PM.TODO]]
-@[https://www.noobaa.io/try]
+- reclaimPolicy := Delete (default) or Retain  [[{security.backups}]]
+[[storage.tunning}]]
 
-- NooBaa can collapse multiple storage silos into a single, scalable
-  storage fabric, by its ability to virtualize any local storage,
-  whether shared or dedicated, physical or virtual and include both
-  private and public cloud storage, using the same S3 API and
-  management tools.
-- NooBaa also gives you full control over data placement, letting
-  you place data based on security, strategy and cost considerations,
-  in the granularity of an application.
-
-- Easily scales locally on top of PVs or Ceph external clusters.
-
-- Workload Portability
-  Easily mirror data to other cluster or native cloud storage.
-[[}]]
-
+[[storage.101}]]
 
 [[ $storage }]]
 
-NETWORKING [[{ $networking ]]
-● Max Node Lattency [[{101,cluster_admin,network.101.kubelet,troubleshooting]]
-@[https://stackoverflow.com/questions/46891273/kubernetes-what-is-the-maximum-distance-latency-supported-between-kubernetes-no]
-- There is no latency limitation between nodes in kubernetes
-  cluster. They are configurable parameters.
-  - For kubelet on worker node:
-    --node-status-update-frequency secs
-      Sets how often kubelet posts node status to master.
-      Note: be cautious when changing the constant, it must work
-      with nodeMonitorGracePeriod in nodecontroller. (default 10s)
-  - For controller-manager on master node:
-    --node-monitor-grace-period secs
-      Amount of time which we allow running Node to be unresponsive
-      before marking it unhealthy. Must be N times more than kubelet's
-      'nodeStatusUpdateFrequency', where N means number of retries
-      allowed for kubelet to post node status. (default 40s)
-    --node-monitor-period secs
-      Period for syncing NodeStatus in NodeController. (default 5s)
-    --node-startup-grace-period secs
-      Amount of time which we allow starting Node to be unresponsive before
-      marking it unhealthy. (default 1m0s)
+● Operators [[{101,application.operators,qa,01_PM.TODO]]
+- "Clearing House" for k8s Ops:
+@[https://www.datacenterknowledge.com/open-source/aws-google-microsoft-red-hats-new-registry-act-clearing-house-kubernetes-operators]
+  - AWS, Google, Microsoft, Red Hat's New Registry to Act as Clearing
+    House for Kubernetes Operators.
+  - Operators make life easier for Kubernetes users, but they're so
+    popular that finding good ones is not easy. Operatorhub.io is an
+    attempt to fix that.
 [[}]]
-● SDN intro: [[{cloud.sdn,01_PM.TODO]]
-@[https://www.redhat.com/sysadmin/getting-started-sdn]
-- provide sdns: allows admin teams to control network traffic in
-      complex networking topologies through a centralized panel,
-      rather than handling each network device, such as routers
-      and switches, manually ("hierarchical" topology)
 
-## container network interface (cni):
-- library definition and a set of tools to configure network interfaces in linux containers
-  through many supported plugins.
-  - multiple plugins can run at the same time in a container
-    that participates in a network driven by different plugins.
-  - networks use json configuration files and instantiated as
-    new namespaces when the cni plugin is invoked.
 
-- common cni plugins include:
-  -*calico*:
-    - high scalability.
-    @[https://docs.projectcalico.org/v3.7/getting-started/kubernetes/]
-    @[https://kubernetes.io/docs/tasks/administer-cluster/network-policy-provider/calico-network-policy/]
-  -*cilium*:
-    - provides network connectivity and load balancing
-      between application workloads, such as application
-      containers and processes, and ensures transparent security.
-  -*contiv*:
-    - integrates containers, virtualization, and physical servers
-      based on the container network using a single networking fabric.
-  -*contrail*:
-    - provides overlay networking for multi-cloud and
-      hybrid cloud through network policy enforcement.
-  -*flannel*:
-    - makes it easier for developers to configure a layer 3
-      network fabric for kubernetes.
-  -*multus*:
-    - supports multiple network interfaces in a single pod on
-      kubernetes for sriov, sriov-dpdk, ovs-dpdk, and vpp workloads.
-  -*open vswitch (ovs)*:
-    - production-grade cni platform with a standard management
-      interface on openshift and openstack.
-  -*ovn-kubernetes*:
-    - enables virtual networks for multiple containers on different
-      hosts using an overlay function.
-  -*romana*:
-    - makes cloud network functions less expensive to build,
-      easier to operate, and better performing than traditional
-      cloud networks.
-
-- in addition to network namespaces, an sdn should increase security by
-  offering isolation between multiple namespaces with the multi-tenant plugin:
-  packets from one namespace, by default, will not be visible to
-  other namespaces, so containers from different namespaces cannot
-  send packets to or receive packets from pods and services of a
-  different namespace.
-[[}]]
 
 
 ● SERVICE MESH COMPARATIVE [[{cloud.sdn,02_doc_has.comparative,01_PM.low_code,application.observability,application.development]]
@@ -1944,18 +1813,16 @@ NETWORKING [[{ $networking ]]
 
 
 ● Monitoring [[{ $monitoring ]]
-● crictl: Debug node
+● crictl: Debug node [[{monitoring.cluster,01_PM.TODO]]
 @[https://kubernetes.io/docs/tasks/debug-application-cluster/crictl/]
 [[}]]
-
-● Monitoring the cluster
 
 ● Auditing [[{cluster_admin,security.auditing,01_PM.TODO]]
 @[https://kubernetes.io/docs/tasks/debug-application-cluster/audit/]
 [[}]]
 
 
-● Events in Stackdriver [[{cluster_admin,monitoring,troubleshooting,debug,01_PM.TODO]]
+● Events in Stackdriver [[{cluster_admin,monitoring,troubleshooting,01_PM.TODO]]
 @[href=https://kubernetes.io/docs/tasks/debug-application-cluster/events-stackdriver/]
 - Kubernetes events are objects that provide insight into what is
   happening inside a cluster, such as what decisions were made by
@@ -1971,7 +1838,7 @@ NETWORKING [[{ $networking ]]
   Stackdriver Logging, where they can be processed and analyzed.
 [[}]]
 
-● Metrics API+Pipeline [[{cluster_admin,monitoring,troubleshooting,debug,01_PM.TODO]]
+● Metrics API+Pipeline [[{cluster_admin,monitoring,troubleshooting,01_PM.TODO]]
 - Resource usage metrics, such as container CPU and memory usage, are
   available in Kubernetes through the Metrics API. These metrics can be
   either accessed directly by user, for example by using kubectl top
@@ -2127,53 +1994,7 @@ certificates and your existing identity management service.
 [[$governance }]]
 
 cluster Administration [[{ $cluster_admin ]]
-● Bootstrap/Manage k8s clusters [[{101,cluster_admin.bootstrap,01_PM.low_code,troubleshooting]]
-● "Kind": lightweight k8s setup over Docker @[kind_summary]
-@[https://kind.sigs.k8s.io/]
-Extracted from "Cloud_Native_Spring_in_Action_v7.pdf" (Chapter 2.4)
-"""... There  are  a  few  ways  to  install  Kubernetes  in  your
-    local development environment.  The  approach  I recommend  is
-   "Kind", since you have already installed Docker on your dev machine."""
-
-- Kind replaces "k8s server nodes" by "k8s Docker nodes".
-  Features:
-  - support for multi-node (including HA) clusters
-  - easy switch to a different Kubernetes version/release (from source)
-  - Support for Linux, macOS and Windows
-
-- Install
-  More options available at:
-@[https://kind.sigs.k8s.io/docs/user/quick-start]
-Latest Releases: https://github.com/kubernetes-sigs/kind/releases
-  $ KIND_V="v0.11.1"
-  $ SRC_URL="https://kind.sigs.k8s.io/dl"
-  $ SRC_URL="${SRC_URL}/${KIND_V}/kind-linux-amd64"
-  $ curl -Lo ./kind ${SRC_URL}
-  $ chmod +x ./kind
-
-- Ussage:
-  $ kind create cluster      ← bootstrap k8s cluster, 1 single command!!!
-
-  $ kind load docker-image \ ← Import image from local docker registry
-       $imgName:$imgVer
-
-  $ kind delete cluster      ← Remove cluster, 1 single command!!!
-[[}]]
-
-● Kubespray: Cluster Bootstrap [[{cluster_admin.bootstrap,_doc_has.comparative,cloud.aws,cloud.gce,01_PM.TODO]]
-@[https://github.com/kubernetes-sigs/kubespray/blob/master/docs/comparisons.md]
-- Kubespray is formed by a set of Ansible playbooks (optionally Vagrant) allowing
-  to create a new production-ready k8s cluster (mono/multi-master,
-  single/distributed etcd, Flannel|Calico|Weave|... network...).
-  Extra playbooks allows to add/remove new nodes to a running k8s cluster.
-- It targets "mostly" any environment, from bare metal (RedHat, CoreOS, Ubuntu,...)
-  to public clouds.
-- Compared to "Kops", "Kops" is more tightly integrated and profits better from
-  the unique features of the supported clouds (AWS,GCE, ...). "Kops" doesn't
-  allow to deploy on standard linux distros running on bare-metal/VMs.
-[[}]]
-
-● Kubeadm [[{cluster_admin.kubeadmin,01_PM.ext_resource,cluster_admin.IaS,qa.gitops,01_PM.TODO]]
+● Kubeadm [[{cluster_admin.kubeadmin,cluster_admin.IaS,qa.gitops,01_PM.TODO]]
   https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
   https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/
   https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-join/
@@ -2490,8 +2311,6 @@ Tools and techniques that can really help accelerate your ability to learn the k
 - Versions of CustomResourceDefinitions:
 @[https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definition-versioning/]
 
-- Migrate a ThirdPartyResource to CustomResourceDefinition:
-@[https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/migrate-third-party-resource/]
 - Aggregation Layer:
 @[https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/apiserver-aggregation/]
   - Configure the Aggregation Layer:
@@ -2549,48 +2368,53 @@ Tools and techniques that can really help accelerate your ability to learn the k
 [[}]]
 
 
+● TODO / UNORDERED NOTES [[{ $undordered_notes ]]
 
-TODO / UNORDERED NOTES [[{ $undordered_notes ]]
+- Helm installs resources in the following order:  [[{101]]
+  (Each resource has an associated "Resource"Spec and a "Resource"Status
+     1  Namespace················ split k8s into virtual clusters
+     2  NetworkPolicy············ TODO:
+     3  ResourceQuota············ TODO:
+     4  LimitRange··············· TODO:
+     5  PodSecurityPolicy········ TODO:
+     6  PodDisruptionBudget······ TODO:
+     7  ServiceAccount··········· Used by k8s internal pods (and knative apps?) interacting with k8s apiserver.
+     8  Secret··················· Injected as ENV.VARs or ConfigFiles in running Pods
+     9  SecretList···············
+    10  ConfigMap·················Injected as ENV.VARs or ConfigFiles in running Pods
+    11  StorageClass············· Tunning of Storage (ceph|aws|gce|azure|... performance, fs, HD|SSD, ...)
+    12  PersistentVolume········· storage I/O resource applying to whole cluster.
+    13  PersistentVolumeClaim···· PersistentVolume claimed by Controller or Pod.
+    14  CustomResourceDefinition· TODO: Migrate a ThirdPartyResource to CustomResourceDefinition:
+        @[https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/migrate-third-party-resource/]
+    15  ClusterRole·············· TODO
+    16  ClusterRoleList·········· TODO
+    17  ClusterRoleBinding······· TODO
+    18  ClusterRoleBindingList··· TODO
+    19  Role····················· TODO
+    20  RoleList················· TODO
+    21  RoleBinding·············· TODO
+    22  RoleBindingList·········· TODO
+    23  Service·················· INMUTABLE VIEW of applications (vs its "moving" Pods IPs/ports)
+    24  DaemonSet················ Controller prefered for pods providing a machine-level function.
+    25  Pod······················ runnable "unit of work" that can be scheduled (1+ Containers)
+    26  ReplicationController···· Deprecated in favor of Deployments configuring a ReplicaSet.
+    27  ReplicaSet··············· ensure "N" pod replicas are running simultaneously.
+    28  Deployment··············· Adds application lifecycle to ReplicaSet (e.g.: start wtih a
+                                  ReplicaSet of 3, gradually move to ReplicaSet of 5, update
+                                  with new ReplicaSet with new version, ...)
+    29  HorizontalPodAutoscaler·· Autoscales Deployments/StatefulSet to match demand  [[{application.scalability]]
+                                  running more Pods.
+        @[https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/] [[}]]
+  A Cluster Autoscaler must also be considered when using pod autoscaler.
 
-● TODO Recheck info mentioned in
-Helm installs resources in the following order:  [[{101]]
-    Namespace
-    NetworkPolicy
-    ResourceQuota
-    LimitRange
-    PodSecurityPolicy
-    PodDisruptionBudget
-    ServiceAccount
-    Secret
-    SecretList
-    ConfigMap
-    StorageClass
-    PersistentVolume
-    PersistentVolumeClaim
-    CustomResourceDefinition
-    ClusterRole
-    ClusterRoleList
-    ClusterRoleBinding
-    ClusterRoleBindingList
-    Role
-    RoleList
-    RoleBinding
-    RoleBindingList
-    Service
-    DaemonSet
-    Pod
-    ReplicationController
-    ReplicaSet
-    Deployment
-    HorizontalPodAutoscaler
-    StatefulSet
-    Job
-    CronJob
-    Ingress
-    APIService
+
+    30  StatefulSet··············
+    31  Job······················
+    32  CronJob··················
+    33  Ingress··················
+    34  APIService···············
 [[101}]]
-
-
 ● GPU and Kubernetes [[{cluster_admin.gpu,01_PM.TODO]]
 @[https://www.infoq.com/news/2018/01/gpu-workflows-kubernetes]
 @[https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/]
@@ -2716,7 +2540,7 @@ Run Applications
 [[}]]
 
 
-● CRDs (Custom Resource Definition) [[{k8s_api,01_PM.TODO]]
+● CRDs (Custom Resource Definition) [[{01_PM.TODO]]
 https://kubernetes.io/blog/page/17/
 KubeDirector: The easy way to run complex stateful applications on Kubernetes
  open source project designed to make it easy to run complex stateful
@@ -2727,7 +2551,7 @@ enables transparent integration with Kubernetes user/resource
 management as well as existing clients and tools.
 [[}]]
 
-● Topology-Aware Volume Provisioning [[{storage.101,01_PM.TODO]]
+● Topology-Aware Volume Provisioning [[{cloud.storage.101,01_PM.TODO]]
 @[https://kubernetes.io/blog/page/12/]
 - multi-zone cluster experience with persistent volumes is
   improving in k8s 1.12 with topology-aware dynamic provisioning
@@ -2754,8 +2578,7 @@ management as well as existing clients and tools.
 @[https://sysdig.com/blog/kubernetes-security-rbac-tls/]
 [[}]]
 
-● CNCF landscape beginner’s guide [[{01_PM.ext_resource,01_PM.TODO]]
-
+● CNCF landscape beginner’s guide [[{01_PM.TODO]]
 https://www.cncf.io/blog/2018/11/05/34097/
 [[}]]
 
@@ -2795,7 +2618,7 @@ does not mean that is the best way to run stateful applications..."
 @[https://cloud.google.com/blog/products/gcp/going-hybrid-with-kubernetes-on-google-cloud-platform-and-nutanix]
 [[}]]
 
-● Rancher K3s [[{cluster_admin.embedded,_doc_has,01_PM.TODO]]
+● Rancher K3s [[{cluster_admin.embedded,02_doc_has,01_PM.TODO]]
 https://k3s.io/
 https://www.itprotoday.com/containers/rancher-labs-k3s-shrinks-kubernetes-edge
  i[././how-it-works-k3s-revised.svg|width=10em]
@@ -2809,16 +2632,6 @@ https://www.itprotoday.com/containers/rancher-labs-k3s-shrinks-kubernetes-edge
   production Kubernetes cluster.
 - Optimized for ARM RaspPi ut to AWS a1.4xlarge 32GiB server.
 - 512MB RAM to run.
-[[}]]
-
-● Operators [[{101,application.operators,qa,01_PM.TODO]]
-- "Clearing House" for k8s Ops:
-@[https://www.datacenterknowledge.com/open-source/aws-google-microsoft-red-hats-new-registry-act-clearing-house-kubernetes-operators]
-  - AWS, Google, Microsoft, Red Hat's New Registry to Act as Clearing
-    House for Kubernetes Operators.
-  - Operators make life easier for Kubernetes users, but they're so
-    popular that finding good ones is not easy. Operatorhub.io is an
-    attempt to fix that.
 [[}]]
 
 ● Gluster-k8s [[{storage.distributed.gluster,01_PM.TODO]]
@@ -2893,7 +2706,7 @@ Litmus:
 @[https://kubernetes.io/docs/concepts/architecture/master-node-communication/]
 [[}]]
 
-● Kubermatic: [[{cluster_admin,01_PM.low_code,cloud,qa.scalability,qa.vendor_lockin,01_PM.TODO]]
+● Kubermatic: [[{cluster_admin.kubermatic,01_PM.low_code,cloud,application.scalability,qa.vendor_lockin,01_PM.TODO]]
 @[https://www.loodse.com/]
 - Run Kubernetes on Autopilot:
   Automate operations of thousands of Kubernetes clusters across
@@ -2912,7 +2725,7 @@ Litmus:
 
 ● k8s cli utilities [[{101,troubleshooting,01_PM.TODO]]
 https://developers.redhat.com/blog/2019/05/27/command-line-tools-for-kubernetes-kubectl-stern-kubectx-kubens/
--ºsternº                                                                   [[{troubleshooting,monitoring]]
+-ºsternº                                                                   [[{troubleshooting,monitoring.application]]
  - display the tail end of logs for containers and multiple pods.
  - the stern project comes from Wercker (acquired by Oracle in 2017).
  - rather than viewing an entire log to see what happened most
@@ -3035,7 +2848,7 @@ https://www.infoq.com/news/2019/11/automated-testing-infrastructure/
 - Automated Testing for Terraform, Docker, Packer, Kubernetes, and More
 [[}]]
 
-● Microsoft Keda [[{qa.scalability,01_PM.TODO]]
+● Microsoft Keda [[{application.scalability,01_PM.TODO]]
 @[https://www.infoq.com/news/2019/11/microsoft-keda-1-0-kubernetes/]
 - Microsoft Announces 1.0 Release of Kubernetes-Based Event-Driven Autoscaling (KEDA)
 [[}]]
@@ -3058,7 +2871,7 @@ https://enterprisersproject.com/article/2019/11/kubernetes-reality-check-3-takea
   doesn’t make sense to scale out the scheduler.
 [[}]]
 
-● Falco Security [[{security.101,security.governance.policies,_doc_has.comparative,01_PM.TODO]]
+● Falco Security [[{security.101,security.governance.policies,02_doc_has.comparative,01_PM.TODO]]
 @[https://www.infoq.com/news/2020/01/falco-security-cncf/]
 - Sysdig Falco provides intrusion and abnormality
   (app|container|VM, ...) detection for Kubernetes, Mesosphere,
@@ -3281,7 +3094,7 @@ for deployment on OpenShift
 @[https://medium.com/wandera-engineering/kubernetes-network-load-balancing-using-okhttp-client-54a2db8fc668]
 [[}]]
 
-● lightbitslab [[{storage.101,storage.nvme,01_PM.TODO]]
+● lightbitslab [[{storage.nvme,01_PM.TODO]]
 - Persistent storage for Kubernetes is readily available but persistent
   storage that performs like local NVMe flash, not so much.
 [[}]]
@@ -3315,7 +3128,7 @@ for deployment on OpenShift
   talks about distributed systems patterns and how containers enable it.
 [[}]]
 
-● Atlassian escalator [[{101,qa.scalability,01_PM.TODO]]
+● Atlassian escalator [[{101,application.scalability,01_PM.TODO]]
 @[https://www.infoq.com/news/2018/05/atlassian-kubernetes-autoscaler]
 - In Kubernetes, scaling can mean different things to different users. We
   distinguish between two cases:
@@ -3389,43 +3202,17 @@ kubelet generates a private key and a CSR for submission to a
 cluster-level certificate signing process.
 [[}]]
 
-● Volume Snapshot,Restore [[{storage.101,01_PM.TODO]]
+● Volume Snapshot,Restore [[{storage.101,security.backups,01_PM.TODO]]
 - Volume Snapshot/Restore: k8s 1.12+
   @[https://kubernetes.io/docs/concepts/storage/persistent-volumes/#volume-snapshot-and-restore-volume-from-snapshot-support]
-
-
-- TODO: Storage/Persistence: @ma
-@[https://kubernetes.io/docs/concepts/storage/volume-pvc-datasource/]
-@[https://kubernetes.io/docs/concepts/storage/storage-classes/]
-@[https://kubernetes.io/docs/concepts/storage/volume-snapshot-classes/]
-@[https://kubernetes.io/docs/concepts/storage/dynamic-provisioning/]
-@[https://kubernetes.io/docs/concepts/storage/storage-limits/]
 [[}]]
 
-
-● What's New [[{01_PM.ext_resource,qa.scalability,01_PM.TODO]]
-● 1.12
-@[https://www.infoq.com/news/2018/10/kubernetes-1-12]
-- Kubernetes 1.12 Brings:
-  - Horizontal Pod Autoscaler: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
-    The Horizontal Pod Autoscaler automatically scales the number of pods
-    in a replication controller, deployment, replica set or stateful set
-    based on observed CPU utilization (or, with custom metrics support,
-    on some other application-provided metrics). Note that Horizontal Pod
-    Autoscaling does not apply to objects that can't be scaled, for
-    example, DaemonSets.
-
-  - Support for the Container Storage Interface (CSI) plugin:
-  @[https://kubernetes.io/blog/2018/04/10/container-storage-interface-beta/]
-
-[[}]]
-
-● k8s on a Pine64 ARM (4GB RAM) [[{cluster_admin.embedded,01_PM.TODO]]
+● k8s on a Pine64 ARM (4GB RAM) [[{cloud.edge,01_PM.TODO]]
 @[https://itnext.io/building-an-arm-kubernetes-cluster-ef31032636f9]
 [[}]]
 
 
-● Monitoring .NET Apps [[{dev_lang.c#,application.knative,qa,monitoring,01_PM.TODO]]
+● Monitoring .NET Apps [[{dev_lang.c#,application.knative,qa,monitoring.application,01_PM.TODO]]
 @[https://developers.redhat.com/blog/2020/08/05/monitoring-net-core-applications-on-kubernetes/]
 [[}]]
 
@@ -3434,7 +3221,7 @@ Deploy your Java web application into the cloud using Eclipse JKube
 @[https://developers.redhat.com/blog/2020/07/27/deploy-your-java-web-application-into-the-cloud-using-eclipse-jkube/]
 [[}]]
 
-● Best Practices @ma [[{qa.best_practices,_doc_has.comparative,01_PM.TODO,]]
+● Best Practices @ma [[{qa.best_practices,02_doc_has.comparative,01_PM.TODO,]]
 @[https://dzone.com/articles/best-practices-for-advanced-deployment-patterns]
 (Rolling, Blue/Green, Canary, BigBan,...)
 [[}]]
@@ -3539,7 +3326,7 @@ Essential base primitives for all
 [[}]]
 
 ● kubectl recipes [[{101.kubectl,01_PM.TODO]]
-  $ kubectl get events --all-namespaces
+  $ kubectl get events --all-namespaces  [[{monitoring.cluster,monitoring.application]]
 NAMESPACE     LAST SEEN   TYPE      REASON                    OBJECT                              MESSAGE
 default       29d         Normal    NodeNotReady              node/node1                          Node node1 status is now: NodeNotReady
 default       7d4h        Normal    Starting                  node/node1                          Starting kubelet.
@@ -3556,9 +3343,9 @@ kube-system   7d4h        Normal    LeaderElection            endpoints/kube-con
 kube-system   7d4h        Normal    LeaderElection            lease/kube-controller-manager       node1_e4a58997-c39f-430d-a942-31d53124c5d5 became leader
 ...
 kube-system   34m       RºWarningº  FailedMount               pod/kubernetes-dashboard-...        MountVolume.SetUp failed for volume "kubernetes-dashboard-certs"...
+                                        [[monitoring.cluster}]]
 
-
-$ kubectl get endpoints --all-namespaces
+$ kubectl get endpoints --all-namespaces [[{monitoring.network]]
   NAMESPACE     NAME                        ENDPOINTS                                           AGE
   default       kubernetes                  192.168.1.2:6443                                    202d
   kube-system   coredns                     10.233.90.23:53,10.233.90.23:9153,10.233.90.23:53   202d
@@ -3566,6 +3353,7 @@ $ kubectl get endpoints --all-namespaces
   kube-system   kube-controller-manager     <none>                                              202d
   kube-system   kube-scheduler              <none>                                              202d
   kube-system   kubernetes-dashboard        10.233.90.22:8443                                   202d
+                                         [[monitoring.network}]]
 
 $ kubectl get deployments --all-namespaces
   NAMESPACE     NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
@@ -3638,17 +3426,6 @@ $ kubectl get deployments --all-namespaces
   A tool to convert docker-compose applications to Kubernetes. More
   information: https://github.com/kubernetes/kompose.
 
-● KOPS: Deploy on Cloud [[{cluster_admin,cloud.aws,cloud.gce,01_PM.low_code,01_PM.TODO]]
-@[https://github.com/tldr-pages/tldr/blob/master/pages/common/kops.md]  [TODO]
-
-@[https://github.com/kubernetes/kops/blob/master/README.md]
-@[https://github.com/kubernetes/kops/blob/master/README.md]
-- Kops cli-tool allows the automation of production-grade k8s cluster
-  (creation/destruction, upgrade, maintenance).
-- AWS is currently officially supported, with GCE in beta support,
-  and VMware vSphere in alpha, and other platforms planned.
-- It does NOT support standard linux distros on bare-metal/VMs.
-  Kubespray is prefered in this case.
 [[}]]
 
 ● https://github.com/tldr-pages/tldr/blob/master/pages/common/k8s-unused-secret-detector.md
@@ -3660,31 +3437,6 @@ $ kubectl get deployments --all-namespaces
 
   Command line interface tool to manage Kubernetes secrets.
   More information: https://github.com/dtan4/k8sec.
-
-● k0s: [[{01_PM.TODO.NOW]]
-@[https://docs.k0sproject.io/]
-
-    all-inclusive Kubernetes distribution, which is configured with all
-  of the features needed to build a Kubernetes cluster. Due to its
-  simple design, flexible deployment options and modest system
-  requirements, k0s is well suited for
-  - Any cloud
-  - Bare metal
-  - Edge and IoT
-
-  k0s drastically reduces the complexity of installing and running a
-  CNCF certified Kubernetes distribution. With k0s new clusters can be
-  bootstrapped in minutes and developer friction is reduced to zero.
-  This allows anyone with no special skills or expertise in Kubernetes
-  to easily get started.
-
-  k0s is distributed as a single binary with zero host OS dependencies
-  besides the host OS kernel. It works with any Linux without
-  additional software packages or configuration. Any security
-  vulnerabilities or performance issues can be fixed directly in the
-  k0s distribution that makes it extremely straightforward to keep the
-  clusters up-to-date and secure.
-[[}]]
 
 ● https://github.com/kubernetes-sigs/kind  [[{101,01_PM.TODO]]
   https://github.com/tldr-pages/tldr/blob/master/pages/common/kind.md
@@ -3708,17 +3460,6 @@ $ kubectl get deployments --all-namespaces
 
 - https://kubernetes.io/docs/reference/command-line-tools-reference/federation-apiserver/
 - https://kubernetes.io/docs/reference/command-line-tools-reference/federation-controller-manager/
-- https://kubernetes.io/docs/tasks/administer-federation/cluster/
-- https://kubernetes.io/docs/tasks/administer-federation/configmap/
-- https://kubernetes.io/docs/tasks/administer-federation/daemonset/
-- https://kubernetes.io/docs/tasks/administer-federation/deployment/
-- https://kubernetes.io/docs/tasks/administer-federation/events/
-- https://kubernetes.io/docs/tasks/administer-federation/hpa/
-- https://kubernetes.io/docs/tasks/administer-federation/ingress/
-- https://kubernetes.io/docs/tasks/administer-federation/job/
-- https://kubernetes.io/docs/tasks/administer-federation/namespaces/
-- https://kubernetes.io/docs/tasks/administer-federation/replicaset/
-- https://kubernetes.io/docs/tasks/administer-federation/secret/
 - https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/
 - https://kubernetes.io/docs/tasks/manage-hugepages/scheduling-hugepages/
 
@@ -3991,7 +3732,8 @@ https://kubernetes.io/docs/tasks/debug-application-cluster/local-debugging/"
   to the Kubelet so it can pull a private image on behalf of your Pod.
 [[}]]
 
-Recheck: cluster_admin....  cluster_admin.bootstrap
+
+
 
 ● Kubernetes-native apps: K8s offers a simple Endpoints API
 - non-native        apps: K8s offers virtual-IP-based-2-Service bridge
@@ -4036,119 +3778,6 @@ See also:
     VMs when utilization reaches the threshold, thus making room for
     containers that might come up later, and allowing them to boot up
     fast.
-
-● [{]]
-NON-CLASSIFIED                   CLUSTER: NODE RELATED:
-==============                   ======================
-DownwardAPIProjection            Node
-ExecAction                       NodeAddress
-KeyToPath                        NodeAffinity
-LocalObjectReference             NodeCondition
-ObjectFieldSelector              NodeConfigSource
-ObjectReference                  NodeConfigStatus
-Preconditions                    NodeDaemonEndpoints
-ResourceFieldSelector            NodeList
-ResourceRequirements             NodeProxyOptions
-ScopedResourceSelerRequirement   NodeResources
-ScopeSelector                    NodeSelector
-SecurityContext                  NodeSelectorRequirement
-SELinuxOptions                   NodeSelectorTerm
-SerializedReference              NodeSpec
-Sysctl                           NodeStatus
-TypedLocalObjectReference        NodeSystemInfo
-WindowsSecurityContextOptions    Lifecycle
-
-SCHEDULING-POD:                   CLUSTER-NAMESPACE
-===============                   ==================
-PreferredSchedulingTerm           Namespace
-TopologySelectorLabelRequirement  NamespaceList
-TopologySelectorTerm              NamespaceSpec
-Event                             NamespaceStatus
-EventList                         -- quotas ---
-EventSeries                       ResourceQuota
-EventSource                       ResourceQuotaList
-ComponentCondition                ResourceQuotaSpec
-ComponentStatus                   ResourceQuotaStatus
-ComponentStatusList
-ReplicationController
-ReplicationControllerCondition
-ReplicationControllerList
-ReplicationControllerSpec
-ReplicationControllerStatus
-Taint
-Toleration
-
-VOLUME RELATED:                      NETWORK-RELATED:
-==============================       ================
-Binding                              DaemonEndpoint
-Volume                               EndpointAddress
-VolumeSource                         EndpointPort
-VolumeNodeAffinity                   Endpoints
-PersistentVolume                     EndpointsList
-PersistentVolumeClaim                EndpointSubset
-PersistentVolumeClaimCondition       Service
-PersistentVolumeClaimList            ServiceAccount
-PersistentVolumeClaimSpec            ServiceAccountList
-PersistentVolumeClaimStatus          ServiceAccountTokenProjection
-PersistentVolumeClaimVolumeSource    ServiceList
-PersistentVolumeList                 ServicePort
-PersistentVolumeSource               ServiceProxyOptions
-PersistentVolumeSpec                 ServiceSpec
-PersistentVolumeStatus               ServiceStatus
-HostPathVolumeSource                 ClientIPConfig
-EmptyDirVolumeSource                 HTTPGetAction
-GCEPersistentDiskVolumeSource        HTTPHeader
-FCVolumeSource                       TCPSocketAction
-Flex(Persistent)VolumeSource         HostAlias
-GitRepoVolumeSource                  LoadBalancerIngress
-SecretVolumeSource                   LoadBalancerStatus
-NFSVolumeSource
-QuobyteVolumeSource
-DownwardAPIVolumeSource
-DownwardAPIVolumeFile
-VsphereVirtualDiskVolumeSource
-PhotonPersistentDiskVolumeSource
-PortworxVolumeSource
-ConfigMapVolumeSource
-ProjectedVolumeSource
-VolumeMount
-VolumeDevice
-AttachedVolume
-Glusterfs* RBD* Cinder*
-CephFSV* Flocker* Azure*
-ScaleIO* StorageOS* CSI*
-AWSElasticBlock* ISCSI*
-
-
-POD RELATED            CONFIG RELATED:            CONTAINER RELATED          Limits
-===========            ==============             =================          =============
-Pod                    ConfigMapProjection        ContainerPort              LimitRange
-PodAffinity            ConfigMapKeySelector       ContainerStateWaiting      LimitRangeItem
-PodAffinityTerm        ConfigMapEnvSource         ContainerStateRunning      LimitRangeList
-PodAntiAffinity        SessionAffinityConfig      ContainerStateTerminated   LimitRangeSpec
-Affinity               ConfigMapNodeConfigSource  ContainerState             RangeAllocation
-PodAttachOptions       ConfigMap                  ContainerStatus
-PodCondition           ConfigMapList              ContainerImage
-PodDNSConfig           EnvFromSource              Capabilities
-PodDNSConfigOption     EnvVar                     Handler (Container Life-cicle)
-PodExecOptions         EnvVarSource               Probe
-PodList                ── secret related ───
-PodLogOptions          SecretProjection
-PodPortForwardOptions  SecretReference
-PodProxyOptions        SecretKeySelector
-PodReadinessGate       SecretEnvSource
-PodSecurityContext     Secret
-PodSignature           SecretList
-PodSpec
-PodStatus
-PodStatusResult
-PodTemplate
-PodTemplateList
-PodTemplateSpec
-WeightedPodAffinityTerm
-PreferAvoidPodsEntry
-AvoidPods
-[[}]]
 
 ● pod scheduling:
   At present, there are two kinds of affinity/anti-affinity: required
@@ -4296,12 +3925,6 @@ apiVersion: v1
   accessible to anyone willing to try it out without needing to install
   the individual tools.
 
-● Kubernetes 1.24 - What's new? - New features and deprecations
-  https://sysdig.com/blog/kubernetes-1-24-whats-new/
-
-● K8s: 1.23 Released with Improved Events, gRPC Probes, and Support for Dual-Stack
-https://www.infoq.com/news/2021/12/kubernetes-1-23/
-
 ● Kubernetes Cluster API v1.0, Production Ready
 https://www.infoq.com/news/2021/11/kubernetes-cluster-api/
 
@@ -4358,106 +3981,77 @@ metadata:
 data:
   foo: bar  # <- base64 encoded "bar"
 
+● PersistentVolumes can be configured to be expandable when the [[{storage]]
+  underlying StorageClass also allows it.  k8s 1.11+            [[}]]
+
+● apiVersion: storage.k8s.io/v1                      [[{cloud.storage]]
+  kind: StorageClass
+  metadata:
+    name: standard_us_central
+  provisioner: kubernetes.io/gce-pd
+  parameters:
+    type: pd-standard
+  volumeBindingMode: WaitForFirstConsumer
+  allowedTopologies:                               ┐
+  - matchLabelExpressions:                         │ restrict topology of provisioned volumes
+    - key: failure-domain.beta.kubernetes.io/zone  │ to  geographical zones
+      values:                                      │
+      - us-central-1a                              │
+      - us-central-1b                              ┘  [[}]]
+
+● Cluster federation
+  https://kubernetes.io/docs/tasks/administer-federation
+
+● Running storage services [[{storage.101,01_PM.TODO]]
+(GlusterFS,iSCSI,...)
+@[https://opensource.com/article/17/12/storage-services-kubernetes]
+[[}]]
+
+● Rook.io [[{storage.distributed.101,01_PM.low_code,01_PM.TODO]]
+@[https://rook.io/]
+@[https://www.infoq.com/news/2019/08/rook-v1-release/]
+- Rook turns distributed storage systems into self-managing, self-scaling,
+  self-healing storage services AUTOMATING THE TASKS OF A STORAGE
+  ADMINISTRATOR: DEPLOYMENT, BOOTSTRAPPING, CONFIGURATION,
+  PROVISIONING, SCALING, UPGRADING, MIGRATION, DISASTER RECOVERY,
+  MONITORING, AND RESOURCE MANAGEMENT.
+
+- 2019-08: release v1.0 for production-ready workloads that use file,
+  block, and object storage in containers.
+  storage providers through operators include:
+  - Ceph Nautilus
+  - EdgeFS
+  - NFS.
+  eg: pod requests an NFS file system, Rook provisions it without any
+      manual intervention.
+
+- 1st storage project accepted by (CNCF)
+[[}]]
+
+● Ceph [[{storage.distributed,01_PM.TODO]]
+@[https://ceph.io/]
+[[}]]
+
+● Noobaa [[{storage.object.S3,storage.distributed,application.knative,cloud,01_PM.TODO]]
+@[https://www.noobaa.io/try]
+
+- NooBaa can collapse multiple storage silos into a single, scalable
+  storage fabric, by its ability to virtualize any local storage,
+  whether shared or dedicated, physical or virtual and include both
+  private and public cloud storage, using the same S3 API and
+  management tools.
+- NooBaa also gives you full control over data placement, letting
+  you place data based on security, strategy and cost considerations,
+  in the granularity of an application.
+
+- Easily scales locally on top of PVs or Ceph external clusters.
+
+- Workload Portability
+  Easily mirror data to other cluster or native cloud storage.
+[[}]]
 
 
 [[$undordered_notes }]]
-
-● tags [[{]]
-../tags.sh kubernetes.txt
-01_PM.BACKLOG
-01_PM.EXT_RESOURCE
-01_PM.LOW_CODE
-01_PM.TODO
-01_PM.TODO.CLEAN
-01_PM.TODO.NOW
-02_DOC_HAS.COMPARATIVE
-02_DOC_HAS.DIAGRAM
-02_DOC_HAS.DIAGRAM.DECISSION_TREE
-101
-101.JOBS
-101.K8S_INTERNALS
-101.KUBECTL
-APPLICATION
-APPLICATION.DAEMONSET
-APPLICATION.DEVELOPMENT
-APPLICATION.HELM
-APPLICATION.KNATIVE
-APPLICATION.KNATIVE.GW
-APPLICATION.OBSERVABILITY
-APPLICATION.OPERATORS
-APPLICATION.QUOTAS
-APPLICATION.SIDECAR
-CLOUD
-CLOUD.AWS
-CLOUD.BILLING
-CLOUD.GCE
-CLOUD.GCP
-CLOUD.IAC
-CLOUD.SDN
-CLOUD.STORAGE
-CLUSTER_ADMIN
-CLUSTER_ADMIN.BACKUP
-CLUSTER_ADMIN.BOOTSTRAP
-CLUSTER_ADMIN.BOOTSTRAP.TLS
-CLUSTER_ADMIN.EMBEDDED
-CLUSTER_ADMIN.FEDERATION
-CLUSTER_ADMIN.GPU
-CLUSTER_ADMIN.HELM.SERVICE_CATALOG
-CLUSTER_ADMIN.IAS
-CLUSTER_ADMIN.IMAGE_REGISTRY
-CLUSTER_ADMIN.KUBEADMIN
-CLUSTER_ADMIN.KUBECONFIG
-CLUSTER_ADMIN.MULTIZONE
-CLUSTER_ADMIN.SSH
-CLUSTER_ADMIN.TROUBLESHOOTING
-DEBUG
-DEV_LANG.C#
-DEV_LANG.JAVA
-DEV_LANG.PYTHON
-_DOC_HAS
-_DOC_HAS.COMPARATIVE
-K8S_API
-MONITORING
-NETWORK
-NETWORK.101.KUBELET
-NETWORK.BALANCING
-NETWORK.HYBRID
-NETWORK.INGRESS
-NETWORK.IPVS
-NETWORK.SERVICE
-NETWORK.SERVICES
-QA
-QA.BEST_PRACTICES
-QA.DONTS
-QA.GITOPS
-QA.GOVERNANCE
-QA.IDE
-QA.SCALABILITY
-QA.TESTING
-QA.TESTING.CHAOS
-QA.VENDOR_LOCKIN
-SECURITY
-SECURITY.101
-SECURITY.AAA
-SECURITY.AAA.2FA
-SECURITY.AAA.RBAC
-SECURITY.AUDITING
-SECURITY.BACKUP
-SECURITY.GOVERNANCE
-SECURITY.GOVERNANCE.POLICIES
-SECURITY.SECRET_MNG
-SECURITY.STANDARDS
-STORAGE
-STORAGE.101
-STORAGE.DISTRIBUTED
-STORAGE.DISTRIBUTED.101
-STORAGE.DISTRIBUTED.GLUSTER
-STORAGE.KUBEDB
-STORAGE.NVME
-STORAGE.OBJECT.S3
-TROUBLESHOOTING
-TROUBLESHOOTING.101
-[[}]]
 
 ● Clean: [[{]]
 - monitoring → monitoring.*
