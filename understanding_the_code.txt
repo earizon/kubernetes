@@ -1,0 +1,290 @@
+# Understanding K8S Code [[{]]
+- K8s Implementation Summary     [[{101.k8s_internals,01_PM.TODO]]
+@[https://jvns.ca/blog/2017/06/04/learning-about-kubernetes/]
+  by Julia Evans "A few things I've learned about Kubernetes"
+
+- """... you can run the kubelet by itself! And if you have a kubelet, you
+  can add the API server and just run those two things by themselves! Okay,
+  awesome, now let’s add the scheduler!"""
+
+- the “kubelet” is in charge of running containers on nodes.
+- If you tell the API server to run a container on a node, it will tell
+  the kubelet to get it done (indirectly)
+- The scheduler translates "run a container" to "run a container on node X"
+
+ etcd is Kubernetes’ brain
+- Every component in Kubernetes (API server, scheduler, kubelets, controller manager, ...) is stateless.
+   All of the state is stored in the (key-value store) etcd database.
+- Communication between components (often) happens via etcd.
+-  basically everything in Kubernetes works by watching etcd for stuff it has to do,
+   doing it, and then writing the new state back into etcd
+
+  Ex 1: Run a container on Machine "X":
+   Wrong way: ask kubelet@Machine"X" to run the container.
+   Right way: kubectl*1 →(API Server)→ etcd: "This pod should run on Machine X"
+              kubelet@Machine"X"     → etcd: check work to do
+              kubelet@Machine"X"     ← etcd: "This pod should run on Machine X"
+              kubelet@Machine"X"     ← kubelet@Machine"X": Run pod
+
+  Ex 2: Run a container anywhere on the k8s cluster
+    kubectl*1 → (API Server) → etcd: "This pod should run somewhere"
+    scheduler                → etcd: Something to run?
+    scheduler                ← etcd: "This pod should run somewhere"
+    scheduler                → kuberlet@Machine"Y":  Run pod
+
+ *1 The kubectl is used from the command line.
+    In the sequence diagram it can be replaced for any
+    of the existing controllers (ReplicaSet, Deployment, DaemonSet, Job,...)
+
+ API server roles in cluster:
+API Server is responsible for:
+1.- putting stuff into etcd
+
+    kubectl    → API Server : put "stuff" in etcd
+    API Server → API Server : check "stuff"
+    alt 1:
+       kubectl ← API Server : error: "stuff" is wrong
+    alt 2:
+       API Server → etcd    : set/update "stuff"
+
+2.- Managing authentication:
+    ("who is allowed to put what stuff into etcd")
+    The normal way is through X509 client certs.
+
+
+ controller manager does a bunch of stuff
+Responsible for:
+- Inspect etcd for pending to schedule pods.
+- daemon-set-controllers will inspect etcd for
+  pending daemonsets and will call the scheduler
+  to run them on every machine with the given
+  pod configuration.
+- The "replica set controller" will inspect etcd for
+  pending replicasets and will create 5 pods that
+  the scheduler will then schedule.
+- "deployment controller" ...
+
+ Troubleshooting:
+something isn’t working? figure out which controller is
+responsible and look at its logs
+
+ Core K8s components run inside of k8s
+- Only 5 things needs to be running before k8s starts up:
+  - the scheduler
+  - the API server
+  - etcd
+  - kubelets on every node (to actually execute containers)
+  - the controller manager (because to set up daemonsets you
+                            need the controller manager)
+
+  Any other core system (DNS, overlay network,... ) can
+  be scheduled by k8s inside k8s
+[[}]]
+
+# API Conventions [[{101.k8s_internals,01_PM.TODO]]
+@[https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md]
+[[}]]
+
+# Source Code Layout [[{101.k8s_internals,01_PM.TODO]]
+Note: Main k8s are placed in @[https://github.com/kubernetes/kubernetes/tree/master/pkg]
+      (API, kubectl, kubelet, controller, ...)
+
+- REF: A Tour of the Kubernetes Source Code Part One: From kubectl to API Server
+ https://developer.ibm.com/opentech/2017/06/21/tour-kubernetes-source-code-part-one-kubectl-api-server/
+
+- Examining kubectl source:
+  Locating the implementation of kubectl commands in the Kubernetes source code
+
+- @[https://github.com/kubernetes/kubernetes/tree/master/pkg/kubectl/cmd]
+  kubectl entry point for all commands:
+  - Inside there is a name of a go directory that matches the kubectl command:
+    Example:
+    @[https://github.com/kubernetes/kubernetes/tree/master/pkg/kubectl/cmd/create](.go)
+
+ K8s loves the Cobra Command Framework
+- k8s commands are implemented using the Cobra command framework.
+- Cobra provides lot of features for building command line interfaces
+  amongst them, Cobra puts the command usage message and command
+  descriptions adjacent to the code that runs the command.
+  Ex.:
+  | // NewCmdCreate returns new initialized instance of create sub command
+  | func NewCmdCreate(f cmdutil.Factory, ioStreams genericclioptions.IOStreams) *cobra.Command {
+  |     o := NewCreateOptions(ioStreams)
+  |
+  |     cmd := &cobra.Command{
+  |         Use:                   "create -f FILENAME",
+  |         DisableFlagsInUseLine: true,
+  |         Short:                 i18n.T("Create a resource from a file or from stdin."),
+  |         Long:                  createLong,
+  |         Example:               createExample,
+  |         Run: func(cmd *cobra.Command, args []string) {
+  |             if cmdutil.IsFilenameSliceEmpty(o.FilenameOptions.Filenames) {
+  |                 defaultRunFunc := cmdutil.DefaultSubCommandRun(ioStreams.ErrOut)
+  |                 defaultRunFunc(cmd, args)
+  |                 return
+  |             }
+  |             cmdutil.CheckErr(o.Complete(f, cmd))
+  |             cmdutil.CheckErr(o.ValidateArgs(cmd, args))
+  |             cmdutil.CheckErr(o.RunCreate(f, cmd))
+  |         },
+  |     }
+  |
+  |     // bind flag structs
+  |     o.RecordFlags.AddFlags(cmd)
+  |
+  |     usage := "to use to create the resource"
+  |     cmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, usage)
+  |     ...
+  |     o.PrintFlags.AddFlags(cmd)
+  |
+  |     // create subcommands
+  |     cmd.AddCommand(NewCmdCreateNamespace(f, ioStreams))
+  |     ...
+  |     return cmd
+  | }
+
+ Builders and Visitors Abound in Kubernetes
+  Ex. code:
+  | r := f.NewBuilder().
+  |     Unstructured().
+  |     Schema(schema).
+  |     ContinueOnError().
+  |     NamespaceParam(cmdNamespace).DefaultNamespace().
+  |     FilenameParam(enforceNamespace, &o.FilenameOptions).
+  |     LabelSelectorParam(o.Selector).
+  |     Flatten().
+  |     Do()
+  The functions Unstructured, Schema, ContinueOnError,...  Flatten
+  all take in a pointer to a Builder struct, perform some form of
+  modification on the Builder struct, and then return the pointer to
+  the Builder struct for the next method in the chain to use when it
+  performs its modifications defined at:
+  @[https://github.com/kubernetes/cli-runtime/blob/master/pkg/genericclioptions/resource/builder.go]
+
+  | ...
+  | func (b  Builder) Schema(schema validation.Schema)  Builder {
+  |     b.schema = schema
+  |     return b
+  | }
+  | ...
+  | func (b  Builder) ContinueOnError()  Builder {
+  |     b.continueOnError = true
+  |     return b
+  | }
+
+ The Do function finally returns a Result object that will be used to drive
+the creation of our resource. It also creates a Visitor object that can be
+used to traverse the list of resources that were associated with this
+invocation of resource.NewBuilder. The Do function implementation is shown below.
+
+
+  a new DecoratedVisitor is created and stored as part of the Result object
+that is returned by the Builder Do function. The DecoratedVisitor has a Visit
+function that will call the Visitor function that is passed into it.
+  |// Visit implements Visitor
+  |func (v DecoratedVisitor) Visit(fn VisitorFunc) error {
+  |    return v.visitor.Visit(func(info *Info, err error) error {
+  |        if err != nil {
+  |            return err
+  |        }
+  |        for i := range v.decorators {
+  |            if err := v.decorators[i](info, nil); err != nil {
+  |                return err
+  |            }
+  |        }
+  |        return fn(info, nil)
+  |    })
+  |}
+
+
+  Create eventually will call the anonymous function that contains the
+  createAndRefresh function that will lead to the code making a REST call
+  to the API server.
+
+  The createAndRefresh function invokes the Resource NewHelper
+  function found in ...helper.go returning a new Helper object:
+  | func NewHelper(client RESTClient, mapping  meta.RESTMapping)  Helper {
+  |     return &Helper{
+  |         Resource:        mapping.Resource,
+  |         RESTClient:      client,
+  |         Versioner:       mapping.MetadataAccessor,
+  |         NamespaceScoped: mapping.Scope.Name() == meta.RESTScopeNameNamespace,
+  |     }
+  | }
+
+  Finally the Create function iwill invoke a createResource function of the
+  Helper Create function.
+  The Helper createResource function, will performs the actual REST call to
+  the API server to create the resource we defined in our YAML file.
+
+
+ Compiling and Running Kubernetes
+- we are going to use a special option that informs the Kubernetes build process
+
+$ make WHAT='cmd/kubectl'  # ← compile only kubectl
+Test it like:
+On terminal 1 boot up local test hack cluster:
+$ PATH=$PATH KUBERNETES_PROVIDER=local hack/local-up-cluster.sh
+On terminal 2 execute the compiled kubectl:
+$ cluster/kubectl.sh create -f nginx_replica_pod.yaml
+
+ Code Learning Tools
+Tools and techniques that can really help accelerate your ability to learn the k8s src:
+- Chrome Sourcegraph Plugin:
+  provides several advanced IDE features that make it dramatically
+  easier to understand Kubernetes Go code when browsing GitHub repositories.
+  Ussage:
+  - start by looking at an absolutely depressing snippet of code,
+    with ton of functions.
+  - Hover over each code function with Chrome browser + Sourcegraph extension
+    installed:
+    It will popup a description of the function, what is passed into it
+    and what it returns.
+  - It also provides advanced view with the ability to peek into the function
+    being invoked.
+- Properly formatted print statements:
+  fmt.Println("\n createAndRefresh Info = %#v", info)
+- Use of a go panic to get desperately needed stack traces:
+  | func createAndRefresh(info *resource.Info) error {
+  |     fmt.Println("\n createAndRefresh Info = %#v", info)
+  |      panic("Want Stack Trace")
+  |     obj, err := resource.NewHelper(info.Client, info.Mapping).Create(info.Namespace, true, info.Object)
+  |     if err != nil {
+  |         return err
+  |     }
+  |     info.Refresh(obj, true)
+  |     return nil
+  | }
+- GitHub Blame to travel back in time:
+  "What was the person thinking when they committed those lines of code?"
+  - GitHub browser interface has a blame option available as a button on the user interface:
+      It returns a view of the code that has the commits responsible for each line of code
+    in the source file. This allows you to go back in time and look at the commit that added
+    a particular line of code and determine what the developer was trying to accomplish when
+    that line of code was added.
+[[}]]
+
+# Extending k8s API [[{101.k8s_internals,application.knative,01_PM.TODO]]
+
+- Custom Resources:
+@[https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/]
+
+- Extend API with CustomResourceDefinitions:
+@[https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/]
+
+- Versions of CustomResourceDefinitions:
+@[https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definition-versioning/]
+
+- Aggregation Layer:
+@[https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/apiserver-aggregation/]
+  - Configure the Aggregation Layer:
+  @[https://kubernetes.io/docs/tasks/access-kubernetes-api/configure-aggregation-layer/]
+- Setup an Extension API Server:
+@[https://kubernetes.io/docs/tasks/access-kubernetes-api/setup-extension-api-server/">
+- Use HTTP Proxy to Access the k8s API:
+@[https://kubernetes.io/docs/tasks/access-kubernetes-api/http-proxy-access-api/]
+[[}]]
+
+[[}]]
+
+

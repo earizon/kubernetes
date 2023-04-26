@@ -1,0 +1,116 @@
+- RESOURCE TYPES EXTENDED:
+  https://github.com/kubernetes/api/blob/master/core/v1/types.go
+  https://github.com/kubernetes/kubernetes/blob/master/pkg/apis/core/types.go
+
+  NON-CLASSIFIED                   CLUSTER: NODE RELATED:
+  ==============                   ======================
+  DownwardAPIProjection            Node
+  ExecAction                       NodeAddress
+  KeyToPath                        NodeAffinity
+  LocalObjectReference             NodeCondition
+  ObjectFieldSelector              NodeConfigSource
+  ObjectReference                  NodeConfigStatus
+  Preconditions                    NodeDaemonEndpoints
+  ResourceFieldSelector            NodeList
+  ResourceRequirements             NodeProxyOptions
+  ScopedResourceSelerRequirement   NodeResources
+  ScopeSelector                    NodeSelector
+  SecurityContext                  NodeSelectorRequirement
+  SELinuxOptions                   NodeSelectorTerm
+  SerializedReference              NodeSpec
+  Sysctl                           NodeStatus
+  TypedLocalObjectReference        NodeSystemInfo
+  WindowsSecurityContextOptions    Lifecycle
+
+  SCHEDULING-POD:                   CLUSTER-NAMESPACE
+  ===============                   ==================
+  PreferredSchedulingTerm           Namespace
+  TopologySelectorLabelRequirement  NamespaceList
+  TopologySelectorTerm              NamespaceSpec
+  Event                             NamespaceStatus
+  EventList                         -- quotas ---
+  EventSeries                       ResourceQuota
+  EventSource                       ResourceQuotaList
+  ComponentCondition                ResourceQuotaSpec
+  ComponentStatus                   ResourceQuotaStatus
+  ComponentStatusList
+  ReplicationController
+  ReplicationControllerCondition
+  ReplicationControllerList
+  ReplicationControllerSpec
+  ReplicationControllerStatus
+  Taint
+  Toleration
+
+  VOLUME RELATED:                      NETWORK-RELATED:
+  ==============================       ================
+  Binding                              DaemonEndpoint
+  Volume                               EndpointAddress
+  VolumeSource                         EndpointPort
+  VolumeNodeAffinity                   Endpoints
+  PersistentVolume                     EndpointsList
+  PersistentVolumeClaim                EndpointSubset
+  PersistentVolumeClaimCondition       Service
+  PersistentVolumeClaimList            ServiceAccount
+  PersistentVolumeClaimSpec            ServiceAccountList
+  PersistentVolumeClaimStatus          ServiceAccountTokenProjection
+  PersistentVolumeClaimVolumeSource    ServiceList
+  PersistentVolumeList                 ServicePort
+  PersistentVolumeSource               ServiceProxyOptions
+  PersistentVolumeSpec                 ServiceSpec
+  PersistentVolumeStatus               ServiceStatus
+  HostPathVolumeSource                 ClientIPConfig
+  EmptyDirVolumeSource                 HTTPGetAction
+  GCEPersistentDiskVolumeSource        HTTPHeader
+  FCVolumeSource                       TCPSocketAction
+  Flex(Persistent)VolumeSource         HostAlias
+  GitRepoVolumeSource                  LoadBalancerIngress
+  SecretVolumeSource                   LoadBalancerStatus
+  NFSVolumeSource
+  QuobyteVolumeSource
+  DownwardAPIVolumeSource
+  DownwardAPIVolumeFile
+  VsphereVirtualDiskVolumeSource
+  PhotonPersistentDiskVolumeSource
+  PortworxVolumeSource
+  ConfigMapVolumeSource
+  ProjectedVolumeSource
+  VolumeMount
+  VolumeDevice
+  AttachedVolume
+  Glusterfs* RBD* Cinder*
+  CephFSV* Flocker* Azure*
+  ScaleIO* StorageOS* CSI*
+  AWSElasticBlock* ISCSI*
+
+
+  POD RELATED            CONFIG RELATED:            CONTAINER RELATED          Limits
+  ===========            ==============             =================          =============
+  Pod                    ConfigMapProjection        ContainerPort              LimitRange
+  PodAffinity            ConfigMapKeySelector       ContainerStateWaiting      LimitRangeItem
+  PodAffinityTerm        ConfigMapEnvSource         ContainerStateRunning      LimitRangeList
+  PodAntiAffinity        SessionAffinityConfig      ContainerStateTerminated   LimitRangeSpec
+  Affinity               ConfigMapNodeConfigSource  ContainerState             RangeAllocation
+  PodAttachOptions       ConfigMap                  ContainerStatus
+  PodCondition           ConfigMapList              ContainerImage
+  PodDNSConfig           EnvFromSource              Capabilities
+  PodDNSConfigOption     EnvVar                     Handler (Container Life-cicle)
+  PodExecOptions         EnvVarSource               Probe
+  PodList                ── secret related ───
+  PodLogOptions          SecretProjection
+  PodPortForwardOptions  SecretReference
+  PodProxyOptions        SecretKeySelector
+  PodReadinessGate       SecretEnvSource
+  PodSecurityContext     Secret
+  PodSignature           SecretList
+  PodSpec
+  PodStatus
+  PodStatusResult
+  PodTemplate
+  PodTemplateList
+  PodTemplateSpec
+  WeightedPodAffinityTerm
+  PreferAvoidPodsEntry
+  AvoidPods
+
+
