@@ -233,6 +233,8 @@ $ kind load docker-image \ <·· Import image from local docker registry
        $imgName:$imgVer
 
 $ kind get clusters        <·· Get running clusters
+$ kind get kubeconfig \    <·· Setup default kubectl config to use cluster
+   > ~/.kube/config
 $ kind delete cluster
 
 Advanced Configuration: kind.yaml
@@ -1402,7 +1404,7 @@ Pods in DaemonSet can also be marked as critical.
 
 [[101}]]
 
-# "APPLICATION" TROUBLESHOOTING [[{troubleshooting.101]]
+# Troubleshooting [[{troubleshooting.101]]
 
 ## POD MONITORING 101 [[{101,troubleshooting.101,monitoring.application.pods,]]
                      [[01_PM.low_code,02_doc_has.diagram.decission_tree,101.kubectl,application]]
@@ -1425,14 +1427,19 @@ Pods in DaemonSet can also be marked as critical.
                                                      at container startup.
 [[}]]
 
-## Troubleshooting Decission Tree [[{]]
+## TROUBLESHOOTING DECISSION TREE [[{]]
 - @[https://kubernetes.io/docs/tasks/debug-application-cluster/debug-application/]
 
   TRICK: On a separate (tmux)window monitor kubectl resources ike:
          $  watch -n 4 "kubectl get pods,services,... -n $namespace"
-
-  $ kubectl get pods
-    └─────┬────────┘
+```
+  $ kubectl get events --all-namespace
+    └───────────────┬────────────────┘
+  Q: Can you see the error?
+  ┌───────┘
+  ├ YES Can you see the error  ··> YES
+  └ NO: $ kubectl get pods
+          └─────┬────────┘
   Q: Is there any pending Pod?
   └─────────┬────────────────┘
   ┌─────────┘
@@ -1665,6 +1672,181 @@ Pods in DaemonSet can also be marked as critical.
                             │       =========
                             └ YES > =**END**=
                                     =========
+```
+[[}]]
+
+## `crictl`: Debug Worker Node [[{]]
+https://kubernetes.io/docs/tasks/debug/debug-cluster/crictl/
+
+* `crictl`: cli for CRI-compatible container runtimes.
+* Can be used to inspect and debug container runtimes and applications on a Kubernetes node.
+* It comes preinstalled for example in "Kind". It must be downloaded and installed locally
+  in other setups.
+* To set the endpoints: (otherwise a list of known endpoints is used)
+  (Alt.1) --runtime-endpoint and --image-endpoint flags.
+  (Alt.2) $ export CONTAINER_RUNTIME_ENDPOINT= ...
+          $ export IMAGE_SERVICE_ENDPOINT=...
+  (Alt.3) $ editor /etc/crictl.yaml
+          + runtime-endpoint: unix:///var/run/containerd/containerd.sock
+          + image-endpoint: unix:///var/run/containerd/containerd.sock
+          + timeout: 10
+          + debug: true
+* Timeout control:
+  --timeout
+  --debug
+
+WARN: pod sandboxes or containers created with `crictl` will be eventually deteled by
+      the Kubelet.
+
+  $ crictl pods  # <·· List all pods
+                       --name .... filter by name
+                       --label run=nginx  filter by label
+  POD ID   CREATED  STATE  NAME  NAMESPACE    ATTEMPT
+  926f...  ...      Ready  ...   default      0
+  4dcc...  ...      Ready  ...   default      0
+  a863...  ...      Ready  ...   kube-system  0
+  9196...  ...      Ready  ...   kube-system  0
+
+
+  $ crictl images # <·· List all images
+                        -q: Only list image IDs:
+  IMAGE      TAG     IMAGE ID        SIZE
+  busybox    latest  8c811b4aec35f   1.15MB
+  ...
+  $ crictl images nginx # <·· List images by repository
+
+  $ crictl ps    # <·· List running containers
+                       -a: Show also stopped/terminated ones
+CONTAINER ID        IMAGE                     CREATED   STATE   NAME ATTEMPT
+1f73f2d81bf98       busybox@sha256:141c25...  ...       Running sh   1
+...
+
+  $ crictl exec -i -t 1f73... ls  # <·· Exec command in running container
+
+
+  $ crictl logs 87d3992f84f74     # <·· Get all container logs
+                                        --tail=N
+
+### Run a pod sandbox, useful for debugging container runtimes.
+
+    $ editor pod-config.json
+    {
+      "metadata": {
+        "name": "nginx-sandbox", "namespace": "default",
+        "attempt": 1, "uid": "hdishd83djaidwnduwk28bcsb"
+      },
+      "log_directory": "/tmp",
+      "linux": { }
+    }
+
+    $ crictl runp pod-config.json  # <·· apply JSON and run the sandbox
+
+### Create a container
+
+    $ crictl pull busybox
+    $ editor pod-config.json
+    $ editor container-config.json
+    {
+      "metadata": { "name": "busybox" },
+      "image":{ "image": "busybox" },
+      "command": [ "top" ],
+      "log_path":"busybox.log",
+      "linux": { }
+    }
+
+    $ crictl create f84dd36f93ce8c9a54f... container-config.json pod-config.json
+                    └───── ID of ────────┘
+                     previously-created pod
+
+    $ crictl ps -a            # <·· check status
+
+    $ crictl start 3e025...d  # <·· start container
+[[}]]`crictl`: Debug Worker Node [[{]]
+https://kubernetes.io/docs/tasks/debug/debug-cluster/crictl/
+
+* `crictl`: cli for CRI-compatible container runtimes.
+* Can be used to inspect and debug container runtimes and applications on a Kubernetes node.
+* It comes preinstalled for example in "Kind". It must be downloaded and installed locally
+  in other setups.
+* To set the endpoints: (otherwise a list of known endpoints is used)
+  (Alt.1) --runtime-endpoint and --image-endpoint flags.
+  (Alt.2) $ export CONTAINER_RUNTIME_ENDPOINT= ...
+          $ export IMAGE_SERVICE_ENDPOINT=...
+  (Alt.3) $ editor /etc/crictl.yaml
+          + runtime-endpoint: unix:///var/run/containerd/containerd.sock
+          + image-endpoint: unix:///var/run/containerd/containerd.sock
+          + timeout: 10
+          + debug: true
+* Timeout control:
+  --timeout
+  --debug
+
+WARN: pod sandboxes or containers created with `crictl` will be eventually deteled by
+      the Kubelet.
+
+  $ crictl pods  # <·· List all pods
+                       --name .... filter by name
+                       --label run=nginx  filter by label
+  POD ID   CREATED  STATE  NAME  NAMESPACE    ATTEMPT
+  926f...  ...      Ready  ...   default      0
+  4dcc...  ...      Ready  ...   default      0
+  a863...  ...      Ready  ...   kube-system  0
+  9196...  ...      Ready  ...   kube-system  0
+
+
+  $ crictl images # <·· List all images
+                        -q: Only list image IDs:
+  IMAGE      TAG     IMAGE ID        SIZE
+  busybox    latest  8c811b4aec35f   1.15MB
+  ...
+  $ crictl images nginx # <·· List images by repository
+
+  $ crictl ps    # <·· List running containers
+                       -a: Show also stopped/terminated ones
+CONTAINER ID        IMAGE                     CREATED   STATE   NAME ATTEMPT
+1f73f2d81bf98       busybox@sha256:141c25...  ...       Running sh   1
+...
+
+  $ crictl exec -i -t 1f73... ls  # <·· Exec command in running container
+
+
+  $ crictl logs 87d3992f84f74     # <·· Get all container logs
+                                        --tail=N
+
+### Run a pod sandbox, useful for debugging container runtimes.
+
+    $ editor pod-config.json
+    {
+      "metadata": {
+        "name": "nginx-sandbox", "namespace": "default",
+        "attempt": 1, "uid": "hdishd83djaidwnduwk28bcsb"
+      },
+      "log_directory": "/tmp",
+      "linux": { }
+    }
+
+    $ crictl runp pod-config.json  # <·· apply JSON and run the sandbox
+
+### Create a container
+
+    $ crictl pull busybox
+    $ editor pod-config.json
+    $ editor container-config.json
+    {
+      "metadata": { "name": "busybox" },
+      "image":{ "image": "busybox" },
+      "command": [ "top" ],
+      "log_path":"busybox.log",
+      "linux": { }
+    }
+
+    $ crictl create f84dd36f93ce8c9a54f... container-config.json pod-config.json
+                    └───── ID of ────────┘
+                     previously-created pod
+
+    $ crictl ps -a            # <·· check status
+
+    $ crictl start 3e025...d  # <·· start container
 [[}]]
 
 ## Best Patterns [[{101,qa,01_PM.TODO]]
@@ -1780,8 +1962,23 @@ https://github.com/tldr-pages/tldr/blob/master/pages/common/k8s-unused-secret-de
 
 [[troubleshooting.101}]]
 
-# HELM Charts [[{application.helm,101,application,]] @[helm_charts_summary]
+#[helm_charts_summary]
+# HELM Charts [[{application.helm,101,]]
   Package manager for Kubernetes with versioning, upgrades and rollbacks.
+
+* Helm allows for provisioning Kubernetes resources in the correct order.
+* It comes also:
+  * with lifecycle hooks.
+  * advanced templating and
+  * sub-charts.
+* Helm used a client-server architecture
+  * Tiller Server: in-cluster. To install:
+    ```
+    $ helm init
+    ```
+  * Helm client  : command-line control pannel responsible for
+    combining charts and installing kubernetes resources asked by the
+    client.
 
 
 @[https://helm.sh/docs/intro/quickstart/]
@@ -1831,6 +2028,9 @@ https://github.com/tldr-pages/tldr/blob/master/pages/common/k8s-unused-secret-de
 · $ helm show chart stable/mysql              ← get an idea of the chart features
 · $ helm show all   stable/mysql              ← get all information about chart
 ·
+· $ helm install my-nginx ./mynginx           ← Install chart from local dir.
+· $ helm delete --purge my-nginx              ← Clean-up install
+·
 └ Whenever an install is done, a new local-release is created
   allowing to install multiple times into the same cluster.
   Each local-release can be independently managed and upgraded.
@@ -1855,7 +2055,7 @@ https://github.com/tldr-pages/tldr/blob/master/pages/common/k8s-unused-secret-de
 
 NOTE: @[https://www.infoworld.com/article/3541608/kubernetes-helm-gets-full-cncf-approval.html]
 
-## Creating new HELM Charts
+## Creating new Charts  [[{ $create_new_chart ]]
   @[https://www.youtube.com/watch?v=3GPpm2nZb2s]
   @[https://helm.sh/docs/developing_charts/]
 
@@ -1909,15 +2109,383 @@ NOTE: @[https://www.infoworld.com/article/3541608/kubernetes-helm-gets-full-cncf
        └─ tests
           └── test-connection.yaml
 
-- DEBUGGING TEMPLATE/s:
-  $ helm lint                            ← verify best-practices
-  $ helm install --dry-run --debug myApp
+./mychart/Chart.yaml
+./mychart/values.yaml
+./mychart/templates/_helpers.yaml
+  | {{/* some helping comment */}}
+  | {{- define "mychart.v1.labels" }}    <··· embed as:
+  | labels:                              {{- include "mychart.v1.labels" . | indent 2 }}
+  |   generator: helm
+  |   date: {{ now | htmlDate }}
+  |   chart: {{ .Chart.Name }}
+  |   version: {{ .Chart.Version }}
+  | {{- end }}
+
+./mychart/templates/configmap.yaml
+  | apiVersion: v1
+  | kind: ConfigMap
+  | metadata:
+  |   name: {{ .Release.Name }}-configmap
+  |   keyXX: {{ .Values.keyXX | default "SomeDefValue" }}
+  | data:
+  |   myvalue: "Hello World"
+  |   {{- $keepRefVar := .Release.Name -}}
+  |   {{- with .Values.favorite }}
+  |   drink: {{ .drink | default "tea" | quote }}
+  |   food:  {{ $.Values.favorite.food | upper | quote }}
+  |   {{ if eq .drink "coffee" }}
+  |   mug: "true"*           <·· '*' at the end of line => remove \n
+  |   {{- end }}
+  |   toppings: |-
+  |     {{- range $.Values.pizzaToppings }}
+  |     - {{ . | title | quote }}
+  |     {{- end }}
+  |   release: {{ $keepRefVar }}
+  |   {{- end }}
+  |   {{- range tuple "config1.toml" "config2.toml" }}
+  |   {{ . }}: |-
+  |         {{ $files.Get . }}
+  |   {{- end }}
+  |   {{ range $path, $_ :=  .Files.Glob  "**.yaml" }}
+  |       {{- with $currentScope}}
+  |           {{ .Files.Get $path }}
+  |       {{- end }}
+  |   {{ end }}
+  |   {{ (.Files.Glob "foo/*").AsConfig | indent 2 }}
+  |   {{ (.Files.Glob "bar/*").AsSecret | indent 2 }}
+  |   token: |-
+  |         {{ .Files.Get "config1.toml" | b64enc }}
+  |   some-file.txt: {{ range .Files.Lines "foo/bar.txt" }}
+  |     {{ . }}{{ end }}
+
+./chart/templates/NOTES.txt
+  | Thank you for installing {{ .Chart.Name }}.
+  |
+  | Your release is named {{ .Release.Name }}.
+  |
+  | To learn more about the release, try:
+  |
+  |   $ helm status {{ .Release.Name }}
+  |   $ helm get all {{ .Release.Name }}
+
+./mychart/charts/subchartX/Values.yaml <·· Subcharts are considered "stand-alone"
+  | ...                                  **Never depends on parent charts **
+  | keyA: valueA           <·· modify in parent as --set mysubchart/keyA=...
+  | global:                <··· Use global to reuse same var in chart/subcharts.
+  |   language: en              as .Values.global.salad
+                                In parent we will just just --set global.language=...
+                                and it will also be applied to subchart.
+
+./mychart/.helmignore
+  | .git
+  | /*.txt
+  | ...
+
+
+  $ helm install --debug \            # [[{application.helm.debug]]
+         --dry-run goodly-guppy \     # --disable-openapi-validation to render
+         ./mychart                    # outputs incompatible with the defined API
+                                      # (for example a misconfigured scope makes some
+                                      #  expected value undefined/empty)
+
+  $ helm lint
+
   $ helm template --debug
 
-- INSTALLING THE CHART:                 Install from current dir. (vs URL / Repo)
-  $ helm install --name my-nginx .   ←  TIP: Monitor deployment in real time in another
-                                        console like: $ watch -n 2 "kubectl get all"
-  $ helm delete --purge my-nginx     ← Clean-up install
+  $ helm get manifest # see templates installed on the server
+
+  $ helm get manifest RELEASE | schelm OUTPUT_DIR
+  $ helm install --dry-run --debug CHART | schelm OUTPUT_DIR
+                                           [[application.helm.debug}]]
+
+
+
+
+## Built in Chart objects
+* .Release.Name:
+  .Release.Namespace: (if not overriden by manifest)
+  .Release.IsUpgrade:
+  .Release.IsInstall:
+  .Release.Revision: On install is 1,  incremented with each upgrade/rollback.
+  .Release.Service: service rendering the template (On Helm, == "Helm")
+
+* .Values.* : any value from values.yaml
+* .Chart.Name    : any value in Chart.yaml
+  .Chart.Version
+  .Chart.*
+
+* .Capabilities.APIVersions.*
+  .Capabilities.KubeVersion.*
+  .Capabilities.HelmVersion.*
+
+* .Template.Name: current template file path
+  .Template.BasePath: current template base (dir) path
+
+### Recipes
+* To delete a default value set it to null (not nil) in values.yaml or --set flag.
+* look up resources in RUNNING cluster with function:
+  lookup $apiVersion $kind $namespace $name -> resource or resource list
+  (similar to kubectl get $inkd $name -n $namespace)
+
+
+## Boolean Fun.
+  * NOTE: Many of the folling functions can fail.         [[{qa.error_mng.fail_fast]]
+    By default a failing function "someVerb" will panic
+    whila a "mustSomeVerb" will return an Error.
+
+    The function `fail` can also be used to progamatically
+    fail                                                  [[qa.error_mng.fail_fast}]]
+
+  not .Arg
+  XX .Arg1 .Arg2    XX = and or  eq ne lt le gt ge
+
+  default "defValue0" .Bar            <·· See also coalesce
+  empty (true|false)
+  coalesce 0 1 2                      <·· return 1 (first non-empty one)
+  coalesce .name .parent.name "Matt"
+  ternary "foo" "bar" true   # returns "foo" (1st value)
+  true | ternary "foo" "bar"
+
+##  String Fun.
+  abbrev, abbrevboth, camelcase, cat, contains, hasPrefix, hasSuffix,
+  indent, initials, kebabcase, lower, nindent, nospace, plural, print,
+  printf, println, quote, randAlpha, randAlphaNum, randAscii,
+  randNumeric, repeat, replace, shuffle, snakecase, squote, substr,
+  swapcase, title, trim, trimAll, trimPrefix, trimSuffix, trunc,
+  untitle, upper, wrap, and wrapWith.
+
+  print "Matt has " .Dogs " dogs"
+  println
+  printf "%s has %d dogs." .Name .NumberDogs
+  trimPrefix "-" "-hello"  # trimSuffix
+  lower/upper
+  repeat 3 "X"  <·· XXX
+
+  substr $start $end $string
+  nospace
+  trunc 5 "hello world"
+  randNumeric 3
+  wrap 80 $someText   # wrapWith
+  contains "cat" "catch"
+  hasPrefix and hasSuffix
+  cat "hello" "beautiful" "world"
+  indent 4 $lots_of_text # nindent
+  "I Am Henry VIII" | replace " " "-"
+
+### Type conversion Fun.
+* atoi: Convert a string to an integer.
+* float64: Convert to a float64.
+* int: Convert to an int at the system's width.
+* int64: Convert to an int64.
+* toDecimal: Convert a unix octal to a int64.
+* toString: Convert to a string.
+* toStrings: Convert a list, slice, or array to a list of strings.
+* toJson: Convert list, slice, array, dict, or object to JSON.
+* toPrettyJson: Convert list, slice, array, dict, or object to indented JSON.
+* toRawJson: Convert list, slice, array, dict, or object to JSON with HTML characters unescaped.
+* fromYaml: Convert a YAML string to an object.
+* fromJson: Convert a JSON string to an object.
+* toYaml: Convert list, slice, array, dict, or object to indented
+  yaml, can be used to copy chunks of yaml from any source. This
+  function is equivalent to GoLang yaml.Marshal function, see docs
+  here: https://pkg.go.dev/gopkg.in/yaml.v2#Marshal
+
+   e.g: list 1 2 3 | toStrings
+
+## RegEX Fun.
+  regexMatch "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$" "test@acme.com"
+  regexFindAll "[2,4,6,8]" "123456789" -1  <··· result [2 4 6 8]
+  regexFind # Return first (left most) match
+  regexFind "[a-zA-Z][1-9]" "abcd1234"
+  regexReplaceAll
+  regexSplit
+
+## Crypto&Sec. Fun.
+  sha1sum "Hello world!"
+  sha256sum "Hello world!"
+  adler32sum "Hello world!"
+  htpasswd "myUser" "myPassword"
+  derivePassword
+  genPrivateKey  (into PEM block)
+      ecdsa: Generate an elliptic curve DSA key (P256)
+      dsa: Generate a DSA key (L2048N256)
+      rsa: Generate an RSA 4096 key
+  $ca := buildCustomCert "base64-encoded-ca-crt" "base64-encoded-ca-key"
+  $ca := genCA "foo-ca" 365 # generates new, self-signed x509 certificate authority.
+  $cert := genSelfSignedCert "foo.com" (list "10.0.0.1" "10.0.0.2") (list "bar.com" "bat.com") 365
+  encryptAES "secretkey" "plaintext"
+  "30tEfhuJSVRhpG97XCuWgz2okj7L8vQ1s6V9zVUPeDQ=" | decryptAES "secretkey"
+
+## Date Fun.
+  ago <·· Use this in conjunction with other date functions.
+          It returns duration from time.Now in seconds resolution.
+  ago .CreatedAt #2h34m7s
+  now | date "2006-01-02"
+  dateInZone "2006-01-02" (now) "UTC"
+  duration 95 # returns 1m35s
+  durationRound "2h10m5s" # 2h
+  durationRound "2400h10m5s" # 3mo
+  now | unixEpoch # seconds since the unix epoch for a time.Time.
+  now | date_modify "-1.5h"
+
+  now | htmlDate # formats a date for inserting into an HTML date picker input field.
+  htmlDateInZone (now) "UTC"
+  toDate "2006-01-02" "2017-12-31" | date "02/01/2006"
+
+  ### Dictionaries  string-key/any-value
+  NOTE: lists are inmutable, dicst art NOT.
+  dicts functions: deepCopy, dict, dig, get, hasKey,
+  keys, merge, mergeOverwrite, omit,
+  pick, pluck, set, unset, and values.
+
+  $myDict := dict "name1" "value1" "name2" "value2" "name3" "value 3"
+  get $myDict "name1"
+  $_ := set $myDict "name4" "value4"
+  $_ := unset $myDict "name4"
+  ^^
+  un/set returns the dictionary (a requirement of Go template functions),
+  hasKey $myDict "name1"
+  pluck "keyXX" $myDict01 $myDict01 # <·· return list of all of matches.
+  pluck  ... | first                  <·· get first matching key
+  dig "user" "role" "humanName" "guest" $dict <·· dig fetch in trees of dics.
+  {                              └────┴─ default value if dig fails.
+    user: {
+      role: {
+        humanName: "curator"
+      }
+    }
+  }
+  merge a b c | dig "one" "two" "three" "<missing>"
+  deepCopy $source | merge $dest
+  mergeOverwrite
+  deepCopy $source | mergeOverwrite $dest
+  keys $myDict | sortAlpha
+  $new := pick $myDict "name1" "name2" # pick function selects just the given keys
+                                         out of a dictionary, creating a new dict.
+  $new := omit $myDict "name1" "name3" # like pick with all not matching keys.
+  $vals := values $myDict              # returns new list with all the values of
+                                         the source dict
+  deepCopy
+
+  ### Encoding Functions
+  b64enc/b64dec: Encode or decode with Base64
+  b32enc/b32dec: Encode or decode with Base32
+
+  ### Lists and List Functions
+  $myList := list 1 2 3 4 5
+  first
+  rest    # get tail of the list.
+  last
+  initial
+  $new = append  $myList 6 #
+         prepend
+  concat $myList ( list 6 7 ) ( list 8 )
+  reverse
+  uniq
+  list 1 1 1 2 | uniq
+  without $myList 3 #
+  has 4 $myList
+  $copy := compact ( list 1 "a" "foo" "" ) #  remove empty values
+  index
+  index $myList 0 # returns 1. It is the same as myList[0]
+  index $myList 0 # 1 would be the same as myList[0][1]
+  slice $myList returns [1 2 3 4 5]. It is same as myList[:].
+  The until function builds a range of integers.
+  until 5 # [0, 1, 2, 3, 4].
+  untilStep 3 6 2 # [3 5]
+  seq -3      => 1 0 -1 -2 -3
+  seq 0 2     => 0 1 2
+
+## Math Fun.
+  add, add1, ceil, div, floor, len, max, min, mod, mul, round, and sub.
+
+## Network Fun.
+  getHostByName "www.google.com" # return ip address
+
+## File Path Fun.
+  base "foo/bar/baz" # baz
+  dir "foo/bar/baz"  # foo/bar.
+  clean "foo/bar/../baz" # foo/baz
+  ext "foo.jpg"          # .bar.
+  isAbs   # true if file path is absolute
+
+## Reflection Fun.
+(Advanced templates)
+
+## Kind Fun.
+  kindOf "hello"  # "string"
+  kindIs "int" 123
+
+## Type Fun.
+ (slightly harder to work with)
+  typeOf typeIs typeIsLike
+  deepEqual (list 1 2 3) (list 1 2 3)
+
+## SemVer Fun.
+  $version := semver "1.2.3-alpha.1+123"
+  $version.Major: The major number (1 above)
+  $version.Minor: The minor number (2 above)
+  $version.Patch: The patch number (3 above)
+  $version.Prerelease: The prerelease (alpha.1 above)
+  $version.Metadata: The build metadata (123 above)
+  $version.Original: The original version as a string
+
+  semver "1.4.3" | (semver "1.2.3").Compare # -1
+
+  semverCompare "1.2.3" "1.2.4"  # false
+  semverCompare "~1.2.3" "1.2.4" # true
+
+  Basic Comparisons =:  !=:  >:  <:  >=:  <=:
+
+  ~1.2.3 is equivalent to >= 1.2.3, < 1.3.0
+  ~1 is equivalent to >= 1, < 2
+  ~2.3 is equivalent to >= 2.3, < 2.4
+  ~1.2.x is equivalent to >= 1.2.0, < 1.3.0
+  ~1.x is equivalent to >= 1, < 2
+
+  ^1.2.3 is equivalent to >= 1.2.3, < 2.0.0
+  ^1.2.x is equivalent to >= 1.2.0, < 2.0.0
+  ^2.3 is equivalent to >= 2.3, < 3
+  ^2.x is equivalent to >= 2.0.0, < 3
+  ^0.2.3 is equivalent to >=0.2.3 <0.3.0
+  ^0.2 is equivalent to >=0.2.0 <0.3.0
+  ^0.0.3 is equivalent to >=0.0.3 <0.0.4
+  ^0.0 is equivalent to >=0.0.0 <0.1.0
+  ^0 is equivalent to >=0.0.0 <1.0.0
+  └ major comparision: equal up to major level
+
+## URL Fun.
+  urlParse "http://admin:secret@server.com:8080/api?list=false#anchor"
+  scheme:   'http'
+  host:     'server.com:8080'
+  path:     '/api'
+  query:    'list=false'
+  opaque:   nil
+  fragment: 'anchor'
+  userinfo: 'admin:secret'
+
+  urlJoin (dict "fragment" "fragment" "host" "host:80" "path" "/path" "query" "query" "scheme" "http") # http://host:80/path?query#fragment
+
+  $var := urlquery "string for query"
+
+## UUID Fun.
+  uuidv4 # new randomly generated v4 UUID
+
+## K8s&Chart Fun.
+  lookup : look up resource in RUNNING cluster.
+  .Capabilities.APIVersions.Has "apps/v1"
+  .Capabilities.APIVersions.Has "apps/v1/Deployment"
+
+## File Fun.
+  Files.Get myConfig.ini
+  Files.GetBytes myImage.png
+  Files.Glob     *myShellGlob*
+  Files.Lines    myLineByLineToBeIterated.txt
+  Files.AsSecrets ...  <·· return body as Base64
+  Files.AsConfig  ...  <·· return body as YAML map.
+
+[[ $create_new_chart }]]
+[[application.helm}]]
 
 ## Helm Operator
 @[https://docs.fluxcd.io/projects/helm-operator/en/1.0.0-rc9/references/helmrelease-custom-resource.html]
@@ -2924,7 +3492,7 @@ Part 2: Patterns for Kubernetes controllers
   https://developers.redhat.com/blog/2021/05/05/kubernetes-configuration-patterns-part-2-patterns-for-kubernetes-controllers
 [[}]]
 
-## private Registry  [[{cluster_admin.image_registry,security.secret_mng,network,01_PM.TODO]]
+## Private Registry  [[{cluster_admin.image_registry,security.secret_mng,network,01_PM.TODO]]
 - using a private (image) registry:
 @[https://kubernetes.io/docs/concepts/containers/images/#using-a-private-registry]
 - Pull Image from a Private Registry:
@@ -3202,10 +3770,6 @@ https://www.infoq.com/news/2022/02/validkube-kubernetes-yaml/ 
 
 ## kubernetes patterns book [[{qa]]
 @[https://github.com/k8spatterns/examples]
-[[}]]
-
-# All components of a typical k8s app!!
-@[https://medium.com/geekculture/how-to-deploy-spring-boot-and-mongodb-to-kubernetes-minikube-71c92c273d5e]
 [[}]]
 
 [[$undordered_notes }]]
