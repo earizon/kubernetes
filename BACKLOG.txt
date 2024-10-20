@@ -1,0 +1,276 @@
+## Compute, Storage, and Networking Extensions [[{cluster_admin,01_PM.TODO]]
+<https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/>
+<https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/>
+<https://kubernetes.io/docs/concepts/extend-kubernetes/service-catalog/>
+[[}]]
+
+
+## Admin Tasks [[{cluster_admin,01_PM.TODO]]
+<https://kubernetes.io/docs/reference/#config-reference>
+<https://kubernetes.io/docs/concepts/cluster-administration/cluster-administration-overview/>
+<https://kubernetes.io/docs/concepts/cluster-administration/certificates/>
+<https://kubernetes.io/docs/concepts/cluster-administration/cloud-providers/>
+<https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/>
+<https://kubernetes.io/docs/concepts/cluster-administration/networking/>
+<https://kubernetes.io/docs/concepts/cluster-administration/logging/>
+<https://kubernetes.io/docs/concepts/cluster-administration/kubelet-garbage-collection/>
+<https://kubernetes.io/docs/concepts/cluster-administration/proxies/>
+<https://kubernetes.io/docs/concepts/cluster-administration/controller-metrics/>
+<https://kubernetes.io/docs/concepts/cluster-administration/addons/>
+
+## Config. files
+  (documented in the Reference section of the online documentation, under each binary:)
+  <https://kubernetes.io/docs/admin/kubelet/>
+  <https://kubernetes.io/docs/admin/kube-apiserver/>
+  <https://kubernetes.io/docs/admin/kube-controller-manager/>
+  <https://kubernetes.io/docs/admin/kube-scheduler/>
+[[}]]
+
+## network policy providers [[{network.sdn,01_PM.TODO]]
+- declare network policy
+  cilium-network-policy
+  kube-router-network-policy
+  romana-network-policy
+  weave-network-policy
+[[}]]
+
+## Ingress Controller for AWS [[{network.ingress,cloud.aws,01_PM.TODO]]
+- Allows to reuse AWS load balancing functionality.
+- It uses AWS CloudFormation to ensure that cluster state
+  remains consistent.
+[[}]]
+
+
+
+## (Kubernetes Armada):  low_code  [[{]]
+https://www.infoq.com/news/2021/08/karmada-kubernetes-orchestration/
+- designed for multi-cloud and multi-cluster
+- Centralized multi-cloud management, HA, failure recovery and
+  traffic scheduling.
+- Enables users to run their cloud-native applications across
+  multiple Kubernetes clusters and clouds with no changes to applications.
+
+- Kubernetes Federation is the only official multi-cluster management
+  solution that the SIG Multicluster initiated and maintained.
+  - After two major versions, KubeFed has a resilient design and
+    architecture.
+- Karmada: continuation of Kubernetes Federation v1 and v2 and
+  inherited some basic concepts from these two versions.
+- It can be installed within minutes.
+[[}]]
+
+## Running Apps [[{101,01_PM.TODO]]
+Run Applications
+- Run  Single-Instance Stateful Application
+<https://kubernetes.io/docs/tasks/run-application/run-replicated-stateful-application/>
+<https://kubernetes.io/docs/tasks/run-application/update-api-object-kubectl-patch/>
+<https://kubernetes.io/docs/tasks/run-application/scale-stateful-set/>
+<https://kubernetes.io/docs/tasks/run-application/delete-stateful-set/>
+<https://kubernetes.io/docs/tasks/run-application/force-delete-stateful-set-pod/>
+<https://kubernetes.io/docs/tasks/run-application/rolling-update-replication-controller/>
+<https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/>
+<https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/>
+[[}]]
+
+
+## Ambassador API GW [[{network,network.ingress,application.knative.GW,01_PM.TODO]]
+<https://www.infoq.com/articles/ambassador-api-gateway-kubernetes>
+- Ambassador: control plane tailored for edge/API configuration for
+              managing the Envoy Proxy “data plane”.
+- Envoy     : cloud native Layer 7 proxy and communication bus used
+              for handling “edge” ingress and service-to-service
+              networking communication.
+[[}]]
+
+## Hybrid Cloud+On-Premise [[{network.hybrid,01_PM.TODO]]
+<https://cloud.google.com/blog/products/gcp/going-hybrid-with-kubernetes-on-google-cloud-platform-and-nutanix>
+[[}]]
+
+## Gluster-k8s [[{storage.distributed.gluster,01_PM.TODO]]
+<https://github.com/gluster/gluster-kubernetes>
+- gluster-kubernetes is a project to provide Kubernetes administrators a
+  mechanism to easily deploy GlusterFS as a native storage service onto an
+  existing Kubernetes cluster. Here, GlusterFS is managed and orchestrated like
+  any other app in Kubernetes. This is a convenient way to unlock the power of
+  dynamically provisioned, persistent GlusterFS volumes in Kubernetes.
+[[}]]
+
+
+## cli reference [[{]]
+<https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/>
+<https://kubernetes.io/docs/reference/command-line-tools-reference/cloud-controller-manager/>
+<https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/>
+<https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/>
+<https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/>
+<https://kubernetes.io/docs/reference/command-line-tools-reference/kube-scheduler/>
+<https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/>
+<https://kubernetes.io/docs/concepts/architecture/master-node-communication/>
+[[}]]
+
+## Kubermatic: [[{cluster_admin.kubermatic,01_PM.low_code,cloud,application.scalability,qa.vendor_lockin,01_PM.TODO]]
+<https://www.loodse.com/>
+- Run Kubernetes on Autopilot:
+  Automate operations of thousands of Kubernetes clusters across
+  multi-cloud, on-prem, and edge environments with unparalleled density
+  and resilience. Powered by Kubermatic Kubernetes Platform.
+- Eliminate vendor lock-in and dynamically move workloads .
+[[}]]
+
+## portworx Persistent Storage [[{storage,01_PM.TODO]]
+https://portworx.com/
+calable Persistent Storage for Kubernetes
+
+Built from the ground up for containers, PX-Store provides cloud
+native storage for applications running in the cloud, on-prem and in
+hybrid/multi-cloud environments.
+
+[[}]]
+
+## Tigera.io [[{network,01_PM.TODO]]
+https://www.tigera.io/
+(authors of the Calico Zero-Trust Network with Policy-based micro-segmentation)
+https://www.projectcalico.org/,
+Why add another layer of overhead when you don't need it?
+
+Sometimes, an overlay network (encapsulating packets inside an extra
+IP header) is necessary. Often, though, it just adds unnecessary
+overhead, resulting in multiple layers of nested packets, impacting
+performance and complicating trouble-shooting. Wouldn't it be nice if
+your virtual networking solution adapted to the underlying
+infrastructure, using an overlay only when required? That's what
+Calico does. In most environments, Calico simply routes packets from
+the workload onto the underlying IP network without any extra
+headers. Where an overlay is needed – for example when crossing
+availability zone boundaries in public cloud – it can use
+lightweight encapsulation including IP-in-IP and VxLAN. Project
+Calico even supports both IPv4 and IPv6 networks!
+[[}]]
+
+## Red Hat Quay 3.1 [[{cluster_admin.image_registry,01_PM.TODO]]
+<https://www.zdnet.com/article/red-hat-quay-3-1-a-highly-available-kubernetes-container-registry-arrives/>
+- Red Hat Quay:, highly available Kubernetes container registry
+[[}]]
+
+## raefik edge router [[{network.services,cloud,01_PM.TODO]]
+<https://docs.traefik.io/>
+- raefik is an open-source Edge Router that makes publishing your
+  services a fun and easy experience. It receives requests on behalf of
+  your system and finds out which components are responsible for
+  handling them.
+
+- What sets Traefik apart, besides its many features, is that it
+  automatically discovers the right configuration for your services.
+  The magic happens when Traefik inspects your infrastructure, where it
+  finds relevant information and discovers which service serves which
+  request.
+
+- Traefik is natively compliant with every major cluster technology,
+  such as Kubernetes, Docker, Docker Swarm, AWS, Mesos, Marathon, and
+  the list goes on; and can handle many at the same time. (It even
+  works for legacy software running on bare metal.)
+[[}]]
+
+## Cluster Federation [[{cluster_admin.federation,01_PM.TODO]]
+<https://kubernetes.io/docs/concepts/cluster-administration/federation/>
+
+ Federation API:
+ - <https://kubernetes.io/docs/reference/federation/extensions/v1beta1/definitions/>
+ - <https://kubernetes.io/docs/reference/federation/extensions/v1beta1/operations/>
+ - <https://kubernetes.io/docs/reference/federation/v1/definitions/>
+ - <https://kubernetes.io/docs/reference/federation/v1/operations/>
+
+ EXTERNAL REFERENCES:
+- The K8s Bible for Beginners and developers:
+<https://docs.google.com/document/d/1O-BwDTuE4qI0ASE7iFp6qFpTj8uIVrl9F0HUrC4u_GQ/>
+
+- https://kubernetes.io/docs/reference/command-line-tools-reference/federation-apiserver/
+- https://kubernetes.io/docs/reference/command-line-tools-reference/federation-controller-manager/
+- https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/
+- https://kubernetes.io/docs/tasks/manage-hugepages/scheduling-hugepages/
+
+ SECRETS
+- <https://kubernetes.io/docs/tasks/administer-federation/secret/>
+
+## kubefed(eration):
+Controls cluster federation
+- Cross-cluster Service Discovery using Federated Services
+  https://kubernetes.io/docs/tasks/federation/federation-service-discovery/
+- https://kubernetes.io/docs/tasks/federation/set-up-cluster-federation-kubefed/
+- https://kubernetes.io/docs/tasks/federation/set-up-coredns-provider-federation/
+- https://kubernetes.io/docs/tasks/federation/set-up-placement-policies-federation/
+REFERENCE:
+<https://kubernetes.io/docs/reference/setup-tools/kubefed/kubefed/>
+<https://kubernetes.io/docs/reference/setup-tools/kubefed/kubefed-options/>
+<https://kubernetes.io/docs/reference/setup-tools/kubefed/kubefed-init/>
+<https://kubernetes.io/docs/reference/setup-tools/kubefed/kubefed-join/>
+<https://kubernetes.io/docs/reference/setup-tools/kubefed/kubefed-unjoin/>
+<https://kubernetes.io/docs/reference/setup-tools/kubefed/kubefed-version/>
+## Federated Services
+<https://kubernetes.io/docs/tasks/federation/federation-service-discovery/>
+## Using the k8s API
+https://kubernetes.io/docs/reference/using-api/api-overview/
+## Accessing the API
+https://kubernetes.io/docs/reference/access-authn-authz/controlling-access/
+https://kubernetes.io/docs/reference/access-authn-authz/authentication/
+https://kubernetes.io/docs/reference/access-authn-authz/bootstrap-tokens/
+https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/
+https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/
+https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/
+https://kubernetes.io/docs/reference/access-authn-authz/authorization/
+https://kubernetes.io/docs/reference/access-authn-authz/rbac/
+https://kubernetes.io/docs/reference/access-authn-authz/abac/
+https://kubernetes.io/docs/reference/access-authn-authz/node/
+https://kubernetes.io/docs/reference/access-authn-authz/webhook/
+[[}]]
+
+## simplenetes:  [[{]]
+* 'sns' is used to manage the full life cycle of your Simplenetes clusters.
+* It integrates with the Simplenetes Pod compiler project podc to compile pods.
+  https://github.com/simplenetes-io/simplenetes
+[[}]]
+
+## AWS Releases Multi-Cloud Kubernetes Autoscaler Karpenter [[{]]
+  https://www.infoq.com/news/2022/01/karpenter-kubernetes-autoscaler/
+  This improves upon their Kubernetes Cluster Autoscaler by providing a
+  easily configurable, fully automated scheduler. Karpenter is able to
+  monitor for unscheduled pods and launch new nodes as well as
+  terminate unneeded infrastructure. Karpenter is designed to work with
+  any Kubernetes cluster in any environment.
+
+  Karpenter is able to observe the aggregate resource requests of
+  unscheduled pods. Using this it makes decisions to launch or
+  terminate as needed to optimize cluster performance and cost.
+  According to Channy Yun, Principal Developer Advocate with AWS,
+  Karpenter "performs particularly well for use cases that require
+  rapid provisioning and deprovisioning large numbers of diverse
+  compute resources quickly".
+[[}]]
+
+## Cluster admin tasks [[{]]
+advertise extended resources for a node
+change the reclaim policy of a persistentvolume
+change the default storageclass
+configure multiple schedulers
+configure out of resource handling
+configure quotas for api objects
+control cpu management policies on the node
+customizing dns service
+debugging dns resolution
+developing cloud controller manager
+guaranteed scheduling for critical add-on pods
+ip masquerade agent user guide
+kubernetes cloud controller manager
+limit storage consumption
+operating etcd clusters for kubernetes
+reconfigure a node's kubelet in a live cluster
+reserve compute resources for system daemons
+safely drain a node while respecting application slots
+securing a cluster
+set kubelet parameters via a config file
+set up high-availability kubernetes masters
+static pods
+storage object in use protection
+using coredns for service discovery
+using a kms provider for data encryption
+using sysctls in a kubernetes cluster
+[[}]]

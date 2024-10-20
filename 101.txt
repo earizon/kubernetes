@@ -1,0 +1,1128 @@
+[[{101]]
+# Kubernetes 101
+
+- Ussually referred to as k8s ( k + "ubernete" + s )
+
+- k8s orchestrates pools-of-CPUs, local/remote-storage and networks balancing
+  load to a pool of N VMs/physical machines.
+
+- etcd3: k8s "brain memory": High availability key/value ddbb used to save the cluster
+  metadata, service registrar and discovery. It favors consistency over speed.<br/>
+  * NOTE 1: for UNIX newcomers, In UNIX configuration is placed inside /etc. etcd is
+    sort of a distributed /etc for cloud (distributed) machines, offering a central
+    configuration place.
+  * NOTE 2: etcd3 is replaced by sqlite in some "light" distributions, notably, k3s.
+
+- Kubernetes does not enforce a formal notion of application.
+  apps are described thorugh metadata in a loose definition.
+  In practice, the "deployment" is the most similar to an Application
+  (or the root of the definition of an application). 
+  The deployment itself contains references to volumes, routes, 
+  configuration (maps), secrets, ...
+
+## MASTER-NODE "cluster"
+
+* The cluster can be  a single machine for non HA enviroments.
+* Master nodes manages the full cluster, keeping tracks of:
+  * DESIRED STATE  (how many replicas, what entry-points, file-system 
+    space, ... We want for our app)
+  * APPLICATION ESCALATION.
+  * ROLLING UPDATES.
+
+* MASTER-NODE is composed of:
+  * kube-apiserver: (REST API) around k8s objects (containers, volumes, network interfaces, pods, ...)
+    - It keeps listening for orders from management tools ('kubectl' and UI-like tools)
+  * kube-controller-manager: EMBEDS k8s CORE CONTROL LOOPS!!!: <br/>
+    - handles a number of controllers, regulating the state of cluster,
+      performing routine tasks (ensures number of replicas for a service, ...)
+  * kube-scheduler:
+    - Assigns workloads to nodes.
+    - tracks host-resource usage.
+    - tracks total resources available per server and resources allocated to
+      existing workloads assigned to each server.
+    - Manages availability, performance and capacity.
+    .
+  * federation-apiserver: (optional) API server for federated clusters.
+    .
+  * federation-controller-manager: (optional) embeds the core control loops shipped 
+    with k8s federation.
+    * cloud-controller-manager: (optional, k8s v1.7+)
+      runs controllers interacting with cloud providers (AWS, GPC, Scaleway, Azure, ...)
+      Clouds have extra network services not available in standard Linux boxes and this
+      controller allows to use them when available. For example, when balancing an HTTP
+      RESTfull service k8s will usually delegate in some Linux application (Envoy,
+      Nginx, ...), but in AWS it will be able to use AWS ELB. When requesting new storage
+      it will be able to sync with CLOUD storage services (AWS EFS, Ceph, ...)
+
+  ```
+  |
+  |│CLUSTER│1 <····> N│Namespace│ 1 <·······> N│"Application"│
+  |  ·                 └──┬────┘                └──┬────────┘
+  |  ·            "Virt.cluster"                "informal" term
+  |  ·         - Can be assigned max mem/CPU   usually referring to a "Service" or Job
+  |  ·           /PVC quotas                   (explained later on) containing storage,
+  |  ·                                         injected config files, CPU resources,
+  |  v
+  | |CLUSTER| is the sum of:
+  |    + etcd
+  |    + Master-node/s (apiserver, controller-manager, scheduler, ...)
+  |    + Pool of workers nodes: worker-node 1, worker-node 2, worker-node 3, ...]
+  |  ┌─·········─┴───────────┘
+  |  v
+  | |worker node| is the sum of:
+  |   + CPU + RAM + (transient) storage
+  |   + kubelet agent    : "daemon" monitoring that containers run as set in (Pod) Specs
+  |   + Container runtime: vendor's Implementations like runc/crun/rkt/...
+  |   + kube-proxy       : Virtualized node network.
+  |   + Running Pods: [ Pod1, Pod2, Pod3, .... ]
+  |             └┬─┘
+  |  ┌···········┘
+  |  v
+  |  |POD|: MINIMUM UNIT OF EXECUTION TO BE SCHEDULED BY k8s. [[doc_has.keypoint]] 
+  |         The can be seen as ephemeral "virtual machines" that can be moved from
+  |         a worker-node to another if resources are scarce.
+  |         - At creation time resource-limits for CPU/memory are defined.
+  |           This allows the kube-scheduler@master to opt for a suitable worker-node.
+  |         - At creation time resource-limits for CPU/memory are defined.
+  |  A (running) POD is the sum of:
+  |  + Container 1
+  |  + Container 2 <·· Ussually 1 main container plus 0/1 "sidecar" containers
+  |  + ...             giving support to the main one (backup, ...) or extending
+  |  + ...             the functionality of the main container/application. Eg:
+  |                    Main container: PostgreSQL   
+  |                    "Side Car"   1: schema initialization, cleaning, backups
+  |                    "Side Car"   2: GraphQL API wrapper.
+  |  Containers in a Pod share the same worker node (CPU/storage/IP network) and 
+  |  the same life-cicle. [[doc_has.keypoint]] 
+  |
+  |  According to scalability policies they can be created in "peaks-of-load" and
+  |  killed when not needed anymore.
+  |  If the Pod definition uses a network volume, data is persisted.
+  ```
+
+[[{101.namespace]]
+## k8s Namespaces "Virtual Isolated Cluster"
+
+* <https://kubernetes.io/docs/tasks/administer-cluster/namespaces-walkthrough/>
+* <https://kubernetes.io/docs/tasks/administer-cluster/namespaces/>
+
+  ```
+  | $ kubectl get namespaces
+  | NAME          STATUS    AGE
+  | default       Active    1d
+  | kube-system   Active    1d
+  | 
+  | $ kubectl get pods --all-namespaces   <·· by default only pods 
+  |                                           in active ns is listed
+  | $ kubectl create namespace namespc01
+  | 
+  | $ kubectl --namespace=namespc01 run \ <·· Run on given N.S.
+  |           nginx --image=nginx
+  | 
+  | -- Create new namespace ---------------------------------------
+  | $ edit myNamespace.yaml
+  | apiVersion: v1
+  | kind: Namespace
+  | metadata:
+  |   name: integrationEnv
+  | 
+  | $ kubectl apply -f mynamespace.yaml   <·· Needs kubectl user/session 
+  |                                           with correct permissions.
+  |
+  | -- Set kubectl default namespace ------------------------------
+  | $ kubectl config set-context \        <·· Set default namespace (avoid 
+  |   $(kubectl config current-context) \     <· $(...) bash syntax
+  |   --namespace=MyFavouriteNS
+  |
+  | $ kubectl config view                 <·· Validate, check 
+  |   grep namespace: # Validate
+  ```
+
+* See also [kubens](https://github.com/ahmetb/kubectx)(by Ahmet Alp Balkan).
+  An script wrapper to easily switch between Kubernetes namespaces.
+  ```
+  $ kubens foo # activate namespace.
+  $ kubens -   # back to previous value.
+  ```
+[[}]]
+
+## Deploying an "App"[[{application.101]]
+
+  ```
+  Deploying an App in practice means:
+  0) (Cluster Admin)    : Create Namespace ("Virtual Kubernetes") for team/project.
+  1) (Cluster Admin)    : Prepare Volumes (assign physical drivers to k8s PV)
+
+  2) (Developer)        : Create containerized app/s.
+  3) (Developer/DevOps) : Create custom configuration (ConfigMaps, SecretMaps)
+  4) (Developer/DevOps) : Define Desired State for running app:
+                          containers, replicas, image version, service
+                          Probably that means declaring a "Service" (RESTfull like apps)
+                          a (Batch)Job, StatefulSet.
+  5) (Developer/DevOps) : For Services (Remote HTTP RPC like apps) create "Ingress Rules"
+                          exposing inmutable HTTP/S Services balancing to internal
+                          (moving) Pods.        [[application.101}]]
+  ```
+
+## Labels&Labels-selectors                                              [[{101.labels]]
+
+- Kubernetes uses namespace to divide the cluster into virtual clusters.
+- Inside a given namespace, it uses labels to organize resources in logical "groups".
+  A "kubernetes resource" can be tagged with N simultaneous labels to mark its
+  role, target-enviroment, billing account, "anything else" ...
+  Usually a label key represents a "dimension" axis and the value assigned the "coordinate".
+
+- **LABEL SELECTORS**: Similar (in concept) to CSS selectors.
+  Target to group of objects (Pods, services, ...) by matching labels.
+  ```
+     key=tier                      ┌─ Lecture ─────────────────────┐
+        ^                          │ ◦ == Resource: Pod, Volume,   │
+  ... ··┤                          │       LoadBalancerIngress,...)│
+        │                          └───────────────────────────────┘
+        │   ┌···┐ <······························· selector:
+ front··┤   · ◦ ·    ◦      ◦      ◦◦    ◦◦◦◦      'tier=front,enviroment=dev'
+        │   └···┘
+        │   ┌································┐<··· selector:
+ cache··┤   · ◦      ◦      ◦◦           ◦◦◦◦·     'tier=cache'
+        │   └································┘
+        │
+ back···┤     ◦      ◦      ◦◦           ◦◦◦◦
+        │
+        +─────┬──────┬──────┬──────┬──────┬──··> key=environment
+              ·      ·      ·      ·      ·
+             dev    QA     pre   canary  pro
+  ```
+
+-  Ex. labels:
+  ```
+   Key                              | Description       | Example
+   ================================   ==================  ================
+   app.kubernetes.io/name           | app-name          | useronboarding ┐
+   app.kubernetes.io/instance       | unique ID         | mysql-abcxzy-1 │  STANDARD
+   app.kubernetes.io/version        | app-version       | 5.7.21         ├  (RECOMMENDED)
+   app.kubernetes.io/component      |                   | database       │  LABELS
+   app.kubernetes.io/part-of        |                   | wordpress      │
+   app.kubernetes.io/managed-by     | mgn.tool used     | helm           ┘
+   ================================   ==================  ================
+   kubernetes.io/arch               |                   |                ┐
+   kubernetes.io/os                 |                   |                │  NON-STANDARD BUT
+   kubernetes.io/hostname           |                   |                ├  WELL-KNOWN
+   beta.kubernetes.io/instance-type |                   |                │  LABELS
+   failure-domain.beta.kubernetes.io/region             |                │
+   failure-domain.beta.kubernetes.io/zone               |                ┘
+   ================================   ==================  ================
+   helm.sh/chart                    | chart name/ver    |                <·· required by HELM
+   ================================   ==================  ================
+   release                          | canary|stable|... | stable         ┐
+┌> environment                      | dev|qa|pre|pro    | test           │  CUSTOM  BY
+|  tier                             | front|back|mesg...| front          ├  namespace
+|  track                            | daily|weekly|...  | daily          ·
+|  ...                                                                   ·
+└ NOTE: Probably is saffer and beter to use a different namespace for    ·
+        each enviroment, allowing for different quotas, team managing
+        passwords, ...
+  ```
+
+-  Ex. LABEL SELECTORS:
+  ```
+  environment=production,tier!=front   ┐ EQUALITY SELECTOR
+                        ^              ┘ "AND" condition
+                        └·················┘
+
+  all resources with                   ┐
+     ( key    == "tier" AND            │ SET-BASED SELECTOR
+       values != frontend OR backend ) │ 'IN', 'NOTIN' 'EXISTS'
+  AND                                  │
+  all resources with (key != "tier")   ┘
+
+
+  key equal to environment  and        │ SET─BASED SELECTOR
+  value equal to production or qa      │
+
+  environment in (production, qa)      │ SET-BASED SELECTOR
+
+  tier notin (frontend, backend)       │ SET-BASED SELECTOR
+
+
+  'partition'                          │ "all resources including a label
+                                         with key 'partition'
+                                         (or '!partition') to neglect
+  ```
+- LIST and WATCH operations may specify label selectors to filter the sets
+  of objects returned using a query parameter. Ex.:
+  ```
+  $ kubectl get pods -l environment=production,tier=frontend
+  $ kubectl get pods -l 'environment in (production),tier in (frontend)'
+  $ kubectl get pods -l 'environment in (production, qa)'
+  $ kubectl get pods -l 'environment,environment notin (frontend)'
+  ```
+[[101.labels}]]
+
+
+## ConfigSecrets&ConfigMaps  [[{application.configuration]]
+(See also "Sealed Secrets")
+  Custom configuration is injected into Pods as either enviroment variables or configuration
+  files (mounted as a volume in the Pod).
+  Secrets add some extra layer of protection and they are also use by 'kubelet'@working-node
+  to download container images from the container registry if needed.
+
+- To create a ConfigMap:
+  ```
+    .../config1/                      STEP 1) Setup INPUT DATA
+        ├─ game.properties
+        └─   ui.properties
+
+    $ kubectl create configmap \      STEP 2) Alt 1. CREATE ConfigMap  from config/ files
+      config1 --from-file=config1/
+
+    $ kubectl create configmap \      STEP 2) Alt 2). Create ConfigMap as params.
+      config1 \
+      --from-literal=key1.sub=val1 \
+      --from-literal=...
+
+    $ kubectl get configmaps \        STEP 3)  VERIFY ConfigMap created
+      config1 -o yaml
+      ...
+        data:
+        game.properties:
+          ...
+        ui.properties:
+
+    ┌──────────────────────────────┐
+    │kind: Pod                     │
+    │...                           │
+    │spec:                         │
+    │ containers:                  │
+    │  ─ name: test-container      │
+    │    ...                       │
+    │    env:                      │   STEP 4) Declare config1 to be injected in Pod.
+    │     ─ name: config1          <·· INJECT "config1" ConfigMap into Pod.
+    │       valueFrom:             │
+    │         configMapKeyRef:     │
+    │           name: game-config  <·· Subconfig in ConfigMap
+    │           key: enemies.cheat │
+    ...
+  ```
+
+* k8s Built-in Secrets
+  * Service Accounts automatically create and attach secrets with API Credentials.
+  * k8s automatically creates secrets with credentials granting API access.
+  __NOTE: Pods are automatically modified to use them.__
+
+  ```
+                                       CREATING USER SECRETS ALT 1
+  ================================================================
+  $ echo -n .... > ./user.txt          <·· STEP 1) Alt 1. As "secret owner" create un-encrypted secrets
+  $ echo -n .... > ./pass.txt                      in local machine.
+            ^^^
+            └──┴─······························ special characters must be '\' escaped.
+  $ kubectl create secret  \           <·· STEP 2) Create k8s Secret
+     generic **dbuserpass** \
+      --from-file=./user.txt \
+      --from-file=./pass.txt
+
+  $ shred -n 2 -z -v -u pass.txt       <·· Safe delete secrets on disk
+  $ shred -n 2 -z -v -u user.txt           (vs just a 'rm pass.txt')
+  ```
+
+  ```
+                                       CREATING USER SECRETS ALT 2
+  ================================================================
+  $ cat << EOF > secret.yaml           <·· STEP 1) Alt 2.1. As "secret owner" create k8s Secret  base64 encoded
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: mysecret
+  type: Opaque
+  data:                                        'base64': standard Unix tool
+    user:$(echo -n .. | base64)            <·· $(...) : Bash syntax suggar: Execute '...' command,
+    pass:$(echo -n .. | base64)                         then replace command output as effective value.
+  EOF
+
+  $ cat << EOF > secret.yaml           <·· STEP 1) Alt 2.1. As "secret owner" create k8s Secret
+  apiVersion: v1                                 with stringData
+  kind: Secret
+  metadata:
+    name: mysecret
+  type: Opaque
+  stringData:
+    config.yaml: |-
+      apiUrl: "https://.../api/v1"
+      user: admin
+      pass: 1f2...
+  ```
+
+  ```
+  $ kubectl apply -f secret.yaml       <·· STEP 2) Apply secret.
+  $ shred -n 2 -z -v -u secret.yaml     <·· Safe delete secrets on disk
+
+  $ kubectl get secrets                <·· STEP 3) VERIFY/CHECK CREATED SECRET
+  > NAME           TYPE    DATA  AGE
+  > dbuserpass     Opaque  2     51s
+  ```
+
+  ```
+  $ kubectl describe secrets/dbuserpass
+  Name: **dbuserpass**
+  ...
+      Data
+      ====
+      user.txt:    5 bytes
+      pass.txt:    12 bytes
+  ```
+
+- "INJECTING" SECRETS INTO POD'S CONTAINERS: (As Developer/DevOps)
+
+  ```
+  ALT 1.A:                     │ ALT 1.B:                        │ ALT 2: CONSUME AS ENV.VAR
+  Mount file as volume         │ Mount items file as volume      │ (App will read env.vars to fetch
+                               │                                 │  the secrets)
+                               │                                 │
+  apiVersion: v1               │ apiVersion: v1                  │ apiVersion: v1
+  kind: Pod                    │ kind: Pod                       │ kind: Pod
+  metadata:                    │ metadata:                       │ metadata:
+    name: mypod                │   name: mypod                   │   name: secret-env-pod
+  spec:                        │ spec:                           │ spec:
+    containers:                │   containers:                   │  containers:
+    - name: mypod              │   - name: mypod                 │  - name: mycontainer
+      image: redis             │     image: redis                │   image: redis
+      volumeMounts:            │     volumeMounts:               │   env:
+      - name: foo              │     - name: foo                 │    - name: SECRET_USERNAME
+        mountPath: "/etc/foo"  │       mountPath: "/etc/secret"  │      valueFrom:
+        readOnly: true         │       readOnly: true            │      **secretKeyRef:**
+    volumes:                   │   volumes:                      │         name:**dbuserpass**
+    - name: foo                │   - name: foo                   │         key: username
+      secret:                  │     secret:                     │    - name: SECRET_PASSWORD
+        secretName:**dbuserpass**       secretName:**dbuserpass**│      valueFrom:
+        defaultMode: 256       │       items:                    │      **secretKeyRef:**
+                      ^        │       - key: username           │         name:**dbuserpass**
+                      ·        │         path: group01/user01    │         key: password
+                      ·                           ^^^^^^^^^^^ 
+           JSON does NOT support     · username will be seen in container as:
+           octal notation.             /etc/foo/group01/user01
+           256 = 0400                · password secret is not projected
+  ```
+[[application.configuration}]]
+
+## Sealed Secrets  [[{security.secret_mng]]
+<https://github.com/bitnami-labs/sealed-secrets>
+Problem: "I can manage all my K8s config in git, except Secrets."
+Solution: Encrypt your Secret into a SealedSecret, which is safe to
+store - even to a public repository.
+* The SealedSecret can be decrypted only by the controller running in the target cluster and
+nobody else (not even the original author) is able to obtain the
+original Secret from the SealedSecret.
+
+Sealed Secrets is composed of two parts:
+
+* A cluster-side controller / operator
+* A client-side utility: kubeseal
+
+* The kubeseal utility uses asymmetric crypto to encrypt secrets that only the controller can decrypt.
+* These encrypted secrets are encoded in a SealedSecret resource,
+  which you can see as a recipe for creating a secret. Here is how it
+  looks:
+
+  ```
+  | apiVersion: bitnami.com/v1alpha1
+  | kind: SealedSecret
+  | metadata:
+  |   name: mysecret
+  |   namespace: mynamespace
+  | spec:
+  |   encryptedData:
+  |     foo: AgBy3i4OJSWK+PiTySYZZA9rO43cGDEq.....
+  ```
+* Once unsealed this will produce a secret equivalent to this:
+  ```
+  | apiVersion: v1
+  | kind: Secret
+  | metadata:
+  |   name: mysecret
+  |   namespace: mynamespace
+  | data:
+  |   foo: bar  # <- base64 encoded "bar"
+  ```
+[[}]]
+
+## Pod scheduling [[{application.Pod]]
+
+- if the affinity rules cannot be met by any node :
+  * Required  affinities: pod will stop being scheduling
+  * preferred affinities: pod will still be    scheduled
+- Required and preferred affinities can be combined.
+- If possible, run my pod in an availability zone without other
+  pods labelled app=nginx-ingress-controller.
+[[}]]
+
+## Pod: Force image reload [[{application.Pod]]
+
+* Prerequirement. In pod spec: 
+  ```
+  imagePullPolicy: Always          <·· force replacement of the image.
+  ```
+  
+  ```
+  $ kubectl apply -f my_pod.yaml   # alt 1. yaml is available
+  $ kubectl get pod \              # alt 2. fetch current config from server
+    $Pod_Name -o yaml | \
+    kubectl replace --force -f -
+  ```
+[[}]]
+
+## Pod securityContext [[{security.101]]
+
+  ```
+  | apiVersion: v1
+  |   kind: Pod
+  |   metadata:
+  |     name: security-context-demo     $ kubectl exec $runningPod -it -- /bin/bash
+  |   spec:                             # id
+  |     securityContext:        <·····  uid=1000 gid=3000 groups=2000 (for Pod)
+  |       runAsUser: 1000               ( 0/0 if sec.ctx left blank)
+  |       runAsGroup: 3000
+  |       fsGroup: 2000        <······· file-system owned/writable by fsGroup GID
+  |                                     (when supported by volume)
+  |     volumes:
+  |     - name: sec-ctx-vol    <······· Volumes will be relabeled with provided
+  |       emptyDir: {}                  seLinuxOptions values
+  |     containers:
+  |     - name: sec-ctx-demo
+  |       ...
+  |       volumeMounts:
+  |       - name: sec-ctx-vol
+  |         mountPath: /data/demo
+  |       securityContext:
+  |         allowPrivilegeEscalation: false
+  |         capabilities:       <········ Provides a subset of 'root' capabilities
+  |           add:
+  |             - "NET_ADMIN"
+  |             - "SYS_TIME"
+  |        seLinuxOptions:
+  |          level: "s0:c123,c456"
+   ```
+
+  <https://github.com/torvalds/linux/blob/master/include/uapi/linux/capability.h>
+
+* SecurityContext holds security configuration that will be applied to a container.
+* SecurityContext settings takes precedence over PodSecurityContext.
+*  PodSecurityContext holds pod-level security attributes and
+   common container settings
+[[}]]
+
+
+
+
+
+
+# Controllers [[{101.controllers]]
+
+[[{101.controllers.replicaset]]
+## ReplicaSet Controller
+
+- ensure "N" pod replicas are running simultaneously.
+- Most of the times used indirectly by "Deployments" to
+  orchestrate pod creation/deletion/updates.
+- 'Job' controller prefered (vs ReplicaSet) for pods terminating on their own.[[doc_has.comparative]]
+  (batch jobs, cleaning tasks, ...)
+- 'DaemonSet' controller prefered for pods providing a machine-level function.
+  (monitoring, logging, pods that need to be running before others pods starts).
+  KEY-POINT: DaemonSet PODS  LIFETIME "==" MACHINE LIFETIME 
+
+  ```
+  | app1_frontend_repset.yaml  <··  $ kubectl create -f http:...app1_frontend_repset.yaml
+  |                                 ...
+  | apiVersion: apps/v1               
+  | kind: ReplicaSet                $ kubectl describe rs/frontend -l app=guestbook
+  |                                   ...
+  |                                   Replicas:  **3 current / 3 desired**
+  |                                   Pod Template: ...
+  | metadata:                           Containers:
+  |   name: frontend                     php-redis: ...
+  |   labels:                           Volumes:              <none>
+  |┌··  app: guestbook                Events:
+  |├··  tier: frontend                1stSeen LastSeen ... Reason Message
+  |·spec:                              1m     1m       ... SuccessfulCreate  Created pod: frontend-qhloh
+  |·  replicas: 3             <·· Def.value: 1
+  |·  selector:               <·· Affected Pods.
+  |·    matchLabels:             
+  |·      tier: frontend         
+  |·    matchExpressions:        
+  |·      - {key: tier, operator: In, values: [frontend]}
+  |·  template:               <·· Pod template (nested pod schema, removing
+  |·    metadata:                               apiVersion/kind properties -)
+  |·      labels:             <·· Needed in pod-template (vs isolated pod)
+  |├··      app: guestbook         .spec.template.metadata.labels must match
+  |└··      tier: frontend         .spec.selector
+  |     spec:                    
+  |       restartPolicy: Always <·· default/only allowed value
+  |       containers:            
+  |       - name: php-redis      
+  |         image: gcr.io/google_samples/gb-frontend:v3
+  |         resources:          <·· Always indicate resources  [[qa.best_patterns]]
+  |           requests:             to help scheduler and autoscalers place in a 
+  |             cpu: 100m           suitable work-node.
+  |             memory: 100Mi       affinities/anti-affinities also provide hints [[PM.TODO]] 
+  |           #
+  |           limits:           <·· RISKY. Use them only if absolute sure. 
+  |             cpu: 200m           Ex.: you know that if exceeded there is a bug.
+  |            memory: 200Mi    
+  |            ephemeral-storage: 1G <·· k8s v1.8+ 
+  |        env:               
+  |        - name: PARAM1     
+  |          value: VALUE1    
+  |        ports:             
+  |        - containerPort: 80
+  ```
+
+[[{doc_has.keypoint]]
+- An application is "blur" term in Kubernetes. "Deployment" object is the
+  most similar entity mapping to the intuitive concept of "Application",
+  declaring the "desired set of resources" for the life-cycle of an application.
+  (An application is also called "solution" using Microsoft nomenclature or
+   service -discouraged since "service" is used in k8s with other meaning relating
+   to network inmutable view of the app).
+- Deployments adds application lifecycle to ReplicaSet (creation, updates,...)
+  e.g: Pod definition changed: Deployment takes care of gradually moving from
+       a running (old) ReplicaSet to a new (automatically created) ReplicaSet.
+  Deployments also rollback to (old) ReplicaSet if the new one is not stable.
+  (or removing old ones otherwise)
+[[}]]
+
+  ```
+  | appdeployment.yaml ---------
+  | apiVersion: apps/v1beta2     ←  for vers.<1.7.0 use apps/v1beta1
+  | kind: Deployment                  $ kubectl create -f appdeployment.yaml
+  | metadata:                         $ kubectl get deployments
+  |   name: app1-deployment           → NAME             DESIRED CURRENT  ...
+  |   labels:                         · nginx-deployment 3       0
+  |     app: app1                 
+  | namespace: testing_dept1     ← Namespace can be used to
+  | spec:                         
+  |   replicas: 3                ← 3 replicated Pods
+  |   strategy:                   
+  |    - type : RollingUpdate    ← Alt: -type: Recreate (used when new version -of DDBB
+  |      rollingUpdate:                 node, ... is NOT compatible with old one)
+  |        {maxSurge:2,maxUnavailable:25%}
+  |   selector:                   
+  |     matchLabels:              
+ ┌|···    app: app1               
+ ·|   template:                  ← pod template.
+ ·|     metadata:                  TIP: 1+ 'PodPreset' can be used to apply common presets
+ ·|       labels:                       for different pods (similar mount points, injected
+ └|······   app: nginx                  env vars, ...)
+  |     spec:                    ← template pod spec
+  |       containers:              change triggers new rollout
+  |       - name: nginx           
+  |         image: nginx:1.7.9       $ kubectl rollout status deployment/nginx-deployment
+  |         ports:                   → Waiting for rollout to finish: 2/3 new replicas
+  |         - containerPort: 80      · have been updated...
+  |                                  · deployment "nginx-deployment" successfully rolled out
+  |        volumes:              ← Volumes and ports are the main I/O "devices"
+  |    ┌·· - name: test-vol        to read input and write output for containers.
+  |    ·     hostPath:            
+  |    ·       path: /data       ← location on host
+  |    ·       type: Directory   ← (optional)
+  |    · ┌ - name:  cache-vol     
+  |    · ·   emptyDir: {}        ← Remove volume when pod is deleted
+  |    · ·                        
+  |    · ·   volumeMounts:        
+  |    · ·   - mountPath: /cache ← where to mount
+  |    · └..   name:cache-vol    ← volume (name) to mount
+  |    ·     - mountPath: ...     
+  |    └····   name:test-vol      
+  |
+  |         livenessProbe:       ← Best pattern. Other options include grpc|exec|tcp
+  |           httpGet:           ← Alt.: exec: { command: [cat, /tmp/healthy ] }
+  |             path: /heartbeat   Optional parameters:
+  |             port: 80           · timeoutSeconds  : (before timing out), def: 1sec
+  |             scheme: HTTP       · successThreshold: Minimum consecutive "OK"s after failure to consider "OK".
+  |                                · failureThreshold: num.of "KOs" before "giving up" (Pod marked Unready)
+  |         readinessProbe: ...  ← Useful when containers takes a long time to start.
+  |       activeDeadlineSeconds: 70  ← Optional. Use it when also using Init-Pods (See behind)
+  |                                    to prevent them form failing forever.
+  |       initContainers:         
+  |       - name: init-from-url1 ← INIT CONTAINERS: 1+ specialized cont. running IN ORDER before normal ones
+  |         image: busybox:1.28                 - They always run to completion, with k8s restarting
+  |                                               them repeatedly until succeed. (if restartPolicy != Never)
+  |         command:                            - Each one must complete successfully before next one start.
+  |         - bash                              - status is returned in .status.initContainerStatuses
+  |         - "-c"                                (vs .status.containerStatuses) (readiness probes do not apply)
+  |         - |                  ← Yaml syntax sugar allowing to embed complex scripts,...
+  |           set -ex             
+  |           cat << EOF > file1  
+  |           ...                 
+  |           EOF                 
+  |           ...                 
+  |       ─ name: init-from-db    
+  |         image: busybox:1.28   
+  |         command: ['sh', '─c', 'psql ...']
+  ```
+
+  ```
+  | $ kubectl get rs                   <·· dump ReplicaSet created by the deployment
+  | NAME                    DESIRED ...
+  | app1-deployment-...4211 3
+  | └──────┬──────┘ └──┬──┘
+  | deployment-name- pod─tpl-hash
+  |
+  | $ kubectl get pods --show-labels                      <··· Display ALL labels automatically
+  |
+  | → NAME          ... LABELS                                generated for ALL pods
+  | · app1-..7ci7o ... app=nginx,...,
+  | · app1-..kzszj ... app=nginx,...,
+  | · app1-..qqcnn ... app=nginx,...,
+  |
+  | $ kubectl set image deployment/app1-deployment \      <··· Update nginx 1.7.9 → 1.9.1
+  |   nginx=nginx:1.9.1
+  |
+  | $ kubectl rollout history deployment/app1-deployment  <··· Check deployment revisions
+  | deployments "nginx-deployment"
+  | R CHANGE-CAUSE
+  | 1 kubectl create -f nginx-deployment.yaml ---record
+  | 2 kubectl set image deployment/nginx-deployment \
+  |                     nginx=nginx:1.9.1
+  | ...
+  |
+  | $ kubectl rollout undo deployment/app1-deployment \  <··· Rollback to rev. 2
+  |  --to-revision=2
+  |
+  | $ kubectl scale deployment \                         <··· Scale Deployment
+  |   app1-deployment --replicas=10
+  |
+  | $ kubectl autoscale deployment app1-deployment \
+  |   --min=10 --max=15 --cpu-percent=80
+  ```
+[[101.controllers.deployment}]]
+[[101.controllers}]]
+
+## Service: (HTTP)ENDPOINT, INMUTABLE VIEW OF an "Application" [[{101.service]]
+
+- HTTP end point can be RESTfull, GraphQL, GRP,...
+- The Service is the inmutable "ID" from the point of view of network.
+  (The Deployment can also be seen as the inmutable "ID" from the point
+   of view of a given "App" rolling up/back to new/older versions).
+- Pods and Pod's network (IPs) are mutable. Pods can move to a
+  different working node in the k8s pool "at random", changing their
+  internal IP.
+- The k8s "Service" provides the INMUTABLE VIEW (as seen by other
+  Pods/Apps) of the moving pods with a PERMANENT internal Cluster
+  IP|DNS name by grouping Pods in a "logical set" with a NETWORK POLICY
+  to access them.
+
+- NOTE: The "kube-proxy" gets in charge of the network "magic"
+
+  ```
+   ┌──── Time0 ────┐··> ┌──── Time1 ────┐··> ┌──── Time2 ────┐
+
+    ┌·> Service ··┐      (Pod relocated       ┌·> Service ··┐
+    ·             ·       to Node2)           ·             ·
+    ·   Pod@Node1<┘      ┌···· Node1          ·             ·
+    ·                    ·                    ·             ·
+    ·       Node2        └>Pod@Node2          ·   Pod@Node2<┘
+    ^                                         ^
+    client-request                            client-request
+  ```
+
+- SERVICE TYPES:
+  ```
+  =============
+  · ClusterIP    : (default) internal-to-cluster virtual IP.
+                   No IP exposed outside the cluster.
+
+  · ExternalName : Maps apps (Pods services) to an externally
+                   visible DNS entry (ex: foo.example.com)
+
+┌ · NodePort     : (L4) Directly Exposes an external Node-IP:Port to internal Pods.
+│
+├ · LoadBalancer : (L4) Exposes 'Service' externally using cloud provider's load
+│                       balancer. NodePort&ClusterIP services are automa. created.
+│
+└→ Alternatively 'Ingress' (L7) can be used to expose HTTP/S services externally.
+   'NodePort'/'LoadBalancer' Services allows for TCP,UDP,PROXY and SCTP(k8s 1.2+)
+   - Advanced load balancing (persistent sessions, dynamic weights) are NOT yet
+     supported by Ingress rules (20??-??)
+   - 'Ingress' allows to expose services based on HTTP HEADER 'host' (virtual hosting),
+      HTTP paths/path regex) ,...  not available to 'NodePort'/'LoadBalancer' Services
+
+              ┌Cloud Provider┐
+          ┌···│ LoadBalancer │······┐
+          ·   └──────────────┘      ·
+          v                         v
+      ClusterIP          │       NodePort             │      ExternalName
+      =========          │       ========             │      ============
+                         │                            │
+            ┌···>:80     │   :3100             :80    │           ┌·>|node1├·>:80
+            ·    │Pod│   │   ┌··>│node├··┐  ┌─>│Pod│  │           ·           │Pod│
+  Internal  ·            │   ·           ·  ·         │ External  ·
+  Traffic   ·            │ Incomming     v  ·         │ Traffic   ·
+  └·······> ClusterIP:80 │ traffic      │NodePort│    │ └·····> ExternalIP:80
+            ·            │   ·           ^  ·         │     │   │LoadBalancer│
+            ·            │   ·           ·  ·         │     │     ·
+            ·    │Pod│   │   └··>│node├··┘  └·>│Pod│  │ Incomming ·            Pod│
+            └···>:80     │   :3100          :80       │   traffic └·>│node2├·>:80
+                         │   ^                ^       │
+                         │   Creates mapping between  │
+                         │   node port(3100) and      │
+                         │   Pod port (80)            │
+  ``` 
+  
+  ``` 
+  ┌ service.yaml ────────┐   $ kubectl expose deployment/my-nginx # <- alt1:
+  │ apiVersion: v1       │   $ kubectl apply -f service.yaml      # <- alt2:
+  │ kind: Service        │
+  │ metadata:            │
+  │   name: Redis        │ ← Must be valid DNS mapping to DNS entry 'redis.namespace01'
+  │ spec:                │    (when using strongly recommended k8s DNS add-on).
+  │                      │
+  │   selector:          │ ← Targeted Pods (logical group of Pods) *1
+  │     app: MyApp       │   ← Matching label/s (ussually something like an App or App Sub-service)
+  │                      │
+  │   clusterIP: 1.1.1.1 │ ← Optional (discouraged). Used to force IP matching existing DNS entry
+  │                      │   or hardcoded ("legacy") IPs difficult to reconfigure to new k8s
+  │                      │   deployments (by default clusterIP is  auto-assigned).
+  │                      │   KEY-POINT: When the service is up, Pods will be injected ENV.VARs like:
+  │                      │     REDIS_SERVICE_HOST : 1.1.1.1   REDIS_PORT: ...
+  │   ports:             │     REDIS_SERVICE_PORT : 6379      REDIS_PORT_6379_TCP_...
+  │   - name: http       │
+  │     protocol: TCP    │ ← := TCP* | UDP | HTTP | PROXY | SCTP(k8s 1.2+)
+  │     port: 80         │ ← Request to port 80 will be forwarded to Port 9376
+  │     targetPort: 9376 │   on "any" pod matching the selector.
+  │   - name: https      │
+  │     ...              │
+  │   sessionAffinity: "ClientIP" ← Optionally set timeout (defaults to 10800)     [[{troubleshooting.network]]
+  └──────────────────────┘          sessionAffinityConfig.clientIP.timeoutSeconds  [[}]]
+
+    *1: There is a particular scenario where the selector is empty:                     [[{integration.enterprise_patterns]]
+        'Service' pointing to an 'Endpoint' object  ┌ kind: Endpoints ─────────────────┐
+         representing an existing external          │ metadata: { name: ddbb01 }       │
+         (TCP) service (DDBB, ERP, API REST, ...)   │ subsets:                         │
+         in a different namespace, cluster,         │   - addresses: {  ip: 10.0.0.10 }│
+         VM or non-k8s controlled IP                │   - ports:     { port: 5432 }    │
+                                                    └──────────────────────────────────┘ [[}]]
+  NOTE:  (Much more) detailed info available at
+  <https://kubernetes.io/docs/concepts/services-networking/service/>
+   (Section: about kube-proxy + iptables +... advanced config settings)
+  ```
+[[101.service}]]
+
+## Ingress Rules/Controller. [[{network.101.ingress]]
+
+- WARN: (update 2023-04) The Gateway-API plans to "replace" Ingress with
+ a more versatile approach. More info at <https://gateway-api.sigs.k8s.io/>
+ Istio (probably others) plans to integrate with the Gateway-API in a
+ near future.
+
+- Add an extra L7 indirection on top of Services.
+ <https://tetrate.io/blog/why-the-gateway-api-is-the-unified-future-of-ingress-for-kubernetes-and-service-mesh/>
+
+ ```
+  - Load Balancer      : layer 4, unaware of the actual apps.       [[{doc_has.comparative]]
+                         persistent session, dynamic weights.
+                         (better for non-HTTP like apps)
+  - Ingress controllers: layer 7, can use advanced rules based on
+                         inbound URL, ..., apply TLS termination    [[{network.TLS,security.TLS}]]
+                         removing TLS cert.complexity from Apps
+                         (Better for HTTP like apps)                [[}]]
+
+                            Ingress                            ┌············┐
+      POST               ||controller│                         · ┌ node1 -┐ ·┌ node2  ┐
+      Host: app1.com ·····>····┐  ┌··│···········>│ServiceA├···┤ │        │ ·│        │
+                         ||  ┌····┘  │                         └·> │PodA│ │ └> │PodA│ │
+      POST               ││  · ·     │                           │        │  │        │
+      Host: app2.com ·····>··┘ └·················>│ServiceB├·····> │PodB│ │  │        │
+                         ││          │                           │        │  │        │
+       external HTTP/s···┴┘          │                           │ │... │ │  │        │
+        endpoint       ^               ^        ^            ^   └────────┘  └────────┘
+        endpoing       ·               ·        ·            ·
+                       └─ Ingress Con-─┘        └ Services───┘  └─ Pool of working nodes ─┘
+                          troller:
+                        Layer 7 indirection      Layer 4 indirection.
+                       Forward to service        Forward FIX IP to Pod's
+                       based on                  (moving) IPs
+                       HTTP header|URL path|...
+ ```
+
+- PRE-SETUP) (by cluster admin) an Ingress controller must be in place:
+             ingress-(linkerd|istio|nginx...)
+
+  **WARN: Different Ingress controllers operate slightly differently. **
+ ```
+  ┌─ app1_tls_secrets.yml ─────────┐                                                    [[{security.tls]]
+  │ apiVersion: v1                 │
+  │ kind: Secret                   ← We need to setup secrets with private cert. key
+  │ type: kubernetes.io/tls        │ The secret will be "injected" to the ingress controller.
+  │ metadata:                      │ (nginx, istio,...)
+┌→│   name: secretTLSPrivateKey    │
+· │   namespace: default           │
+· │ data:                          │
+· │   tls.key: base64 encoded key  ← Secret to protect
+· │   tls.crt: base64 encoded cert ← Not really secret.  Public certificate.
+· └────────────────────────────────┘                                                    [[}]]
+· ┌─ app1_ingress.yml ────────────────────┐
+· │ apiVersion: networking.k8s.io/v1beta1 │
+· │ kind: Ingress                         │
+· │ metadata:                             │
+· │   name: test-ingress                  │
+· │   annotations:                        │
+· │     nginx.ingress.kubernetes.io/rewrite-target: / ← Annotation used before IngressClass was added
+· │                                       │             to define the underlying controller implementation.
+· │                                       │             .ingressClassName can replace it now.
+· │ spec:                                 │
+· │   tls:                                ← Optional but recomended. Only 443 port supported.
+· │     - hosts:                          │
+· │         - secure.foo.com              ← values must  match cert CNs
+· │                                       │
+└·│······ secretName: secretTLSPrivateKey │
+  │   rules:                              ← A backend with no rules could be use to expose a single service
+  │   - host: reddis.bar.com              ← Optional. filter-out HTTP requests not addressing this host
+  │     http:                             │
+  │       paths:                          ← If 2+ paths in list match input request, longest match "wins".
+  │       - path: /reddis                 │
+  │         pathType: Prefix              ← Implementation Specific: delegate matching to IngressClass (nginx,...)
+  │                                       │ Exact : Matches case-sensitive URL path exactly
+  │         backend:                      │ Prefix: Matches case-sensitive based on request URL prefix
+  │           serviceName: reddissrv      ← targeted k8s service
+  │           servicePort: 80             ← Need if Service defines 2+ ports
+  │                                       │
+  │   - host: monit.bar.com               ← Optional. filter-out HTTP requests not matching host
+  │     http:                             │
+  │       - path: /grafana                │
+  │         pathType: Prefix              │
+  │         backend:                      │
+  │           serviceName: grafanasrv     │ ← targeted k8s service
+  │       - path: /prometheus             │
+  │         ...                           │
+  │   - http:                             ← Default service for non-matching/not-defined host
+  │       - path: /                       │
+  │         pathType: Prefix              │
+  │         backend:                      │
+  │           serviceName: httpdsrv       │ ← targeted k8s service
+  └───────────────────────────────────────┘
+ ```
+[[network.101.ingress}]]
+
+## DaemonSet [[{application.daemonset,PM.TODO]]
+
+- DaemonSet controller ensures "N" Pods are running in a working node.
+- typical uses: cluster storage, log collection, monitoring
+  - Ex (simple case): one DaemonSet, covering all nodes, would be used
+    for each type of daemon. A more complex setup might use multiple DaemonSets
+    for a single type of daemon, but with different flags and/or different memory
+    and cpu requests for different hardware types.
+- Ex.  DaemonSet for fluentd-elasticsearch:
+  ```
+  ┌─ app1_logging_daemonset.yaml ────────┐
+  │ apiVersion: apps/v1                  │
+  │*kind: DaemonSet *                    │
+  │ metadata: ...                        │
+  │ spec:                                │
+  │   selector: ...                      ← Must be a pod-selector
+  │   template:                          ← Pod Template RestartPolicy MUST BE 'Always'
+  │     metadata: ...                    │ (default if un-specified)
+  │     spec:                            │
+  │       nodeSelector: ...              ← ALlows to run only on subset of nodes (vs all)
+  │       affinity:     ...              ← Will ron only on nodes matching affinity.
+  │       terminationGracePeriodSeconds: 30
+  │       tolerations:                   │
+  │       - key: node-role.kubernetes.io/master
+  │         effect: NoSchedule           │
+  │       volumes: ...                   │
+  │       containers:                    │
+  │       - ...                          │
+  └──────────────────────────────────────┘
+  ```
+- Daemon Pods do respect taints and tolerations,
+  but they are created with NoExecute tolerations
+  for the following taints with no tolerationSeconds:
+  ```
+  node.kubernetes.io/not-ready
+  node.alpha.kubernetes.io/unreachable
+  ```
+
+- The following NoSchedule taints are respected:
+  ```
+  node.kubernetes.io/memory-pressure
+  node.kubernetes.io/disk-pressure
+  ```
+
+Pods in DaemonSet can also be marked as critical.
+
+- It is possible to run daemon processes using init or  systemd.
+  DaemonSet allows to manages them as standard k8s apps.
+[[}]]
+
+## Jobs [[{101.jobs,application]]
+- (reliably) run 1+ Pod/s to "N" completions, managing Pods that are
+  expected to terminate ("batch jobs") (vs Deployments long-running services).
+
+  ```
+  ┌─ compute_job.yaml ────────┐ Run like:
+  │ apiVersion: batch/v1      │   $ kubectl create -f ./compute_job.yaml   ← Run it
+  │ kind:  Job                │
+  │ metadata:                 │   $ kubectl describe jobs/pi   ← Check status
+  │   name: pi                │   (Parallelism, Completions, Events, ...)
+  │ spec:                     │
+  │   backoofLimit: 10        ← (Optional, def: 6) Fail after N retries
+  │   activeDeadlineSeconds   ← (Optional)
+  │   template:               ← associated Pod template
+  │     spec:                 │
+  │       containers:         │   $ pods=$(kubectl get pods --selector=job-name=pi \
+  │       - name: pi          │     --output=**jsonpath={.items..metadata.name}**)
+  │         image: perl       │
+  │         command: [..,..,] │ - Pods are NOT deleted on completion to allow
+  │         - python          │   inspecting logs/output/errors.
+  │         - -c              │   '$ kubectl get pods -a' will show them.
+  │         - "...."          │
+  │         restartPolicy: Never
+  │   backoffLimit: 4         │
+  └───────────────────────────┘
+  ```
+
+- Parallel Jobs: Run parallel job with a fixed completion-count
+  - job is complete when there is 1-successful-pod for each value
+     in the range 1 to .spec.completions.
+  - pods must coordinate with themselves or external service to determine
+    what each should work on.
+  - each pod is independently capable of determining whether or not all its peers
+    are done, thus the entire Job is done.
+  - For Non-parallel job, leave both .spec.completions and .spec.parallelism unset.
+  - Actual parallelism (number of pods running at any instant) may be more or less
+    than requested parallelism, for a variety of reasons
+
+  ```
+  ┌─ cronjob.yaml (v 1.8+) ────────────┐   Alternatively:
+  │ apiVersion: batch/v1beta1          │   $ kubectl run hello \
+  │ kind: CronJob                      │       --schedule="*/1 0 0 0 0"  \
+  │ metadata:                          │       --restart=OnFailure \
+  │   name: hello                      │       --image=busybox \
+  │ spec:                              │       -- /bin/sh -c "date;"
+  │   schedule: "*/1 0 0 0 0"          │
+  │   jobTemplate:                     │   $ kubectl get cronjob hello <·· Monitor
+  │     spec: ...                      │   $ kubectl get jobs --watch  <·· Watch for job Creat.
+  └────────────────────────────────────┘
+  ```
+
+- TODO: 
+  - <https://kubernetes.io/docs/tasks/job/coarse-parallel-processing-work-queue/>
+  - <https://kubernetes.io/docs/tasks/job/fine-parallel-processing-work-queue/>
+[[101.jobs}]]
+
+## limits/request by example [[{101,PM.TODO]]
+* Understanding Kubernetes limits and requests by example
+  <https://sysdig.com/blog/kubernetes-limits-requests/>
+[[}]]
+
+
+
+[[101}]]
+
+## OCI "vs" docker "vs" k8s  <!-- { -->
+
+  ```
+  | OCI "vs" docker "vs" k8s 
+  [[{doc_has.diagram}]]
+  | REF: <https://www.tutorialworks.com/difference-docker-containerd-runc-crio-oci/>
+  |  ┌──────┐            ┌──────────┐
+  |  │docker│            │kubernetes│
+  |  └──┬───┘            └────┬─────┘
+  |     ·                     ·
+  |     ·                ┌────v─────┐   CRI: K8s API
+  |     ·                │ Container│
+  |     ·                │   Runtime│
+  |     ·                │ Interface│
+  |     ·                └─┬──┬─────┘
+  |     ·                  ·  ·
+  |     ·        ┌·········┘  ·
+  |     ·        ·            ·
+  |     ·    ┌───v──┐         ·
+  |     ·    │  CRI │         ·         CRI "Implementation"
+  |     ·    │plugin│         ·         - containerd: From docker Comp.
+  |   ┌─v────┴─────┬┘      ┌──v──┐        manages storage and network,
+  |   │ containerd │       │CRI-O│        supervises running containers
+  |   └──────┬─────┘       └──┬──┘      - CRI-O: From IBM/RedHat/ ...
+  |          ·                ·
+  |          ·                ·
+  | ┌────────v────────────────v──────────┐ Standard spec for container
+  | │Open Container Initiative (OCI) spec│ *Images* and running container
+  | └──────────┬─────────────────────────┘
+  |            ·
+  |         ┌──v───┐                    OCI reference tool for spawing
+  |         │ runc │                    and running containers.
+  |         └──┬───┘
+  |            │
+  |       ┌····┴······┐
+  |       ·           ·
+  |   ┌───v─────┐  ┌──v──────┐
+  |   │container│  │container│          Containers
+  |   └─────────┘  └─────────┘
+  ```
+<!-- } -->
+
+[[{qa.best_patterns,qa.yaml.ValidKube,qa.yaml.monokle]]
+## Enforce YAML Best Practices 
+* ValidKube: <https://www.infoq.com/news/2022/02/validkube-kubernetes-yaml/>
+  * browser-based tool.
+
+* Monokle  : WebUI and/or cli for high-quality k8s YAML configurations. 
+  * view, edit, and manage.
+  * auto-generate visual representation of Kubernetes resources,
+    which: makes it easier to understand the relationships between
+    different resources.
+  * Intuitive YAML editor.
+    ```
+    | # install
+    | $ npm install -g @monokle/cli or
+    | # run
+    | $ monokle <command> # alt 1
+    ```
+  * Excellent integration with `Kustomize` tool for
+    managing Kubernetes manifests, especially overlays and patches.
+  * Seamless integration with Helm charts.  
+
+* Kustomize: traverse Kubernetes manifest to add, remove or update
+  configuration options without forking. It is available both as a
+  standalone binary and as a native feature of kubectl. 
+  * Kustomize encourages a fork/modify/rebase workflow 
+[[}]]
+
+## kubectl help rollout [[{]]
+
+Manage the rollout of a resource.
+
+Valid resource types include:
+*  deployments
+*  daemonsets
+*  statefulsets
+
+  ```
+  | Usage:
+  |   kubectl rollout SUBCOMMAND [options]
+  | 
+  | Examples:
+  | $ kubectl rollout undo deployment/abc    # Rollback to previous deployment
+  |
+  | $ kubectl rollout status daemonset/foo   # Check rollout status of daemonset
+  |
+  | Available subcommands:
+  | history     View rollout history
+  | pause       Mark the provided resource as paused
+  | restart     Restart a resource
+  | resume      Resume a paused resource
+  | status      Show the status of the rollout
+  | undo        Undo a previous rollout
+  ```
+[[}]]
+
+[[{escalability.101]]
+# Request-based autoscaling: scaling to zero
+
+* <https://dev.to/danielepolencic/request-based-autoscaling-in-kubernetes-scaling-to-zero-2i73>
+
+* TL;DR: learn how to monitor HTTP requests to your apps and how to define
+  autoscaling rules to increase and decrease replicas for your workloads.
+* Reducing infrastructure costs boils down to turning apps off when you don't use them.  [[101]]
+* That's easy to do manually, but how to turn them on automatically when you need them?
+[[escalability.101}]]
+
+

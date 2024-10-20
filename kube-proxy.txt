@@ -1,0 +1,54 @@
+[[{network.kubeproxy,network.101]] 
+# kube-proxy Summary
+
+  kube-proxy, installed on each k8s working node, get in charge of the network 'magic'.
+
+  It is more reliable than DNS (no problems with TTLs, client DNS cache,...).  [[doc_has.comparative]]
+
+  ```
+  | ┌─ Service registry seq USER-SPACE PROXY MODE ("legacy mode") ──────────────────┐
+  | │ master ····> kube-proxy: Event  +Service.EndPoint                             │
+  | │ kube─proxy·> kube-proxy: Open Random Port 01 and setup round─robin from       │
+  | │                          random─port 01 to ºall existingº Backend Pods        │
+  | │                          matching the Service selector.                       │
+  | │ kube─proxy·> iptables  : Install iptables rule in kernel to capture traffic to│
+  | │                          (virtual) clusterIP:port to Random Port 01           │
+  | │ ...                                                                           │
+  | │ app       ·> kernel    : request to clusterIP:port                            │
+  | │ kernel    ·> iptables  : request to clusterIP:port                            │
+  | │ iptables  ·> kube-proxy: request to random port                               │
+  | │ kube─proxy·> kube-proxy: Round─robin amongst all availables Pods.             │
+  | │                          (The kube─proxy keeps a list of live─Pods matching   │
+  | │                           Service.Selector using also SessionAffinity for     │
+  | │                           better balancing)                                   │
+  | │ kube─proxy → Pod N     : request                                              │
+  | └───────────────────────────────────────────────────────────────────────────────┘
+  | ┌─ Service registry seq IPTABLES PROXY MODE ────────────────────────────────────┐
+  | │ master ····> kube-proxy: Event +Service.EndPoint                              │
+  | │ kube─proxy·> iptables  : Install iptables rule in kernel to capture traffice to
+  | │                          (virtual) clusterIP:port to some Pod_i(and just one) │
+  | │                          from all Pods matching the Service.selecotr          │
+  | │ ...                                                                           │
+  | │ app      ··> kernel    : request to clusterIP:port                            │
+  | │ kernel   ··> iptables  : request to clusterIP:port                            │
+  | │ iptables ··> Pod i     : request  (Request fails if pod is down, readiness    │
+  | │                          probes must be set to skip faulty Pods               │
+  | └───────────────────────────────────────────────────────────────────────────────┘
+  | ┌─ Service registry seq IPVS PROXY MODE ────────────────────────────────────────┐
+  | │  PRE─SETUP: IPVS module must be available on the node.                        │
+  | │                                                                               │
+  | │  master     → kube-proxy: Event +Service.EndPoint                             │
+  | │  kube─proxy → netlink   : Create IPVS rules (sync status periodically)        │
+  | │                           to all Pods in Selector (allowing for balancing)    │
+  | │  app        → kernel    : request to clusterIP:port                           │
+  | │  kernel     → netlink   : request to clusterIP:port                           │
+  | │  netlink    → Pod i     : request                                             │
+  | └──^────────────────────────────────────────────────────────────────────────────┘
+  |  netlink allows next balancing options:
+  |  · rr: round-robin                 · sh: source hashing
+  |  · lc: least connection (smallest  · sed: shortest expected delay
+  |        number of open con.)        · nq: never queue
+  |  · dh: destination hashing
+  ```
+[[network.kubeproxy}]]
+

@@ -1,0 +1,44 @@
+[[{doc_has.external_resource]]
+# External Links
+
+- About Desired State management   <https://www.youtube.com/watch?v=PH-2FfFD2PU>
+
+- Online training: [[doc_has.tutorial]]
+* <https://www.katacoda.com/courses/kubernetes/playground>
+* <https://labs.play-with-k8s.com/>
+
+- <https://kubernetes.io/>
+- <https://kubectl.docs.kubernetes.io/>   ← Book
+- <https://kubernetes.io/docs/reference/> (Generated from source)
+- <https://kubernetes.io/docs/reference/glossary/>
+- <https://kubernetes.io/docs/reference/tools/>
+
+- Most voted questions k8s on serverfault: [[doc_has.FAQ]] 
+<https://serverfault.com/questions/tagged/kubernetes?sort=votes>
+- Most voted questions k8s on stackoverflow:
+<https://stackoverflow.com/questions/tagged/kubernetes?sort=votes>
+
+- Real app Examples:
+  <https://github.com/kubernetes/examples>
+
+## k8s Issues:
+- <https://kubernetes.io/docs/reference/issues-security/issues/>
+- <https://kubernetes.io/docs/reference/issues-security/security/>
+
+## k8s Enhancements/Backlog
+- <https://github.com/kubernetes/enhancements>
+
+
+SIG-Apps
+- <https://github.com/kubernetes/community/blob/master/sig-apps/README.md>
+  Special Interest Group for deploying and operating apps in Kubernetes.
+  - They meet each week to demo and discuss tools and projects.
+   """ Covers deploying and operating applications in Kubernetes. We focus
+    on the developer and devops experience of running applications in
+    Kubernetes. We discuss how to define and run apps in Kubernetes, demo
+    relevant tools and projects, and discuss areas of friction that can lead
+    to suggesting improvements or feature requests """
+
+- Yaml Tips:
+<https://www.redhat.com/sysadmin/yaml-tips>
+[[doc_has.external_resource}]]

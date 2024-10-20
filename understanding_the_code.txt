@@ -1,6 +1,8 @@
-# Understanding K8S Code [[{]]
+[[{]]
+# Understanding K8S Code
+
 - K8s Implementation Summary     [[{101.k8s_internals,01_PM.TODO]]
-@[https://jvns.ca/blog/2017/06/04/learning-about-kubernetes/]
+<https://jvns.ca/blog/2017/06/04/learning-about-kubernetes/>
   by Julia Evans "A few things I've learned about Kubernetes"
 
 - """... you can run the kubelet by itself! And if you have a kubelet, you
@@ -17,26 +19,28 @@
    All of the state is stored in the (key-value store) etcd database.
 - Communication between components (often) happens via etcd.
 -  basically everything in Kubernetes works by watching etcd for stuff it has to do,
-   doing it, and then writing the new state back into etcd
+   doing it, and then writing the new state back into etcd.<br/>
+   Ex 1: Run a container on Machine "X":
+   ```
+   | Wrong way: ask kubelet@Machine"X" to run the container.
+   | Right way: kubectl*1 →(API Server)→ etcd: "This pod should run on Machine X"
+   |            kubelet@Machine"X"     → etcd: check work to do
+   |            kubelet@Machine"X"     ← etcd: "This pod should run on Machine X"
+   |            kubelet@Machine"X"     ← kubelet@Machine"X": Run pod
+   ```
+   Ex 2: Run a container anywhere on the k8s cluster
+   ```
+   | kubectl ¹ → (API Server) → etcd: "This pod should run somewhere"
+   | scheduler                → etcd: Something to run?
+   | scheduler                ← etcd: "This pod should run somewhere"
+   | scheduler                → kuberlet@Machine"Y":  Run pod
+   | 
+   | ¹ The kubectl is used from the command line.
+   |   In the sequence diagram it can be replaced for any
+   |   of the existing controllers (ReplicaSet, Deployment, DaemonSet, Job,...)
+   ```
 
-  Ex 1: Run a container on Machine "X":
-   Wrong way: ask kubelet@Machine"X" to run the container.
-   Right way: kubectl*1 →(API Server)→ etcd: "This pod should run on Machine X"
-              kubelet@Machine"X"     → etcd: check work to do
-              kubelet@Machine"X"     ← etcd: "This pod should run on Machine X"
-              kubelet@Machine"X"     ← kubelet@Machine"X": Run pod
-
-  Ex 2: Run a container anywhere on the k8s cluster
-    kubectl*1 → (API Server) → etcd: "This pod should run somewhere"
-    scheduler                → etcd: Something to run?
-    scheduler                ← etcd: "This pod should run somewhere"
-    scheduler                → kuberlet@Machine"Y":  Run pod
-
- *1 The kubectl is used from the command line.
-    In the sequence diagram it can be replaced for any
-    of the existing controllers (ReplicaSet, Deployment, DaemonSet, Job,...)
-
- API server roles in cluster:
+- API server roles in cluster:
 API Server is responsible for:
 1.- putting stuff into etcd
 
@@ -82,11 +86,11 @@ responsible and look at its logs
 [[}]]
 
 # API Conventions [[{101.k8s_internals,01_PM.TODO]]
-@[https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md]
+<https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md>
 [[}]]
 
 # Source Code Layout [[{101.k8s_internals,01_PM.TODO]]
-Note: Main k8s are placed in @[https://github.com/kubernetes/kubernetes/tree/master/pkg]
+Note: Main k8s are placed in <https://github.com/kubernetes/kubernetes/tree/master/pkg>
       (API, kubectl, kubelet, controller, ...)
 
 - REF: A Tour of the Kubernetes Source Code Part One: From kubectl to API Server
@@ -95,11 +99,11 @@ Note: Main k8s are placed in @[https://github.com/kubernetes/kubernetes/tree/mas
 - Examining kubectl source:
   Locating the implementation of kubectl commands in the Kubernetes source code
 
-- @[https://github.com/kubernetes/kubernetes/tree/master/pkg/kubectl/cmd]
+- <https://github.com/kubernetes/kubernetes/tree/master/pkg/kubectl/cmd>
   kubectl entry point for all commands:
   - Inside there is a name of a go directory that matches the kubectl command:
     Example:
-    @[https://github.com/kubernetes/kubernetes/tree/master/pkg/kubectl/cmd/create](.go)
+    <https://github.com/kubernetes/kubernetes/tree/master/pkg/kubectl/cmd/create>(.go)
 
  K8s loves the Cobra Command Framework
 - k8s commands are implemented using the Cobra command framework.
@@ -159,7 +163,7 @@ Note: Main k8s are placed in @[https://github.com/kubernetes/kubernetes/tree/mas
   modification on the Builder struct, and then return the pointer to
   the Builder struct for the next method in the chain to use when it
   performs its modifications defined at:
-  @[https://github.com/kubernetes/cli-runtime/blob/master/pkg/genericclioptions/resource/builder.go]
+  <https://github.com/kubernetes/cli-runtime/blob/master/pkg/genericclioptions/resource/builder.go>
 
   | ...
   | func (b  Builder) Schema(schema validation.Schema)  Builder {
@@ -267,22 +271,22 @@ Tools and techniques that can really help accelerate your ability to learn the k
 # Extending k8s API [[{101.k8s_internals,application.knative,01_PM.TODO]]
 
 - Custom Resources:
-@[https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/]
+<https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/>
 
 - Extend API with CustomResourceDefinitions:
-@[https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/]
+<https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/>
 
 - Versions of CustomResourceDefinitions:
-@[https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definition-versioning/]
+<https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definition-versioning/>
 
 - Aggregation Layer:
-@[https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/apiserver-aggregation/]
+<https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/apiserver-aggregation/>
   - Configure the Aggregation Layer:
-  @[https://kubernetes.io/docs/tasks/access-kubernetes-api/configure-aggregation-layer/]
+  <https://kubernetes.io/docs/tasks/access-kubernetes-api/configure-aggregation-layer/>
 - Setup an Extension API Server:
 @[https://kubernetes.io/docs/tasks/access-kubernetes-api/setup-extension-api-server/">
 - Use HTTP Proxy to Access the k8s API:
-@[https://kubernetes.io/docs/tasks/access-kubernetes-api/http-proxy-access-api/]
+<https://kubernetes.io/docs/tasks/access-kubernetes-api/http-proxy-access-api/>
 [[}]]
 
 [[}]]

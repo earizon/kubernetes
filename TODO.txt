@@ -1,0 +1,1546 @@
+[[{PM.TODO]]
+# TODO / Non Classified
+
+## RBAC TLS Sec [[{security.aaa.rbac,01_PM.TODO]]
+* <https://sysdig.com/blog/kubernetes-security-rbac-tls/>
+[[}]]
+
+### Ranher Submariner Multicluster [[{cluster_admin,01_PM.backlog]]
+<https://www.infoq.com/news/2019/03/rancher-submariner-multicluster>
+## proper k8s cluster shutdown
+https://serverfault.com/questions/893886/proper-shutdown-of-a-kubernetes-cluster
+[[}]]
+
+## Kubernetes Security Posture Management [[{]]
+  https://sysdig.com/learn-cloud-native/kubernetes-security/kspm/
+  Kubernetes security posture management, or KSPM, is the use of
+  security automation tools to discover and fix security and compliance
+  issues within any component of Kubernetes.
+
+  For example, KSPM could detect misconfigurations in a Kubernetes RBAC
+  Role definition that grants a non-admin user permissions that he or
+  she should not have, like the ability to create new pods. Or, a KSPM
+  tool could alert you to an insecure Kubernetes network configuration
+  that allows communication between pods in different namespaces, which
+  would typically not be a setting you would want to enable.
+[[}]]
+
+
+
+
+
+# Ranher Submariner Multicluster [[{cluster_admin,01_PM.backlog]]
+<https://www.infoq.com/news/2019/03/rancher-submariner-multicluster>
+## proper k8s cluster shutdown
+https://serverfault.com/questions/893886/proper-shutdown-of-a-kubernetes-cluster
+[[}]]
+
+
+## python + k8s api [[{dev_stack.python,application.knative,01_PM.TODO]]
+<https://www.redhat.com/sysadmin/create-kubernetes-cron-job-okd>
+[[}]]
+
+## kubectl-trace (bpftrace) [[{01_PM.TODO]]
+https://github.com/iovisor/kubectl-trace
+Schedule bpftrace programs on your kubernetes cluster using the kubectl
+[[}]]
+
+## [[{01_PM.TODO]]
+Automatically sync groups into Kubernetes RBAC
+<https://github.com/cruise-automation/rbacsync>
+[[}]]
+
+## Automated Testing of IaC [[{qa.testing,cloud.IaC,01_PM.TODO]]
+<https://qconsf.com/system/files/presentation-slides/qconsf2019-yevgeniy-brikman-automated-testing-for-terraform-docker-packer-kubernetes-and-more.pdf>
+https://www.infoq.com/news/2019/11/automated-testing-infrastructure/
+
+- Automated Testing for Terraform, Docker, Packer, Kubernetes, and More
+[[}]]
+
+## Microsoft Keda [[{application.scalability,01_PM.TODO]]
+<https://www.infoq.com/news/2019/11/microsoft-keda-1-0-kubernetes/>
+- Microsoft Announces 1.0 Release of Kubernetes-Based Event-Driven Autoscaling (KEDA)
+[[}]]
+
+## "Hard Way" datadog [[{01_PM.TODO]]
+<https://www.infoq.com/news/2019/12/kubernetes-hard-way-datadog/>
+- A traditional architecture approach is to have all Kubernetes master
+  components in one server, and have at least three servers for high
+  availability. However, these components have different
+  responsibilities and can’t or don't need to scale in the same way.
+  For instance, the scheduler and the controller are stateless
+  components, making them easy to rotate. But the etcd component is
+  stateful and needs to have redundant copies of the data. Also,
+  components like the scheduler work with an election mechanism where
+  only one of their instances is active. Bernaille said that it
+  doesn’t make sense to scale out the scheduler.
+[[}]]
+
+## Harbor Operator [[{01_PM.TODO]]
+https://www.infoq.com/news/2020/03/harbor-kubernetes-operator/
+[[}]]
+
+## k8s the hard way [[{01_PM.TODO]]
+kubernetes-the-hard-way-virtualbox/README.md
+https://github.com/sgargel/kubernetes-the-hard-way-virtualbox/blob/master/README.md
+[[}]]
+
+## WebAssembly meets Kubernetes with Krustlet [[{01_PM.TODO]]
+https://cloudblogs.microsoft.com/opensource/2020/04/07/announcing-krustlet-kubernetes-rust-kubelet-webassembly-wasm/
+[[}]]
+
+## App Manager for GCP [[{cloud.gcp,01_PM.TODO]]
+New Application Manager Brings GitOps to Google Kubernetes Engine
+https://www.infoq.com/news/2020/03/Kubernetes-application-manager/
+[[}]]
+
+## Cilium [[{network,security,01_PM.TODO]]
+https://github.com/cilium/cilium
+Cilium is open source software for providing and transparently securing network connectivity and loadbalancing between application workloads such as application containers or processes
+[[}]]
+
+
+## Cluster Access [[{cluster_admin.kubeconfig,security.aaa,01_PM.TODO.clean]]
+<https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/>
+## Kustomization [[{01_PM.TODO}]]
+<https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/>
+[[}]]
+
+## Manage Mem./CPU/API Resrc.  [[{101,application.quotas,01_PM.TODO.clean]]
+<https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-default-namespace/> Config. Default Memory Requests and Limits for a Namespace
+<https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-default-namespace/> Configure Default CPU Requests and Limits for a Namespace
+<https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-constraint-namespace/> Configure Minimum and Maximum Memory Constraints for a Namespace
+<https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-constraint-namespace/> Configure Minimum and Maximum CPU Constraints for a Namespace
+<https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/quota-memory-cpu-namespace/> Configure Memory and CPU Quotas for a Namespace
+<https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/quota-pod-namespace/> Configure a Pod Quota for a Namespace
+[[}]]
+
+## lightbitslab [[{storage.nvme,01_PM.TODO]]
+- Persistent storage for Kubernetes is readily available but persistent
+  storage that performs like local NVMe flash, not so much.
+[[}]]
+
+## Q&A with K8s...  [[{101,qa,01_PM.TODO]]
+<https://www.infoq.com/news/2018/02/dist-system-patterns-burns>
+- Distributed Systems programming is not for the faint of heart, and despite
+  the evolution of platforms and tools from COM, CORBA, RMI, Java EE, Web
+  Services, Services Oriented Architecture (SOA) and so on, it's more of an art
+  than a science.
+- Brendan Burns outlined many of the patterns that enables distributed systems
+  programming in the blog he wrote in 2015. He and David Oppenheimer, both
+  original contributors for Kubernetes, presented a paper at Usenix based
+  around design patterns and containers shortly after.
+  InfoQ caught up with Burns, who recently authored an ebook titled Designing
+  Distributed Systems, Patterns and Paradigms for Scaleable Microservices. He
+  talks about distributed systems patterns and how containers enable it.
+[[}]]
+
+## Atlassian escalator [[{101,application.scalability,01_PM.TODO]]
+<https://www.infoq.com/news/2018/05/atlassian-kubernetes-autoscaler>
+- In Kubernetes, scaling can mean different things to different users. We
+  distinguish between two cases:
+
+- Cluster scaling, sometimes called infrastructure-level scaling,
+  refers to the (automated) process of adding or removing worker nodes
+  based on cluster utilization.
+- Application-level scaling, sometimes called pod scaling, refers to
+  the (automated) process of manipulating pod characteristics based on
+  a variety of metrics, from low-level signals such as CPU utilization
+  to higher-level ones, such as HTTP requests served per second, for a
+  given pod. Two kinds of pod-level scalers exist:
+- Horizontal Pod Autoscalers (HPAs), which increase or decrease the
+  number of pod replicas depending on certain metrics.
+- Vertical Pod Autoscalers (VPAs), which increase or decrease the
+  resource requirements of containers running in a pod.
+
+- Atlassian released their in-house OOSS Escalator tool providing
+  configuration-driven preemptive scale-up and faster scale-down for
+  k8s nodes.
+<https://developers.atlassian.com/blog/2018/05/introducing-escalator/>
+<https://github.com/atlassian/escalator/>
+
+- Kubernetes has two autoscalers:
+  - horizontal pod autoscaler :
+  <https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/>
+    pods can scale down very quickly .
+  - cluster autoscaler  to scales the compute infrastructure itself.
+  <https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler>
+    Understandably, it takes a longer time to scale up and down since
+    VMs must be created/recycled.
+    Delays in cluster autoscaler translate to delays in the pod autoscaler .
+- Atlassian's problem was very specific to batch workloads, with a low tolerance
+  for delay in scaling up and down forcing to write their own autoscaling functionality
+  to solve these problems on top of Kubernetes.
+
+- "Escalator" configurable thresholds for upper and lower capacity of
+  the compute VMs.
+ <https://github.com/atlassian/escalator/blob/master/docs/configuration/advanced-configuration.md>
+- Some of the configuration properties work by modifying a Kubernetes
+  feature called  "taint" :
+[[}]]
+
+## Multi-Zone Clusters: [[{cluster_admin.multizone,cloud,01_PM.TODO]]
+<https://kubernetes.io/docs/setup/best-practices/multiple-zones/>
+
+- See also:
+  Kubernetes 1.12 introduces topology-aware dynamic provisioning beta,
+  which aims to improve the regional cluster experience for stateful
+  workloads. It means Kubernetes now understands the inherent zonal
+  restrictions of Compute Engine Persistent Disks (PDs) and Regional
+  PD, and provisions them in the zone that is best suited to run the
+  pod. Another addition to topology is the Container Storage Interface
+  (CSI) plugin, which is intended to make it easier for third party
+  developers to write and deploy volume plugins exposing new storage
+  systems in Kubernetes.
+[[}]]
+
+## Kubelet TLS Bootstrap [[{cluster_admin.bootstrap.tls,01_PM.TODO]]
+(k8s 1.12+)
+<https://github.com/kubernetes/enhancements/issues/43>
+kubelet generates a private key and a CSR for submission to a
+cluster-level certificate signing process.
+[[}]]
+
+## k8s on a Pine64 ARM (4GB RAM) [[{cloud.edge,01_PM.TODO]]
+<https://itnext.io/building-an-arm-kubernetes-cluster-ef31032636f9>
+[[}]]
+
+
+## flagger: Progressive k8s operator [[{qa,application.operators,01_PM.low_code,01_PM.TODO]]
+<https://github.com/weaveworks/flagger >
+weaveworks/flagger: Progressive delivery Kubernetes operator
+Canary → A/B Testing → Blue/Green deployments
+
+Flagger is a progressive delivery tool that automates the release
+process for applications running on Kubernetes.It reduces the risk of
+introducing a new software version in production by gradually shifting
+traffic to the new version while measuring metrics and running
+conformance tests
+[[}]]
+
+## AWS Controllers k8s [[{cloud.aws,01_PM.TODO]]
+Amazon Announces the Preview of AWS Controllers for Kubernetes (ACK)
+https://www.infoq.com/news/2020/09/aws-controllers-k8s-preview
+[[}]]
+
+## Dexter OpenId [[{security.AAA,01_PM.low_code,01_PM.TODO]]
+<https://github.com/gini/dexter>
+  low_code tool for authenticating kubectl users with OpenId Connect.
+<https://github.com/tldr-pages/tldr/blob/master/pages/common/dexter.md>
+  $ dexter auth  \     ← Create and authenticate a user
+   -i $client_id \       with Google OIDC.
+   -s $client_secret     Use --kube-config dir1/config to
+                         override default kube config location
+[[}]]
+
+## Garbage Collection: [[{]]
+<https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/>
+[[}]]
+
+[[{identity.D2iQ,security.AAA,cloud.*,PM.low_code]]
+## Identity and Access Management Made Easier With D2iQ 
+
+... one team may be building their stack on cloud provider "A"
+while another team is building a stack on cloud provider "B".
+... clusters may exist in different environments, and IT isn't
+even aware of these things.
+
+... **makes tracking all of the individual logins and permissions
+  across the organization next to impossible... the problem only 
+grows in complexity as more people on-board, off-board, or change 
+teams, and projects multiply.
+[[identity.D2iQ}]]
+
+[[{qa.best_patterns,PM.low_code]]
+## Keda: Scale Pods based on Prometheus metrics
+
+* <https://sysdig.com/blog/kubernetes-hpa-prometheus/>
+
+* OOSS project that allows using Prometheus queries,
+  along with multiple other scalers, to scale Kubernetes pods. 
+[[}]]
+
+
+## The Evolution of Distributed Systems on Kubernetes
+
+* <https://www.infoq.com/articles/distributed-systems-kubernetes/>
+
+## kubectx [[{]]
+ - helpful for multi-cluster installations, where you need to
+   switch context between one cluster and another.
+ - Rather than type a series of lengthy kubectl command, kubectx
+   works it magic in one short command.
+ - It also allows you to alias a lengthy cluster name into an alias.
+ - For example (taken directly from the kubectx website),
+   kubectx eu=gke_ahmetb-samples-playground_europe-west1-b_dublin allows
+   you to switch to that cluster by running kubectx eu.
+ - Another slick trick is that kubectx remembers your previous context—
+   much like the “Previous” button on a television remote—and allows
+   you to switch back by running kubectx -.
+[[}]]
+
+## airbnb workflow [[{]]
+https://www.infoq.com/news/2019/03/airbnb-kubernetes-workflow
+[[}]]
+
+## There are lot of components in Kubernetes but the most   [[{101,01_PM.TODO]]
+  important components that are most used would be
+  https://medium.com/geekculture/howgT-to-deploy-spring-boot-and-mongodb-to-kubernetes-minikube-71c92c273d5e
+[[}]]
+
+## Dynamic Volume Provisioning [[{101,storage.101,01_PM.TODO.clean]]
+<https://kubernetes.io/docs/concepts/storage/dynamic-provisioning/>
+
+## Node-specific Volume Limits
+<https://kubernetes.io/docs/concepts/storage/storage-limits/>
+[[}]]
+
+
+
+## REF:<https://kubernetes.io/docs/concepts/architecture/cloud-controller/>
+
+## Kubernetes Cluster API [[{]]
+https://www.infoq.com/news/2021/11/kubernetes-cluster-api/
+- Kubernetes sub-project that provides declarative APIs to create,
+configure, and update clusters.
+[[}]]
+
+
+# Portainer UI [[{]]
+(See also LazyDocker)
+## Portainer, an open-source management interface used to manage a
+  Docker host, Swarm and k8s cluster.
+## It's used by software engineers and DevOps teams to simplify and
+  speed up software deployments.
+
+Available on LINUX, WINDOWS & OSX
+$ docker container run -d \
+  -p 9000:9000 \
+  -v /var/run/docker.sock:/var/run/docker.sock portainer/portainer
+[[}]]
+
+## Kayenta Canary Testing [[{qa.testing.canary,dev_stack.kayenta,01_PM.TODO]]
+<https://github.com/spinnaker/kayenta>
+- Kayenta platform:  Automated Canary Analysis (ACA) [[}]]
+
+## A "tipical" kubernetes "Application" consits of:
+* 1+ Containers (containarization unit) Ussually 1 main-app container + sidecars.
+* 1+ Pod (Scheduling unit == 1+ Pods, ussually 1 "main" Cotainers + 1/2 sidecard "Cotainers")
+* 1+ Service: Inmutable view (fixed IP) of moving (ephemeral) Pods
+* 0+ Ingress: L7 "forwarder" to internal Service/s IPs.
+* 0+ ConfigMap: Decouple "hard-coded" config from Pods .
+* 0+ Secrets  : Decouple "hard-coded" secrets from Pods.
+* 0+ Persistent Volume Claims:  Attach Storage to Pods.
+* 1+ (Deployments and/or StatefulSets): Blueprint of the application Pods!!!
+  StatefulSet are used when the application needs to manage stateful information.
+  Stateful set not only manages replication but also data synchronization.
+
+## K8s 1.29 release  [[{]]
+* 2023-12
+* release stats: 40-person release team, with participation
+  from 888 companies and 1,422 individuals over 14 weeks.
+
+11 features promoted to stable:
+* first release to benefit from the new gateway API
+  that helps to improve overall connectivity.  [[{networking,qa.api_mng}]]
+*  new ReadWriteOncePod volume access mode: 
+   ensures only one pod can read/write a volume.
+* node volume expansion secret support for container [[{security.secret_mng}]]
+  storage interface (CSI) drivers 
+* encryption at rest using KMS v2.
+* CRD Validation Expression Language, providing 
+  custom resource definitions (CRDs) with support
+  for more complex validation.  [[{security.CRD}]]
+* Major boost to sidecar containers. k8s 1.28 introduced the
+  "native" support for sidecars (vs the informal notion)
+  as a restartable init container.
+  In 1.29, for Pods with 1+ sidecar containers, the kubelet
+  will delay sending termination signals to sidecar containers
+  until the last main container has fully terminated.
+  Also sidecars are terminated in reverse order of initialization.
+
+19 features have entered beta:
+* Structured Authentication Config, needed for external
+  OpenID Connect (OIDC) integration.  [[{security.AAA}]]
+* improvements to scheduling.
+* node lifecycle management
+* cleaning up legacy service account tokens.
+
+new alpha functionality:
+* better pod affinity rules.
+* an nftables backend for kube-proxy networking.
+* managing IP address ranges for Kubernetes Services.
+[[}]]
+
+## tutorial https://fedoramagazine.org/kubernetes-with-cri-o-on-fedora-linux-39/ [[{]]
+Kubernetes with CRI-O on Fedora Linux 39
+Posted by Roman Gherta	on December 27, 2023 6 Comments	
+
+Photo by Christian Pfeifer on Unsplash (cropped)
+
+Recent Posts
+D-Bus overview
+Monitoring Linux Systems With InfluxDB
+Introducing Fedora Asahi Remix 39
+
+Kubernetes is a self-healing and scalable container orchestration platform. It abstracts away the underlying infrastructure and makes life easier for administrators and developers by improving productivity, deployment lifecycle, and by streamlining devops processes. The goal of this article is to show how to deploy a Kubernetes cluster on Fedora Linux 39 machines using CRI-O as a container engine.
+1. Preparing the cluster nodes
+
+Both master and worker nodes must be prepared before installing Kubernetes. Preparations ensure proper capabilities, proper kernel modules are loaded, swap, cgroups version and other prerequisites to installing the cluster.
+Kernel modules
+
+Kubernetes, in its standard configuration, requires the following kernel modules and configuration values for bridging network traffic, overlaying filesystems, and forwarding network packets. An adequate size for user and pid namespaces for userspace containers is also provided in the below configuration example.
+
+[user@fedora ~]$ sudo cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+
+[user@fedora ~]$ systemctl restart systemd-modules-load.service
+
+[user@fedora ~]$  cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+user.max_pid_namespaces             = 1048576
+user.max_user_namespaces            = 1048576
+EOF
+
+[user@fedora ~]$  sudo sysctl --system
+
+Installing CRI-O
+
+Container Runtime Interface OCI is an opensource container engine dedicated to Kubernetes. The engine implements the Kubernetes grpc protocol (CRI) and is compatible with any low-level OCI container runtime. All supported runtimes must be installed separately on the host. It is important to note that CRI-O is version-locked with Kubernetes. We will deploy cri-o:1.27 with kubernetes:1.27 on fedora-39.
+
+[user@fedora ~] sudo dnf install -y cri-o cri-tools
+
+To check what the package installed:
+
+[user@fedora ~]$ rpm -qRc cri-o
+config(cri-o) = 0:1.27.1-2.fc39conmon >= 2.0.2-1
+container-selinux
+containers-common >= 1:0.1.31-14
+libseccomp.so.2()(64bit)
+/etc/cni/net.d/100-crio-bridge.conflist  
+/etc/cni/net.d/200-loopback.conflist
+/etc/crictl.yaml
+/etc/crio/crio.conf
+...
+
+Notice it uses conmon for monitoring and container-selinux policies. Also, the main configuration file is crio.conf and it added some default networking plugins to /etc/cni. For networking, this guide will not rely on the default CRI-O plugins; though it is possible to use them.
+
+[user@fedora ~]$ sudo rm -rf /etc/cni/net.d/*  
+
+Besides the above configuration files, CRI-O uses the same image and storage libraries as Podman. So you can use the same configuration files for registries and signature verification policies as you would when using Podman. See the CRI-O README for examples.
+Cgroups v2
+
+Recent versions of Fedora Linux have cgroups v2 enabled by default. Cgroups v2 brings better control over memory and CPU resource management. With cgroups v1, a pod would receive a kill signal when a container exceeds the memory limit. With cgroups v2, memory allocation is “throttled” by systemd. See the cgroupfsv2 docs for more details about the changes.
+
+[user@fedora ~]$ stat -f /sys/fs/cgroup/
+  File: "/sys/fs/cgroup/"
+    ID: 0        Namelen: 255     Type: cgroup2fs
+
+Additional runtimes
+
+In Fedora Linux, systemd is both the init system and the default cgroups driver/manager. While checking crio.conf we notice this version already uses systemd. If no other cgroups driver is explicitly passed to kubeadm, then kubelet will also use systemd by default in version 1.27. We will set systemd explicitly, nonetheless, and change the default runtime to crun which is faster and has a smaller memory footprint. We will also define each new runtime block as shown below. We will use configuration drop-in files and make sure the files are labeled with the proper selinux context.
+
+[user@fedora ~]$ sudo dnf install -y crun
+
+[user@fedora ~]$ sudo sed -i 's/# cgroup_manager/cgroup_manager/g' /etc/crio/crio.conf
+[user@fedora ~]$ sudo sed -i 's/# default_runtime = "runc"/default_runtime = "crun"/g' /etc/crio/crio.conf
+
+[user@fedora ~]$ sudo mkdir /etc/crio/crio.conf.d
+[user@fedora ~]$ sudo tee -a /etc/crio/crio.conf.d/90-crun <<CRUN 
+[crio.runtime.runtimes.crun]
+runtime_path = "/usr/bin/crun"
+runtime_type = "oci"
+CRUN
+
+
+[user@fedora ~]$ echo "containers:1000000:1048576" | sudo tee -a /etc/subuid
+[user@fedora ~]$ echo "containers:1000000:1048576" | sudo tee -a /etc/subgid
+[user@fedora ~]$ sudo tee -a /etc/crio/crio.conf.d/91-userns <<USERNS 
+[crio.runtime.workloads.userns]
+activation_annotation = "io.kubernetes.cri-o.userns-mode"
+allowed_annotations = ["io.kubernetes.cri-o.userns-mode"]
+USERNS
+
+[user@fedora ~]$ sudo chcon -R --reference=/etc/crio/crio.conf  /etc/crio/crio.conf.d/ 
+
+[user@fedora ~]$ sudo ls -laZ /etc/crio/crio.conf.d/ 
+root root system_u:object_r:container_config_t:s0  70 Nov  1 19:26 .
+root root system_u:object_r:container_config_t:s0  40 Nov  1 11:12 ..
+root root system_u:object_r:container_config_t:s0  81 Nov  1 11:14 90-crun
+root root system_u:object_r:container_config_t:s0 148 Dec 11 13:20 91-user
+
+crio.conf respects the TOML format and is easily managed and maintained. The help/man pages are also detailed. After you change the configuration, enable the service.
+
+[user@fedora ~]$ sudo systemctl daemon-reload
+[user@fedora ~]$ sudo systemctl enable crio --now 
+
+Disable swap
+
+The latest Fedora Linux versions enable swap-on-zram by default. zram creates an emulated device that uses RAM as storage and compresses memory pages. It is faster than traditional disk partitions. You can use zramctl to inspect and configure your zram device(s). However, the device’s initialization and mounting are performed by systemd on system startup as configured in the zram-generator.conf file.
+
+[user@fedora ~]$ lsblk
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+zram0  251:0    0  3.8G  0 disk [SWAP]
+vda    252:0    0   15G  0 disk 
+
+[user@fedora ~]$ sudo swapoff -a
+[user@fedora ~]$ sudo zramctl --reset /dev/zram0
+[user@fedora ~]$ sudo dnf -y remove zram-generator-defaults
+
+Firewall rules
+
+Keep the firewall enabled and open only the necessary ports in accordance with the official docs. We have a set of rules for the Control Planes nodes.
+
+[user@fedora ~]$ sudo firewall-cmd --set-default-zone=internal
+[user@fedora ~]$ sudo firewall-cmd --permanent \
+--add-port=6443/tcp --add-port=2379-2380/tcp \
+--add-port=10250/tcp --add-port=10259/tcp \
+--add-port=10257/tcp 
+[user@fedora ~]$ sudo firewall-cmd --reload
+
+For Worker nodes, the following configuration must be used given the default service port range.
+
+[user@fedora ~]$ sudo firewall-cmd --set-default-zone=internal
+[user@fedora ~]$ sudo firewall-cmd --permanent  \
+--add-port=10250/tcp --add-port=30000-32767/tcp 
+[user@fedora ~]$ sudo firewall-cmd --reload
+
+Please note we did not discuss network topology. In such discussions, control plane nodes and worker nodes are on different subnets. Each subnet has a interface that connects all hosts. VMs could have multiple interfaces and/or the administrator might want to associate a specific interface with a specific zone and open ports on that interface. In such cases you will explicitly provide the zone argument to the above commands.
+The DNS service
+
+Fedora Linux 39 comes with systemd-resolved configured as its DNS resolver. In this configuration the user has access to a local stub file that contains a 127.0.0.53 entry that directs local DNS clients to systemd-resolved.
+
+lrwxrwxrwx. 1 root root 39 Sep 11  2022 /etc/resolv.conf -> ../run/systemd/resolve/stub-resolv.conf
+
+The reference to 127.0.0.53 triggers a coredns loop plugin error in Kubernetes. A list of next-hop DNS servers is maintained by systemd in /run/systemd/resolve/resolv.conf. According to the systemd-resolved man page, the /etc/resolv.conf file can be symlinked to /run/systemd/resolve/resolv.conf so that local DNS clients will bypass systemd-resolved and talk directly to the DNS servers. For some DNS clients, however, bypassing systemd-resolved might not be desirable.
+
+A better approach is to configure kubelet to use the resolv.conf file. Configuring kubelet to reference the alternate resolv.conf will be demonstrated in the following sections.
+Kubernetes packages
+
+We will use kubeadm that is a mature package to easily and quickly install production-grade Kubernetes.
+
+[user@fedora ~]$ sudo dnf install -y kubernetes-kubeadm kubernetes-client
+
+kubernetes-kubeadm generates a kubelet drop-in file at /etc/systemd/system/kubelet.service.d/kubeadm.conf. This file can be used to configure instance-specific kubelet configurations. However, the recommended approach is to use kubeadm configuration files. For example, kubeadm creates /var/lib/kubelet/kubeadm-flags.env that is referenced by the above mentioned kubelet drop-in file.
+
+The kubelet will be started automatically by kubeadm. For now we will enable it so it persists across restarts.
+
+[user@fedora ~]$ sudo systemctl enable kubelet
+
+2. Initialize the Control Plane
+
+For the installation, we pass some cluster wide configuration to kubeadm like pod and service CIDRs. For more details refer to kubeadm configuration docs  and kubelet config docs.
+
+[user@fedora ~]$ cat <<CONFIG > kubeadmin-config.yaml
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+nodeRegistration:
+  name: master1
+  criSocket: "unix:///var/run/crio/crio.sock"
+  imagePullPolicy: "IfNotPresent"
+  kubeletExtraArgs: 
+    cgroup-driver: "systemd"
+    resolv-conf: "/run/systemd/resolve/resolv.conf"
+    max-pods: "4096"
+    max-open-files: "20000000"
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+kubernetesVersion: "1.27.0"
+networking:
+  podSubnet: "10.32.0.0/16"
+  serviceSubnet: "172.16.16.0/22"
+controllerManager:
+  extraArgs:
+    node-cidr-mask-size: "20"
+    allocate-node-cidrs: "true"
+---
+CONFIG
+
+In the above configuration, we have chosen different IP subnets for pods and services. This is useful when debugging. Make sure they do not overlap with your node’s CIDR. To summarize the IP ranges:
+
+    services “172.16.16.0/22” – 1024 services cluster wide
+    pods “10.32.0.0/16” – 65536 pods cluster wide, max 4096 pods per kubelet and 20 million open files per kubelet. For other important kubelet parameters refer to kubelet config docs. Kubelet is an important component running on the worker nodes so make sure you read the config docs carefully.
+
+kube-controller-manager has a component called nodeipam that splits the podcidr into smaller ranges and allocates these ranges to each node via the (node.spec.podCIDR /node.spec.podCIDRs) properties. Controller Manager property ‐‐node-cidr-mask-size defines the size of this range. By default it is /24, but if you have enough resources you can make it larger; in our case /20. This will result in 4096 pods per node with a maximum of 65536/4096=16 nodes. Adjust these properties to fit the capacity of your bare-metal server.
+
+[user@fedora ~]$ hostnamectl set-hostname master1
+[user@master1 ~]$ sudo kubeadm init --skip-token-print=true --config=kubeadmin-config.yaml
+
+[user@master1 ~]$ mkdir -p $HOME/.kube
+[user@master1 ~]$ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+[user@master1 ~]$ sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+There are newer networking plugins that leverage ebpf kernel capabilities or ovn. However, installing such plugins requires uninstalling kube-proxy and we want to maintain the deployment as standard as possible. Some of the networking plugins read the kubeadm-config configmap and set up the corect CIDR values without the need to read a lot of documentation.
+
+[user@master1 ~]$ kubectl create -f https://github.com/antrea-io/antrea/releases/download/v1.14.0/antrea.yml
+
+Antrea, OVN-Kubernetes are interesting CNCF projects; especially for bare-metal clusters where network speed becomes a bottleneck. It also has support for some high-speed Mellanox network cards. Check pods and svc health and whether a correct IP address was assigned.
+
+[user@master1 ~]$ kubectl get pods -A -o wide
+NAME                                 READY  IP              NODE     
+antrea-agent-x2j7r                   2/2    192.168.122.3   master1
+antrea-controller-5f7764f86f-8xgkc   1/1    192.168.122.3   master1
+coredns-787d4945fb-55pdq             1/1    10.32.0.2       master1
+coredns-787d4945fb-ndn78             1/1    10.32.0.3       master1
+etcd-master1                         1/1    192.168.122.3   master1
+kube-apiserver-master1               1/1    192.168.122.3   master1
+kube-controller-manager-master1      1/1    192.168.122.3   master1
+kube-proxy-mx7ns                     1/1    192.168.122.3   master1
+kube-scheduler-master1               1/1    192.168.122.3   master1
+
+[user@master1 ~]$ kubectl get svc -A
+NAMESPACE     NAME         TYPE        CLUSTER-IP 
+default       kubernetes   ClusterIP   172.16.16.1
+kube-system   antrea       ClusterIP   172.16.18.214
+kube-system   kube-dns     ClusterIP   172.16.16.10 
+
+[user@master1 ~]$ kubectl describe node master1 | grep PodCIDR
+PodCIDR:                      10.32.0.0/20
+PodCIDRs:                     10.32.0.0/20
+
+All pods should be running and healthy. Notice how the static pods and the daemonsets have the same IP address as the node. CoreDNS is also reading directly from the /run/systemd/resolve/resolv.conf file and not crashing.
+
+Generate a token for joining the worker node.
+
+[user@master1 ~]$ kubeadm token create --ttl=30m --print-join-command
+
+The output of this command contains details for joining the worker node.
+3. Join a Worker Node
+
+We need to set the hostname and kubeadm join. Kubelet on this node also requires configuration. Do this at the systemd level or by using a kubeadm config file with placeholders. Replace the placeholders with the values from the previous command. The kubelet args respect the same convention as kubelet params, but without leading dashes.
+
+[user@fedora ~]$ hostnamectl set-hostname worker1
+
+[user@worker1 ~]$ cat <<CONFIG > join-config.yaml
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: JoinConfiguration
+discovery:
+  bootstrapToken:
+    token: <TOKEN>
+    apiServerEndpoint: <MASTER-IP:PORT>
+    caCertHashes: ["<HASH>"]
+    timeout: 5m
+nodeRegistration:
+  name: worker1
+  criSocket: "unix:///var/run/crio/crio.sock"
+  imagePullPolicy: "IfNotPresent"
+  kubeletExtraArgs: 
+    cgroup-driver: "systemd"
+    resolv-conf: "/run/systemd/resolve/resolv.conf"
+    max-pods: "4096"
+    max-open-files: "20000000"
+---
+CONFIG
+
+[user@worker1 ~]$ sudo kubeadm join --config=join-config.yaml
+
+From master node check the range allocated by nodeipam to both nodes:
+
+[user@master1 ~]$ kubectl describe node worker1 | grep PodCIDR
+PodCIDR:                      10.32.16.0/20
+PodCIDRs:                     10.32.16.0/20
+
+Notice the cluster-wide pod CIDR — 10.32.0.0/16 — was split by Controller Manager into 10.32.0.0/20 for the first node and 10.32.16.0/20 for the second node with non-overlapping segments of 4096 IP addresses each.
+4. Security considerations
+
+Run three sample pods to test the setup.
+
+[user@master1 ~]$ kubectl apply -f - <<EOF
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+spec:
+  containers:
+  - name: fedora
+    image: fedora/fedora:latest
+    args: ["sleep", "infinity"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod-userns-1
+  annotations:
+    io.kubernetes.cri-o.userns-mode: "auto:size=256"
+spec:
+  containers:
+  - name: fedora
+    image: fedora/fedora:latest
+    args: ["sleep", "infinity"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod-userns-2
+  annotations:
+    io.kubernetes.cri-o.userns-mode: "auto:size=256"
+spec:
+  containers:
+  - name: fedora
+    image: fedora/fedora:latest
+    args: ["sleep", "infinity"]
+---
+EOF
+
+4.1 Discretionary Access Control
+
+By default, Linux’s security model is based on Discretionary Access Control (DAC). This security model is based on user identity and the filesystem ownership and permissions associated with that user.
+
+Since containers are Linux processes, you can watch them by running the ps command on your host server. Start a container process and check it using ps. The kubelet is the worker node main process and, by default, it runs as root (uid=0). There is a feature gate — KubeletInUserNamespace — but it is currently in an alpha stage of development. All the other containers will run as user id 0 as well. To properly function, all the containers must mount the /proc and /sys pseudofilesystems and have access to some processes on the host. Under these circumstances, a rogue container process running as root could assume elevated privileges on the host. This should explain the need for isolating processes by running them as underprivileged users.
+
+This “soft” isolation can be done via kubernetes’ spec.securityContext.(RunAsUser|RunAsGroup|fsGroup), but this method requires additional administrative work like creating and maintaining users and groups etc. This can be automated via Admission Controllers, but we discuss below a different approach using user namespaces.
+
+User namespaces are a Linux feature that is part of the same basic DAC security model. They are enabled by default in the latest Linux versions and you might have encountered them while working with Podman or Singularity.
+
+CRI-O schedules userns workloads via the io.kubernetes.cri-o.userns-mode: “auto:size=n” annotation. This annotation can be added manually to YAML files as demonstrated in the above example or automatically via an admission controller. The annotation based behavior might change. You will need to follow the version updates for Kubernetes and CRI-O.
+
+user@worker1:~$ cat /etc/subuid
+user:524288:65536
+containers:1000000:1048576
+
+user@worker1:~$ ps -eo pid,uid,gid,args,label | grep -E 'kubelet|sleep'
+  2980      0 0 kubelet system_u:system_r:kubelet_t:s0-s0:c0.c1023
+  13067     0 0 sleep   system_u:system_r:container_t:s0:c483,c911
+  13078 1000000 1000000 sleep system_u:system_r:container_t:s0:c508,c675
+  13105 1000256 1000256 sleep system_u:system_r:container_t:s0:c300,c755
+
+Notice kubelet and the test-pod are running as root on the host while both test-pod-userns are running as temporary dynamic user from the range “containers” defined in /etc/subuid . CRI-O uses the containers/storage plugin and therefore looks for default user containers to map subuid and subgids. According to current /etc/subuid file, the dynamic users will begin at UID 1000000 with a maximum of 1048576 users. The annotation assigns a range of 256 UIDs to each container. To change the defaults and mappings refer to containers-storage.conf man page.
+4.2 Mandatory Access Control
+
+SELinux is enabled on Fedora Linux in enforcing mode by default and it implements the Mandatory Access Control (MAC) security model. This model requires explicit rules that allow a labeled source context (process) to access a labeled target context (files|ports).
+
+The labels have the following format as shown in the above examples:
+
+user:role:type:sensitivity-level:category-levels
+
+CRI-O requires the containers-selinux package. We installed Kubernetes while keeping SELinux in enforcing mode, but there are a few general scenarios that might require additional SELinux configuration:
+
+    Binding ports
+    Mounting storage
+    Sharing storage
+
+Binding ports
+
+Create a sample pod binding to a privileged host port. This is useful, for example, when creating ingress controllers. You will notice the rootless container was able to bind to the privileged port.
+
+[user@master1 -A ~]$ kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-hostport
+  annotations:
+    io.kubernetes.cri-o.userns-mode: "auto:size=256"
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+      hostPort: 80
+EOF
+
+user@worker1:~$ sudo semanage port -l 
+http_port_t tcp 80, 443 ...
+
+user@worker1:~$ sudo ss -plntZ
+Address:Port Process                                                                                          
+0.0.0.0:80 "crio",proc_ctx=system_u:system_r:container_runtime_t:s0
+
+Port 80 (target context) is labeled http_port_t and the process trying to access it (source context) is labeled container_runtime_t. To check specific rules that allow this and to debug potential issues, use sesearch. Although, in this specific example, container_t process was allowed to assume container_runtime_t domain and to bind eventually to port 80, this might not always be desirable.
+
+user@worker1:~$ sesearch -A -s container_runtime_t -t http_port_t -c tcp_socket
+
+Mounting storage
+
+The process container_t is MCS constrained which means every new container will receive two new random categories. At the moment, when mounting a volume, Kubernetes is not automatically re-labelling files with these two categories. There is a community effort via features like SELinuxMountReadWriteOncePod, but you will have to follow the progress in the future versions. For this demo, we will label the files manually.
+
+The categories cannot have any value. They are defined in the setrans.conf file as shown below. Refer to the SELinux documentation for details about modifying the sizes of the MCS ranges.
+
+user@worker1:~$ cat /etc/selinux/targeted/setrans.conf 
+s0=SystemLow
+s0-s0:c0.c1023=SystemLow-SystemHigh
+s0:c0.c1023=SystemHigh
+
+The DAC permissions are enforced in parallel with the MAC permissions, so the Linux mode bits must be set to grant sufficient access in addition to the SELinux labels. We also need to set the proper label container_file_t and the category level as well. With s0 level all the containers will be able to write to the volume. To restrict access to them, we need to label them with process categories.
+
+user@worker1:~$ sudo mkdir -m=777 /data
+user@worker1:~$ sudo semanage fcontext -a -t container_file_t /data
+user@worker1:~$ sudo restorecon -R -v /data
+user@worker1:~$ mkdir -m=777 /data/folder{1..2}
+user@worker1:~$ ls -laZ /data
+drwxrwxrwx. root root unconfined_u:object_r:container_file_t:s0 .
+drwxrwxrwx. user user unconfined_u:object_r:container_file_t:s0 folder1
+drwxrwxrwx. user user unconfined_u:object_r:container_file_t:s0 folder2
+
+The semanage fcontext command cannot assign category labels so we will have to use chcat:
+
+user@worker1:~$ chcat -- +c800 /data/folder1
+user@worker1:~$ chcat -- +c801 /data/folder2
+user@worker1:~$ ls -laZ /data
+drwxrwxrwx. unconfined_u:object_r:container_file_t:s0      .
+drwxrwxrwx. unconfined_u:object_r:container_file_t:s0:c800 folder1
+drwxrwxrwx. unconfined_u:object_r:container_file_t:s0:c801 folder2
+
+With the configuration shown above, the container process must have category c800 to access folder1, and c801 is required to access folder2. To avoid random labeling, pass the spec.securityContext.seLinuxOptions object.
+
+[user@master1 ~]$ kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-hostpath1
+  annotations:
+    io.kubernetes.cri-o.userns-mode: "auto:size=256"
+spec:
+  securityContext:
+    seLinuxOptions:
+      level: "s0:c800"
+  containers:
+  - name: test
+    image: fedora/fedora:latest
+    args: ["sleep", "infinity"]
+    volumeMounts:
+    - mountPath: /test
+      name: test-volume
+  volumes:
+  - name: test-volume
+    hostPath:
+      path: /data
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-hostpath2
+  annotations:
+    io.kubernetes.cri-o.userns-mode: "auto:size=256"
+spec:
+  securityContext:
+    seLinuxOptions:
+      level: "s0:c801"
+  containers:
+  - name: test
+    image: fedora/fedora:latest
+    args: ["sleep", "infinity"]
+    volumeMounts:
+    - mountPath: /test
+      name: test-volume
+  volumes:
+  - name: test-volume
+    hostPath:
+      path: /data
+EOF
+
+Next, try to write to these folders. Notice the process labels, file labels, and the file ownership.
+
+user@master1:~$ kubectl exec test-hostpath1 -- touch /test/folder1/testfile
+user@master1:~$ kubectl exec test-hostpath1 -- touch /test/folder2/testfile
+touch: cannot touch '/test/folder2/testfile': Permission denied
+
+user@master1:~$ kubectl exec test-hostpath2 -- touch /test/folder2/testfile
+user@master1:~$ kubectl exec test-hostpath2 -- touch /test/folder1/testfile
+touch: cannot touch '/test/folder1/testfile': Permission denied
+
+user@worker1:~$ ps -eo pid,uid,gid,args,label | grep -E 'sleep'
+40475 1000512 1000512 sleep system_u:system_r:container_t:s0:c801
+40500 1000256 1000256 sleep system_u:system_r:container_t:s0:c800
+
+user@worker1:~$ ls -laZ /data/folder1
+drwxrwxrwx. user   unconfined_u:object_r:container_file_t:s0:c800 .
+-rw-r--r--. 1000256 system_u:object_r:container_file_t:s0:c800     testfile
+
+user@worker1:~$ ls -laZ /data/folder2
+drwxrwxrwx. user   unconfined_u:object_r:container_file_t:s0:c801 .
+-rw-r--r--. 1000512 system_u:object_r:container_file_t:s0:c801     testfile
+
+Sharing storage
+
+In the above examples, the containers share storage that has the same group and categories or storage with the most permissive s0 level. In production environments you will most likely deal with dynamic storage provisioners that will have to automatically relabel directories and files with whatever random category labels were assigned by Kubernetes. This means the storage provisioner must be SELinux aware and you need to read the configuration settings carefully for anything SELinux-specific.
+
+Proper file permissions achieve a lot of security. SELinux simply adds a layer of security on top of the base file permissions.
+More Security
+
+We have touched on the basics of Fedora Linux’s security models. Securing Kubernetes is a broad field of study and it requires significant effort to come to a full understanding of how it all works. To review the best practices and tools beyond what this article has covered, refer to the SELinux docs and the Linux Foundation CKS learning track.
+Conclusion
+
+In this article, we have achieved a small, bare-metal Kubernetes setup running on Fedora Linux. CRI-O is a versatile CNCF graduated project that supports user namespaces and any OCI-compliant runtime. Just like Fedora, Kubernetes is continuously improving and can only benefit from Fedora Linux’s advanced security model and features. Follow the Kubernetes QuickDocs to stay apprised of the latest changes. Thanks to all the hard working people maintaining the above mentioned packages
+
+[[}]]
+
+
+## K8s: Kubernetes vs. Apache Mesos - DZonehttps://dzone.com/articles/comparative-analysis-of-open-source-cluster-manage? 
+
+Choose Kubernetes if the most important is:Container orchestrationCommunity and ecosystemEase of useStandardizationChoose Apache Mesos if you value:Resource flexibilityMulti-TenancyAdvanced use casesCustomizationLegacy Integration
+
+## K8s aws jcostabe/eso-demo: [[{]]
+External Secret Operator demo
+https://github.com/jcostabe/eso-demo 
+[[}]]
+
+## Kubernetes Client (Go) playground 
+* https://labs.iximiuz.com/playgrounds/k8s-client-go
+
+
+
+
+
+_______________________________________________
+
+Kubernetes 1.30 Released with Contextual Logging, Improved Performance, and Security - InfoQhttps://www.infoq.com/news/2024/06/kubernetes-1-30/ 
+This enhancement simplifies the correlation and analysis of log data across distributed systems, significantly improving the efficiency of troubleshooting efforts. By offering a clearer insight into the workings of your Kubernetes environments, Contextual Logging ensures that operational challenges are more manageable, marking a notable step forward in Kubernetes observability.
+____________________________________________________________
+K8s 101: Kubernetes without YAMLhttps://www.infoq.com/presentations/kubernetes-prog-lang/ 
+
+
+Obviously, we need a deployment, we need a service. We've got a little bit of RBAC sprinkled in there. Someone's mentioned some service mesh, networking policies, load balancers, Argo rollout, observability stacks and so forth. The point here is that we try and pretend that you can just write a deployment YAML in 20 lines, and you get something running and you can or would. Actually, the deployment landscape and the complexity of deploying to Kubernetes, especially in production is very vast. 
+
+
+
+What does a Kubernetes deployment look like in the real world? Again, I'm focusing on production here, not development, local staging, and so forth. You probably need most of these resources. We don't see them all listed. We have a deployment, we have a service, we have our ConfigMap and secrets, we have the Horizontal Pod Autoscaler, the pod disruption budget, pod monitors, networking policies, and so forth. At the smallest amount of YAML I could write, we got about 120 lines, which looks like this. That's as good as it's going to get. It's not actually that important. This is not even comprehensive about what I would want to deploy something to production. We need much more. The chances are, we need to create and provision namespaces. We definitely need service accounts, because we're not going to do default injection. We've got roles and role bindings. Our applications usually have state, if there's no state, they're probably not making any money. You need databases, you need queues, you need caches. People aren't applying seccomp profiles to their applications, why not? This is more stuff that we need to add to our applications. Then we've got LimitRanges, ingresses, and so forth. Even at this, this is still not comprehensive. There are a lot of things that we need to do to deploy to Kubernetes
+
+
+
+Anyone know how to get the documentation or understand the spec of a custom resource definition without going to the code? It's my favorite trick. I don't know why people's other command exist. Kubectl explain is the best command in the world.
+
+
+
+We're going to play a game of can I, should I? We wanted to DRY with YAML, what do we go for? Anyone familiar with YAML anchors? They look like this. You can name standard parts within a YAML document, reference them in other parts. It does actually allow us to clean up some of the more annoying duplicates, the non-shows or what they're missing, within our YAML, especially in our deployment spec where we have label selectors, and so forth. It only works within a single YAML document. Even if you have a list with multiples, you can't have a nice bit of shared stuff at the top and reference all the way down. It's not really where it needs to be for us to be able to do that. Plus, it just doesn't look that nice and it's difficult to understand. This is why we then have Kustomize. This provides multiple ways for us not to repeat ourselves using overlays, patches, remote includes, and even they've got a small function library that allows you to do some stuff as well. However, Kustomize is a good first step. If you are just shipping Kubernetes YAML, go for it. Enjoy taking some of those benefits. We just have to remember that there are better tools with a better consistent developer experience. Kustomize solves some challenges, but it's not really solving all of the problems that we have when working with YAML. Can I, should I? Yes, do use Kustomize. Hopefully by the end, you'll see that there are better ways as well
+
+
+If we want to make things shareable, we use Helm. No, that's a lie. I don't want to say bad things about Helm. Helm is great. I love that we can go out and get any Helm chart for any third-party piece of software and deploy it. Helm is not without many challenges. I'm not a fan of Go's template language, which is what we're looking at here. I think working with YAML is very painful, because we have to worry about white spaces, which is why we have these little dashes next to the braces. If you get them wrong, the indentation is all wrong.
+
+The main problem with Helm, is the values file, this is our point of customization. This is where we tweak the chart to make it do the things that we want it to do. The problem is, there's no strongly opinionated Helm charts out there. I can't just cast a wide net and say there are none, but very few. The problem is, is that these are all very general purpose with loads of configuration options to handle every single edge case that every other person, developer, and team has to the point where now when you look at a Helm chart, and the Bitnami repositories, and so forth, is that every single line of YAML is wrapped in either a range or a conditional because it may or may not be pervaded by the default values, or the custom values by the developer. It's extremely painful to work with. That's not a real number of lines and values with YAML but I wouldn't be surprised. We've heard about your two-and-a-half gig YAML file, so who knows? Can I, should I? Don't get me wrong, you should definitely be using Helm. It's still one of the best things that we've got if you want to go and deploy a third-party piece of software, like Redis, Postgres, CockroachDB, and so forth. Those charts exist, use them. Smart people work on them. It may not be what you need longer term for your own software, for your own deployments.
+
+_________________________________________________
+
+Deciphering the Kubernetes Networking Maze: Navigating Load-Balance, BGP, IPVS and Beyond
+
+https://itnext.io/deciphering-the-kubernetes-networking-maze-navigating-load-balance-bgp-ipvs-and-beyond-7123ef428572
+_________________________________________________
+
+
+K8s Kubernetes Gateway API v1.1 Released: New Standard Features and Experimental Enhancements - 
+- As long the cluster is on Kubernetes 1.26 or later, it is possible to start using the latest Gateway API right away.
+https://www.infoq.com/news/2024/05/kubernetes-gateway-api/
+Kubernetes Gateway API v1.1 Released: New Standard Features and Experimental Enhancements
+May 28, 2024
+The Kubernetes SIG Network announced the version 1.1 of Gateway API.
+ This update sees several key features moving to the Standard Channel (GA), including support for service mesh and GRPCRoute.
+ Additionally, new experimental features such as session persistence and client certificate verification have been introduced.
+The v1.1 release marks the transition of four highly anticipated features from experimental to Standard.
+ This signifies confidence in the API's stability and provides backward compatibility guarantees.
+ Standard Channel features will continue to evolve with backward-compatible enhancements.
+Gateway API now supports service mesh, enabling users to manage both ingress and mesh traffic with a unified API.
+ Routes like HTTPRoute can now reference a Service as a parentRef, allowing for precise traffic control to specific services.
+ To go deeper into this feature, check out the Gateway API documentation.
+A possible implementation of canary deployment with HTTPRoute is the following:
+ apiVersion: gateway.networking.k8s.io/v1
+  kind: HTTPRoute
+  ...
+  kind: Service 
+  ...
+  This configuration splits traffic 50/50 between the original color Service and the color2 Service in the faces namespace.
+GRPCRoute has been part of the Standard Channel since v1.1.0.
+ For users of the experimental channel, it is recommended to wait for controller updates before upgrading to the standard channel version.
+ Meanwhile, the experimental channel version in v1.1 includes both v1alpha2 and v1 API versions.
+HTTPRoute is a Gateway API type for specifying routing behavior of HTTP requests.
+ Each Route provides a method to reference the parent resources it intends to attach to.
+ Typically, this will be Gateways, but implementations have the flexibility to support other types of parent resources as well.
+ The port field has been added to ParentReference, allowing resources to be attached to Gateway Listeners, Services, or other parent resources by specifying the port.
+ This enables attachment to multiple Listeners simultaneously.
+Example of attaching an HTTPRoute to specific Gateway Listeners by port:
+  apiVersion: gateway.networking.k8s.io/v1beta1
+  kind: HTTPRoute
+  ...
+  Note that the target Gateway needs to allow HTTPRoutes from the route's namespace to be attached for the attachment to be successful and binding to a port also allows attaching to multiple listeners at onceThe conformance report API now includes the mode field and gatewayAPIChannel (standard or experimental). The gatewayAPIVersion and gatewayAPIChannel are automatically populated, and the reports are better structured, allowing implementations to include testing details and reproduction steps.A new addition to the experimental channel is about Gateways. In particular, it is now possible to configure client certificate verification for each Gateway Listener using the new frontendValidation field within TLS. This field allows the configuration of CA Certificates to validate client certificates.An example of configuration is the following:
+  apiVersion: gateway.networking.k8s.io/v1
+  kind: Gateway
+  ...
+  Another new addition to the experimental channel is Session persistence.
+ It is introduced via a new policy (BackendLBPolicy) for Service-level configuration and as fields within HTTPRoute and GRPCRoute for route-level configuration.
+ These settings include session timeouts, session name, session type, and cookie lifetime.
+  An Example of BackendLBPolicy configuration for cookie-based session persistence is the following:
+  apiVersion: gateway.networking.k8s.io/v1alpha2
+  kind: BackendLBPolicy
+  ...
+  ensure consistent TLS terminology, breaking changes have been made to BackendTLSPolicy, resulting in a new API version (v1alpha3).
+  Implementations must handle this version upgrade by updating references and configurations accordingly.
+  ...
+
+##  TikTok Owner Open-Sources Next Gen Kubernetes Federation Toolhttps://www.infoq.com/news/2024/02/bytedance-kubeadmiral/ 
+
+## Kubernetes 1.29 Released with KMS V2 Improvements and nftables Support
+https://www.infoq.com/news/2024/01/kubernetes-1-29/ 
+
+
+## How To Call Kubernetes API from Go - Types and Common Machinery 🔽
+
+The official Kubernetes Go client comes loaded with high-level abstractions - Clientset, Informers, Cache, Scheme, Discovery, oh my! When I tried to use it without learning the moving parts first, I ran into an overwhelming amount of new concepts. Eventually, I found a way to sort things out in my head, and this article https://lnkd.in/esrNspaA and a collection of short programs https://lnkd.in/eyASFjxJ is my attempt to document it.
+
+Now you can try the examples from the above collection in the new online Kubernetes playground https://lnkd.in/e9Khqvjs.
+
+Since you'll need Go, here is my favorite way of installing it on a fresh system using Alex Ellis' arkade tool:
+
+```
+arkade system install go
+```
+
+## kubernetes (secret) replicator
+[security.secret_management]
+mittwald/kubernetes-replicator: Kubernetes controller for synchronizing secrets & config maps across namespaces
+https://github.com/mittwald/kubernetes-replicator 
+
+
+
+
+## How Adidas Reduced Cost of k8s Clusters up to 49% [[{cloud.billing.AWS]]
+
+* <https://www.infoq.com/news/2024/07/adidas-kubernetes-cost-reduction/>
+  by Claudio Masolo, Cloud Engineer
+
+1) lowering EC2 instance costs by implementing Karpenter, AWS cluster autoscaler 
+   that adjusts node counts based on application demand. 
+   * Dynamically provisions compute resources in real-time and 
+     seamlessly integrated with Kubernetes workflows.
+   * Optimizes cluster resource utilization by:
+     * Launching only necessary instance types to meet pod requirements.
+     * Identifying opportunities to remove under-utilized nodes.
+     * Replacing expensive instances with more cost-effective (spot instances)
+       options when possible.
+     Integrates . You can configure various aspects of its behavior, including:
+        The types of EC2 instances used for provisioning.
+        Launch template specifications for node configuration.
+        Scaling policies to tailor resource allocation to specific needs.
+2) Automatic creation of Vertical Pod Autoscalers (VPAs) for all workloads
+   in development and staging clusters using Kyverno.<br/>
+     Kyverno is a policy engine operating as DYNAMIC ADMISSION CONTROLLER
+   within the cluster. It establishes endpoints(weebhooks) validating+mutating
+   admission from the Kubernetes API server parametrizable by resource-kind,
+   name, label selectors, etc. supporting pattern matching and conditional 
+   (if-then-else) logic.<br/>
+   The adidas team configured the Kyverno policies to:
+   * Check if the resource has a Horizontal Pod Autoscaler (HPA) or VPA.
+   * Verify if automatic VPA creation is permitted for the resource and 
+     its namespace.
+3)   Setting default VPA values. Configuring VPAs without prior knowledge of
+   the applications poses a challenge.
+     The Adidas team decided to control only **resource requests** to prevent
+   application disruptions during usage spikes.<br/>
+     For applications with multiple containers, the team avoided maxAllowed 
+   values to prevent potential issues.
+     Implementing default VPAs resulted in a 30% reduction in CPU and memory
+   usage across development and staging clusters. 
+   * **limitations: 
+     * VPAs cannot work with HPAs using resource metrics.
+     * **Older Java applications might not benefit due to fixed heap sizes.**
+     * Certain applications require uninterrupted operation, necessitating an 
+       opt-out option.
+4) kube-downscaler used to scale down resources during non-office hours
+   adjusting replicas based on a predefined schedule.
+
+ The team also faced the problem of problematic Pod Disruption Budget (PDB) configurations
+that hinder node removal (underutilized nodes).  A cleanup Kyverno policyy was used
+to remove invalid PDBs periodically, leading to 50% reduction in monthly costs for
+development and staging clusters.
+
+* Related:
+  * <https://www.reddit.com/r/kubernetes/comments/1520nah/reducing_cloud_costs_on_kubernetes_dev_envs_by/>
+
+[[cloud.billing.AWS}]]
+
+[[{qa.gitops.flux]]
+## flux
+- flux is the k8s operator that *MAKES GITOPS HAPPEN IN YOUR CLUSTER*.<br/>
+  it ensures that the cluster config matches the one in git and
+  automates your deployments.
+- continuous delivery of container images, using version control
+  for each step to ensure deployment is reproducible,
+  auditable and revertible. deploy code as fast as your team creates
+  it, confident that you can easily revert if required.
+
+* Related. Extracted from  <https://github.com/weaveworks/weave-gitops>:
+  """...  Weave GitOps defaults are Flux as the GitOps engine, Kustomize,
+  Helm, Sops, and Kubernetes CAPI. If you use Flux already, then you can
+  easily add Weave GitOps to create a platform management overlay.<br/>
+  ...Compatibility with any conformant Kubernetes version and common 
+  ecosystem technologies such as Helm, Kustomize, RBAC, Prometheus, OPA,
+  Kyverno, etc.<br/>
+  ... Multitenancy, multiple Git repositories, multiple clusters.<br/>
+  ... Alerts and notifications."""
+
+* <https://www.weave.works/technologies/gitops/>
+[[qa.gitops.flux}]]
+
+[[{]]
+## Containerd <··> Kubernetes
+
+ ```
+ |    via                   via
+ |    /run/containerd/      Kubernetes
+ |     containerd.sock      CRI API
+ |    ┌─────┴──────┐          │
+ |    v            v          v
+ |   ctr         nerdctl    crictl    <··· Command-line
+ |   cli         cli        cli            containerd
+ |    ·           ·           ·            clients
+ |    └·······┐   ·   ┌·······┘
+ |            ·   ·   ·
+ |            ·   ·   ·           containerd:"industry-standard" container runtime
+ |            ·   ·   ·           Run on Linux/Windows MANAGING THE COMPLETE
+ |            ·   ·   ·           CONTAINER LIFECYCLE OF ITS HOST SYSTEM:
+ |            ·   ·   ·           1. image transfer and storage.
+ |          ┌─v───v───v ─┐        2. container execution and supervision
+ |          │ containerd │ <····· 3. low-level storage and network attachments
+ |          └─────┬──────┘        4. ...
+ |                v
+ |        │ containerd-shim │ <··· handle headless containers => once runc/...
+ |          ·         ·  ^         initialized the containers, it exists handing
+ |          ·         ·  ·         the containers over to the container-shim
+ |          v         ·  ·
+ |      │  OCI   │  ┌─v──·──────┐
+ |      │ runtime├──> container │
+ |      │ (runc) │  └───────────┘
+ | 
+ |      (lightweight universal run time container,
+ |      whicha abides by the OCI spec. Used by
+ |      containerd for spawning and running containers
+ |      according to OCI spec. It is also the repackaging
+ |      of libcontainer.
+ |       More than one runc will run in parallel (for each
+ |      container?) while a single containerd exists
+ ```
+
+* Designed to be embeeded into larger systems.
+
+ ```
+ | ┌─ containerd details ────────────────────────────────────────────────────┐
+ | │ ┌───────────────────────────────┐ ┌───────────────────────────────────┐ │
+ | │ │            GRPC               │ │              METRICS              │ │
+ | │ └───────────────────────────────┘ └───────────────────────────────────┘ │
+ | │                                                                         │
+ | │  │Content││Snapshot││Diff│    │Images││Containers│   │Tasks│ │Events│   │
+ | │ └───────────┬─────────────┘  └───────────┬────────┘     ·        ^      │
+ | │          Storage                    Metadata            ·        ·      │
+ | │             ·                           v               ·        ·      │
+ | │       ┌>····┴>··························┴>··············(···┬>···┘      │
+ | └───────·─────────────────────────────────────────────────·───·───────────┘
+ |         ·                                                 v   ·
+ |    │ Operating System                │                │ Runtimes │
+ |    │ System                          │                │ (runc,   │
+ |    │                                 │                │  crun,..)│
+ ```
+[[}]]
+
+
+[[{]]
+## Kubeapps App Dashboard 
+
+* <https://kubeapps.com/>
+* Browse and deploy different packages like Helm charts, Flux or 
+  Carvel packages from public or private repositories 
+  (including VMware Marketplace™ and Bitnami Application Catalog)
+* Browse and deploy Kubernetes Operators
+* Secure authentication to Kubeapps using a standalone OAuth2/OIDC 
+  provider or using Pinniped.
+* Manage Apps:
+  Upgrade, manage and delete the applications that are deployed in your
+  Kubernetes cluster.
+* Service Catalog: (Deprecated)
+  Browse and provision external services from the Service Catalog and
+  available Service Brokers.
+* Secure authorization based on Kubernetes Role-Based Access Control.
+[[}]]
+
+## `crictl`: Debug Worker Node [[{monitoring.crictl]]
+
+* REF: <https://kubernetes.io/docs/tasks/debug/debug-cluster/crictl/>
+
+* `crictl`: cli for CRI-compatible container runtimes.
+* Can be used to inspect and debug container runtimes and applications on a Kubernetes node.
+* It comes preinstalled for example in "Kind". It must be downloaded and installed locally
+  in other setups.
+* To set the endpoints: (otherwise a list of known endpoints is used)
+  ```
+  (Alt.1) --runtime-endpoint and --image-endpoint flags.
+  (Alt.2) $ export CONTAINER_RUNTIME_ENDPOINT= ...
+          $ export IMAGE_SERVICE_ENDPOINT=...
+  (Alt.3) $ editor /etc/crictl.yaml
+          + runtime-endpoint: unix:///var/run/containerd/containerd.sock
+          + image-endpoint: unix:///var/run/containerd/containerd.sock
+          + timeout: 10
+          + debug: true
+  ```
+* Timeout control:
+  ```
+  --timeout
+  --debug
+  ```
+
+WARN: pod sandboxes or containers created with `crictl` will be eventually deteled by
+      the Kubelet.
+
+  ```
+  $ crictl pods  # <·· List all pods
+                       --name .... filter by name
+                       --label run=nginx  filter by label
+  POD ID   CREATED  STATE  NAME  NAMESPACE    ATTEMPT
+  926f...  ...      Ready  ...   default      0
+  4dcc...  ...      Ready  ...   default      0
+  a863...  ...      Ready  ...   kube-system  0
+  9196...  ...      Ready  ...   kube-system  0
+  ```
+  ```
+  $ crictl images # <·· List all images
+                        -q: Only list image IDs:
+  IMAGE      TAG     IMAGE ID        SIZE
+  busybox    latest  8c811b4aec35f   1.15MB
+  ...
+  $ crictl images nginx # <·· List images by repository
+  ```
+
+  ```
+  $ crictl ps    # <·· List running containers
+                       -a: Show also stopped/terminated ones
+CONTAINER ID        IMAGE                     CREATED   STATE   NAME ATTEMPT
+1f73f2d81bf98       busybox@sha256:141c25...  ...       Running sh   1
+...
+  $ crictl exec -i -t 1f73... ls  # <·· Exec command in running container
+  $ crictl logs 87d3992f84f74     # <·· Get all container logs
+                                        --tail=N
+  ```
+
+### Run a pod sandbox, useful for debugging container runtimes.
+
+  ```
+  $ editor pod-config.json
+  {
+    "metadata": {
+      "name": "nginx-sandbox", "namespace": "default",
+      "attempt": 1, "uid": "hdishd83djaidwnduwk28bcsb"
+    },
+    "log_directory": "/tmp",
+    "linux": { }
+  }
+
+  $ crictl runp pod-config.json  # <·· apply JSON and run the sandbox
+  ```
+
+### Create a container
+
+  ```
+  $ crictl pull busybox
+  $ editor pod-config.json
+  $ editor container-config.json
+  {
+    "metadata": { "name": "busybox" },
+    "image":{ "image": "busybox" },
+    "command": [ "top" ],
+    "log_path":"busybox.log",
+    "linux": { }
+  }
+  ```
+
+  ```
+  $ crictl create f84dd36f93ce8c9a54f... container-config.json pod-config.json
+                  └───── ID of ────────┘
+                   previously-created pod
+
+  $ crictl ps -a            # <·· check status
+
+  $ crictl start 3e025...d  # <·· start container
+  ```
+[[monitoring.crictl}]]
+
+[[{cluster_admin,monitoring,troubleshooting,PM.TODO]]
+## Events in Stackdriver 
+<href=https://kubernetes.io/docs/tasks/debug-application-cluster/events-stackdriver/>
+- Kubernetes events are objects that provide insight into what is
+  happening inside a cluster, such as what decisions were made by
+  scheduler or why some pods were evicted from the node.
+
+- Since events are API objects, they are stored in the apiserver on
+  master. To avoid filling up master's disk, a retention policy is
+  enforced: events are removed one hour after the last occurrence. To
+  provide longer history and aggregation capabilities, a third party
+  solution should be installed to capture events.
+
+- This article describes a solution that exports Kubernetes events to
+  Stackdriver Logging, where they can be processed and analyzed.
+[[}]]
+
+[[{cluster_admin,monitoring,troubleshooting,PM.TODO]]
+## Metrics API+Pipeline 
+- Resource usage metrics, such as container CPU and memory usage, are
+  available in Kubernetes through the Metrics API. These metrics can be
+  either accessed directly by user, for example by using kubectl top
+  command, or used by a controller in the cluster, e.g. Horizontal Pod
+  Autoscaler, to make decisions.
+
+<https://kubernetes.io/docs/tasks/debug-application-cluster/resource-metrics-pipeline/>
+<https://github.com/kubernetes-incubator/metrics-server>
+
+  Extracted from <https://kubernetes.io/docs/tasks/configure-pod-container/assign-memory-resource/>
+
+  __...If running on Minikube, run the following command to enable the metrics-server:
+  $ minikube addons enable metrics-server
+
+  ... to see whether the metrics-server is running, or another provider of the resource metrics
+  API (metrics.k8s.io), run the following command:
+
+  ```
+  $ kubectl get apiservices
+     output must include a reference to metrics.k8s.io.
+     → ...
+     → v1beta1.metrics.k8s.io
+  ```
+  __
+[[}]]
+
+## Kube-router [[{PM.TODO,cluster_admin.network.BGP]]
+* <https://github.com/cloudnativelabs/kube-router>
+
+* Since kube-router uses GoBGP, you have access to a modern BGP API
+  platform as well right out of the box. Kube-router also provides a
+  way to expose services outside the cluster by advertising ClusterIP
+  and externalIPs to configured BGP peers.
+
+* A key design tenet of Kube-router is to use standard Linux networking
+  stack and toolset. There is no overlays or SDN pixie dust, but just
+  plain good old networking. You can use standard Linux networking
+  tools like iptables, ipvsadm, ipset, iproute, traceroute, tcpdump
+  etc. to troubleshoot or observe data path. When kube-router is ran as
+  a daemonset, image also ships with these tools automatically
+  configured for your cluster.
+[[}]]
+
+## hierarchical namespaces [[{identity.multitenant,application.101]]
+
+* <https://github.com/kubernetes-sigs/hierarchical-namespaces>
+
+  Adds hierarchical policies and delegated creation to Kubernetes
+  namespaces for improved in-cluster multitenancy.
+
+  ```
+  | $ kubectl hns create my-service -n my-team
+  | $ kubectl hns tree my-team
+  | my-team
+  | └── my-service
+  ```
+* How-to:
+```
+1. install HNC on your cluster
+1. install kubectl-hns plugin on dev.workstation
+```
+[[identity.multitenant}]]
+
+
+## Patterns for Kubernetes controllers
+  https://developers.redhat.com/blog/2021/05/05/kubernetes-configuration-patterns-part-2-patterns-for-kubernetes-controllers
+
+## k8s new features [[{PM.TODO]]
+* https://lwn.net/Articles/806896/
+[[}]]
+
+## kubervisor [[{qa,PM.TODO]]
+* <https://github.com/AmadeusITGroup/kubervisor>
+* AmadeusITGroup/kubervisor: The Kubervisor allow you to control which
+  pods should receive traffic or not based on anomaly detection.
+  It is a new kind of health check system.
+[[}]]
+
+[[{troubleshooting.autoscaling,troubleshooting.tainted_nodes,]]
+## Tainting VMs
+<https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/>
+  - A VM node can be ‘tainted’ (marked) with a certain value so
+    that pods with a related marker are not scheduled onto it. Unused
+    nodes would be brought down faster by the Kubernetes standard cluster
+    autoscaler when they are marked. The scale-up configuration parameter
+    is a threshold expressed as a percentage of utilization, usually less
+    than 100 so that there is a buffer.  Escalator autoscales the compute
+    VMs when utilization reaches the threshold, thus making room for
+    containers that might come up later, and allowing them to boot up
+    fast.
+[[troubleshooting.tainted_nodes}]]
+
+
+## kubernetes patterns book [[{qa.best_patterns,PM.TODO]]
+<https://github.com/k8spatterns/examples>
+[[qa.best_patterns}]]
+
+## Kubernetes Special Interest Groups (SIGs) [[{]]
+<https://github.com/kubernetes-sigs>
+* Groups like kubespray, Kind, Zeitgeist, kueue (K8s native Job Queuing),
+[[}]]
+
+## Kwok, thousands of Nodes in seconds
+https://www.infoq.com/news/2023/03/kwok-kubernetes/
+
+* all Nodes are simulated to behave like real ones, so the overall 
+approach employs a pretty low resource footprint that you can easily 
+play around on your laptop.
+
+[[{qa.gitops]]
+## Google Releases K8s GitOps Observability Dashboard
+
+* <https://www.infoq.com/news/2023/01/google-gitops-observability/>
+[[qa.gitops}]]
+
+
+[[{dev_stack.golang,networking.ingress]]
+## ngrok-go Aims to Make it Easier to Embed (k8s) Ingress into Go Apps
+* <https://www.infoq.com/news/2023/03/ngrok-go-ingress-package/>
+[[dev_stack.golang}]]
+
+[[{101,doc_has.tutorial]]
+
+* Kubernetes API Basics - Resources, Kinds, and Objects
+  <https://iximiuz.com/en/posts/kubernetes-api-structure-and-terminology/>
+* How To Call Kubernetes API using Simple HTTP Client
+  <https://iximiuz.com/en/posts/kubernetes-api-call-simple-http-client/>
+* How To Call Kubernetes API from Go - Types and Common Machinery
+  <https://iximiuz.com/en/posts/kubernetes-api-go-types-and-common-machinery/>
+* How To Extend Kubernetes API - Kubernetes vs. Django
+  <https://iximiuz.com/en/posts/kubernetes-api-how-to-extend/>
+* How To Develop Kubernetes CLIs Like a Pro
+  <https://iximiuz.com/en/posts/kubernetes-api-go-cli/><br/>
+  (Build You Own kubectl The Simple Way)
+[[101}]]
+
+[[{security.armosec]]
+# Armo: Unifying AppSec, CloudSec and DevSec
+
+* <https://www.armosec.io>
+* The only runtime-driven, open-source first, cloud security platform
+  Powered by Kubescape & eBPF:
+  * from development to production, configuration to runtime
+* Free for one node cluster.
+[[security.armosec}]]
+
+[[{security.101,doc_has.report]]
+# Report Finds 75% of Cloud Runtimes Contain High or Critical Vulnerabilities
+
+* <https://www.infoq.com/news/2022/02/cloud-runtimes-vulnerabilities/>
+
+  Sysdig's report finds that shipping containers with vulnerabilities 
+has become standard practice ...  more than half of containers 
+deployed to Kubernetes infrastructure have no memory or CPU limits 
+defined ... also shows up as a third of CPU cores allocated to 
+clusters were unused .. a sign that autoscaling of capacity to meet 
+demand is not a solved problem.
+[[security.101}]]
+
+
+
+## Cluster federation  [[{cluster_admin.cluster_federation]]
+* <https://kubernetes.io/docs/tasks/administer-federation>
+[[cluster_admin.cluster_federation}]]
+
+[[{]]
+## https://github.com/collabnix/kubetools
+
+A Curated List of Kubernetes Tools
+
+Top Featured Kubernetes Tools(June 2023)
+* Karpenter: automates provisioning of nodes in response to
+             unschedulable pods.  [[cloud.karpenter,cluster_admin.worker]]
+* Kubestalk:  Uncovering Hidden k8s Security Risks in a black-box.
+* K8sGPT   : k8s diagnostics with NLP.
+* Kubeshark: API Traffic Analyzer [[monitoring.API]]
+* Numaflow: OOSS project to simplify stream processing on K8s.
+           developers can build complex data pipelines that can process
+           streaming data in real-time. [[{arch.stream}]]
+
+* Botkube: forwards k8s notifications and alerts to 
+  Slack, Teams, Discord, Telegram, ...
+* K9s: terminal-based UI to simplify cluster management, supporting
+  also custom resource definitions (CRDs).
+[[}]]
+
+[[{qa.best_patterns,PM.risk,doc_has.report]]
+# Report dinds Increase in Poorly Configured Workloads
+* <https://www.infoq.com/news/2023/01/kubernetes-poorly-configured/>
+[[PM.risk}]]
+
+[[{cloud.storage.topology,storage.distributed,cloud.storage.101,]]
+
+## Topology-Aware Volume Provisioning 
+* <https://kubernetes.io/blog/page/12/>
+
+- multi-zone cluster experience with persistent volumes is
+  improving in k8s 1.12 with topology-aware dynamic provisioning
+  beta feature.
+- It allows k8s to make  intelligent decisions when dynamically
+  provisioning volumes by getting scheduler input on the best place(zone)
+  to provision a volume for a pod.
+
+  ```
+  | apiVersion: storage.k8s.io/v1
+  | kind: StorageClass
+  | metadata:
+  |   name: standard_us_central
+  | provisioner: kubernetes.io/gce-pd
+  | parameters:
+  |   type: pd-standard
+  | volumeBindingMode: WaitForFirstConsumer
+  | allowedTopologies:                               ┐
+  | - matchLabelExpressions:                         │ restrict topology of provisioned volumes
+  |   - key: failure-domain.beta.kubernetes.io/zone  │ to  geographical zones
+  |     values:                                      │
+  |     - us-central-1a                              │
+  |     - us-central-1b                              ┘  
+  ```
+[[cloud.storage.topology}]]
+
+[[{storage.noobaa,storage.PV,storage.Ceph,storage.scalability,cloud.storage,storage.S3,storage.distributed,application.knative]]
+## Noobaa collapse multiple storage silos into a single, scalable storage fabric 
+<https://www.noobaa.io/try>
+- NooBaa can collapse multiple storage silos into a single, scalable
+  storage fabric, by its ability to virtualize any local storage,
+  whether shared or dedicated, physical or virtual and include both
+  private and public cloud storage, using the same S3 API and
+  management tools.
+- NooBaa also gives you full control over data placement, letting
+  you place data based on security, strategy and cost considerations,
+  in the granularity of an application.
+
+- Easily scales locally on top of PVs or Ceph external clusters.
+
+- Workload Portability
+  Easily mirror data to other cluster or native cloud storage.
+[[storage.noobaa}]]
+
+[[{qa.testing.canary]]
+## Canary Automation 
+<https://github.com/AmadeusITGroup/kanary>
+
+goal: ... bring full automation of Canary Deployment to k8s.
+.. So far only rolling update is automated and fully integrated.
+...  Using CRDs and associated controller, this project allows
+to define your Canary deployment and chain it with a classic rolling
+update in case of success.
+[[qa.testing}]]
+
+[[{network.IPVS,network.netfilter,01_PM.TODO]]
+## IPVS-Based Load Balancing
+* <https://kubernetes.io/blog/2018/07/09/ipvs-based-in-cluster-load-balancing-deep-dive/>
+- IPVS: stands for IP Virtual Server.
+- It is built on top of the Netfilter and implements
+  transport-layer load balancing as part of the Linux kernel.
+- IPVS is incorporated into the LVS (Linux Virtual Server), where it
+  runs on a host and acts as a load balancer in front of a cluster of
+  real servers. IPVS can direct requests for TCP- and UDP-based
+  services to the real servers, and make services of the real servers
+  appear as virtual services on a single IP address. Therefore, IPVS
+  naturally supports Kubernetes Service.
+[[}]]
+
+
+
+
+[[PM.TODO}]]

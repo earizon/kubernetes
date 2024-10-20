@@ -1,0 +1,353 @@
+# kubectl 
+
+* kuebctl: Cli tool to control cluster runtime objects. 
+- REF:
+  - <https://kubernetes.io/docs/concepts/overview/object-management-kubectl/overview/>
+  - <https://kubernetes.io/docs/concepts/overview/working-with-objects/object-management/>
+  - <https://github.com/kubernetes/api/blob/master/core/v1/types.go>
+
+  ```
+  | ┌──────────┐                       ┌───────────┐
+  | │k8s object│                    ┌··→ metadata  │
+  | ├──────────┤                    ·  ├───────────┤
+  | │kind      < core/v1/types.go   ·  │name       < maps to /api/v1/pods/name
+  | │metadata  <····················┘  │UID        < Distinguish between historical
+  | │spec      < desired state         │namespace  │ occurrences of similar object
+  | │state     < present state         │labels     │
+  | └──────────┘                       │annotations│
+  |                                    └───────────┘
+  ```
+
+  ```
+  | $ kubectl $action ¹ $resource ² <·············
+  |                                              ·
+  |                                              v
+  |                                          (REST /openapi/v2)
+  | etcd3    ←······ k8s objects ←·········→ kube-apiserver 
+  |(serialized      Represent API resources      
+  |  states)        (apps running on nodes,      
+  |                  resources available to a    
+  |                  a given app, policies       
+  |                  (restart, upgrades, ...)    
+  |                                              
+  | ¹ action is one of: 
+  |                                           Example:
+  |                                           ------------------------------------------
+  |   - get      : list resources             $ kubectl get pods --namespace=dev_environment
+  |   - describe : show details for pods
+  |   - logs     : print pod/container logs
+  |   - exec     : exec command on container 
+  |   - apply    : creates/updates resources  $ kubectl apply -f deployment01.yaml)
+  |   - ...
+  ```
+
+## kubectl pre-setup:
+  ```
+  | $ KUBE_EDITOR="vim"
+  | $ source <(kubectl completion bash)           < (optional) autocompletion for bash
+  | $ source <(kubectl completion zsh)            < (optional) autocompletion for bash
+
+  | $ KUBECONFIG=${KUBECONFIG}:~/.kube/config     < using multiple kubeconfig files
+  | $ KUBECONFIG=${KUBECONFIG}:~/.kube/kubconfig2
+
+  | $ kubectl config view                         < Show merged kubeconfig settings.
+  | $ kubectl config current-context
+  | $ kubectl config use-context my-cluster-name
+
+  | $ kubectl run nginx --image=nginx
+  | $ kubectl explain pods,svc
+
+  | $ kubectl edit svc/my-service-1               < Edit resource
+
+  | $ kubectl get pods  \                         < filter objects using field selectors.
+  |   --field-selector  spec.restartPolicy=Always   fields depends on each object type/kind.
+  | $ kubectl get pods \                            'metadata.name' and 'metadata.namespace'
+  |   --field-selector status.phase!=Running,..      are common to all types.
+  ```
+
+* kubectl common flags
+  ```
+  --all-namespaces
+  -o wide
+  --include-uninitialized
+  --sort-by=.metadata.name
+  --sort-by='.status.containerStatuses[0].restartCount'
+  --selector=app=cassandra
+  --field-selector=....
+  ```
+
+## kubectl recipes [[{101.kubectl,PM.TODO]]
+
+  ```
+  | [[{monitoring.cluster,monitoring.application}]]
+  | $ kubectl get events --all-namespaces
+  | NAMESPACE     LAST SEEN   TYPE      REASON                    OBJECT            MESSAGE
+  | default       29d         Normal    NodeNotReady              node/node1        Node node1 status is now: NodeNotReady
+  | default       7d4h        Normal    Starting                  node/node1        Starting kubelet.
+  | default       7d4h        Normal    NodeHasSufficientMemory   node/node1        Node node1 status is now: NodeHasSufficientMemory
+  | default       7d4h        Normal    NodeHasNoDiskPressure     node/node1        Node node1 status is now: NodeHasNoDiskPressure
+  | ...
+  | kube-system   7d4h        Normal    Pulled                    pod/calico-kub... Container image ".../kube-controllers:v3.15.1" already present ...
+  | kube-system   7d4h        Normal    Created                   pod/calico-kub... Created container calico-kube-controllers
+  | kube-system   7d4h        Normal    Started                   pod/calico-kub... Started container calico-kube-controllers
+  | ...
+  | kube-system   7d4h        Warning   FailedCreatePodSandBox    pod/dns-autosc... Failed to create pod sandbox: rpc error: code ...
+  | ...
+  | kube-system   7d4h        Normal    LeaderElection            endpoints/kube... node1_e4a58997-c39f-430d-a942-31d53124c5d5 became leader
+  | kube-system   7d4h        Normal    LeaderElection            lease/kube-con... node1_e4a58997-c39f-430d-a942-31d53124c5d5 became leader
+  | ...
+  | kube-system   34m         Warning   FailedMount               pod/kubernetes... MountVolume.SetUp failed for volume "kubernetes-dashboard-certs"...
+  ```
+
+  ```
+  | [[{monitoring.network}]]
+  | $ kubectl get endpoints --all-namespaces
+  | NAMESPACE     NAME                        ENDPOINTS                                           AGE
+  | default       kubernetes                  192.168.1.2:6443                                    202d
+  | kube-system   coredns                     10.233.90.23:53,10.233.90.23:9153,10.233.90.23:53   202d
+  | kube-system   dashboard-metrics-scraper   10.233.90.24:8000                                   202d
+  | kube-system   kube-controller-manager     <none>                                              202d
+  | kube-system   kube-scheduler              <none>                                              202d
+  | kube-system   kubernetes-dashboard        10.233.90.22:8443                                   202d
+  ```
+  
+  ```
+  | [[{monitoring.network,mon}]]
+  | $ kubectl get services # "Inmutable view
+  ```
+
+  ```
+$ kubectl get deployments --all-namespaces
+  NAMESPACE     NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
+  kube-system   calico-kube-controllers      1/1     1            1           202d
+  kube-system   coredns                      1/2     2            1           202d
+  kube-system   dns-autoscaler               1/1     1            1           202d
+  kube-system   kubernetes-dashboard         1/1     1            1           202d
+  kube-system   kubernetes-metrics-scraper   1/1     1            1           202d
+  ```
+[[}]]
+
+
+## Krew: Kubectl plugin finder  [[{]]
+
+* Plugin manager for kubectl
+
+  ```
+  | [[qa.best_patterns]]
+  |Plugin list (2023-05): https://krew.sigs.k8s.io/plugins/
+  |  access-matrix     Show RBAC access matrix for server resources
+  |  accurate          Manage Accurate, a multi-tenancy controller
+  |  advise-policy     Suggests PodSecurityPolicies+OPA Policies for cluster [[security.policies]]
+  |  advise-psp        Suggests PodSecurityPolicies for cluster
+  |  aks               Interact with and debug AKS clusters
+  |  allctx            Run commands on contexts in your kubeconfig
+  |  apparmor-manager  Manage AppArmor profiles for cluster.
+  |  applier           Apply 'go text/template' files on k8s.
+  |  assert            Assert Kubernetes resources
+  |  auth-proxy        Authentication proxy to a pod or service
+  |  aws-auth          Manage aws-auth ConfigMap
+  |  azad-proxy        Generate and handle authentication for azad-kube-proxy
+  |  bd-xray           Run Black Duck Image Scans
+  |  blame             Show who edited resource fields.
+  |  bulk-action       Do bulk actions on Kubernetes resources.
+  |  ca-cert           Print the PEM CA certificate of the current cluster
+  |  capture           Triggers a Sysdig capture to troubleshoot the running pod
+  |  cert-manager      Manage cert-manager resources inside your cluster
+  |  change-ns         View or change the current namespace via kubectl.
+  |  cilium            Easily interact with Cilium agents.
+  |  cluster-group     Exec commands across a group of contexts.
+  |  clusternet        Wrap multiple kubectl calls to Clusternet
+  |  cm                Provides commands for OCM/MCE/ACM.
+  |  cnpg              Manage your CloudNativePG clusters
+  |  community-images  List community owned container images running
+  |  config-cleanup    Automatically clean up your kubeconfig
+  |  config-registry   Switch between registered kubeconfigs
+  |  confirm           Dry-run / diff / confirm before running a command
+  |  cost              View cluster cost information
+  |  count             Count resources by kind
+  |  crane             Easily interact with Crane
+  |  creyaml           Generate custom resource YAML manifest
+  |  ctx               Switch between contexts in your kubeconfig
+  |  custom-cols       A "kubectl get" replacement with customizable column presets
+  |  cyclonus          NetworkPolicy analysis tool suite
+  |  datadog           Manage the Datadog Operator
+  |  datree            Scan your cluster resources for misconfigurations
+  |  dds               Detect if workloads are mounting the docker socket
+  |  debug-shell       Create pod with interactive kube-shell.
+  |  deprecations      Checks for deprecated objects in a cluster
+  |  df-pv             Show disk usage (like unix df) for persistent volumes
+  |  directpv          Deploys and manages the lifecycle of DirectPV CSI driver
+  |  discover          Find/export kubeconfigs for cloud clusters
+  |  doctor            Scans your cluster and reports anomalies.
+  |  duck              List custom resources with ducktype support
+  |  edit-status       Edit /status subresources of CRs
+  |  eds               Easily interact and manage ExtendedDaemonset resources.
+  |  eksporter         Export resources, removes pre-defined set of fields for later import
+  |  emit-event        Emit Kubernetes Events for the requested object
+  |  evict-pod         Evicts the given pod
+  |  example           Prints out example manifest YAMLs
+  |  exec-as           Like kubectl exec, but with `user` flag to exec as userX(or root)
+  |  exec-cronjob      Run a CronJob immediately as Job
+  |  execws            kubectl exec using WebSockets
+  |  explore           A better kubectl explain with the fuzzy finder
+  |  fields            Grep resources hierarchy by field name
+  |  flame             Generate CPU flame graphs from pods
+  |  fleet             Shows config and resources of a fleet of clusters
+  |  flyte             Monitor, launch and manage flyte executions
+  |  foreach           Run kubectl commands against some/all contexts in parallel
+  |  fuzzy             Fuzzy and partial string search for kubectl
+  |  gadget            Gadgets for debugging and introspecting apps
+  |  get-all           Like `kubectl get all` but _really_ everything
+  |  gke-credentials   Fetch credentials for GKE clusters
+  |  gopass            Imports secrets from gopass
+  |  graph             Visualize Kubernetes resources and relationships.
+  |  grep              Filter Kubernetes resources by matching their names
+  |  gs                Handle custom resources with Giant Swarm
+  |  hlf               Deploy and manage Hyperledger Fabric components
+  |  hns               Manage hierarchical namespaces (part of HNC)
+  |  htpasswd          Create nginx-ingress compatible basic-auth secrets
+  |  ice               View configuration settings of containers inside Pods
+  |  iexec             Interactive selection tool for `kubectl exec`
+  |  images            Show container images used in the cluster.
+  |  ingress-nginx     Interact with ingress-nginx
+  |  ingress-rule      Update Ingress rules via command line
+  |  ipick             A kubectl wrapper for interactive resource selection.
+  |  istiolog          Manipulate istio-proxy logging level without istioctl.
+  |  janitor           Lists objects in a problematic state
+  |  kadalu            Manage Kadalu Operator, CSI and Storage pods
+  |  karbon            Connect to Nutanix Karbon cluster
+  |  karmada           Manage clusters with Karmada federation.
+  |  kc                Interactive CRUD operations to manage kubeconfig
+  |  klock             Watches resources
+  |  kluster-capacity  Scheduler simulation for capacity analysis.
+  |  konfig            Merge, split or import kubeconfig files
+  |  kopilot           Diagnose/audit resources with AI
+  |  krew              Package manager for kubectl plugins.
+  |  kruise            Easily handle OpenKruise workloads
+  |  ks                Simple management of KubeSphere components
+  |  ktop              A top tool to display workload metrics
+  |  kubescape         Scan resources and cluster configs against security frameworks.
+  |  kubesec-scan      Scan Kubernetes resources with kubesec.io.
+  |  kudo              Declaratively build, install, and run operators using KUDO.
+  |  kuota-calc        Calculate needed quota to perform rolling updates.
+  |  kurt              Find what's restarting and why
+  |  kuttl             Declaratively run and test operators
+  |  kyverno           Kyverno is a policy engine for kubernetes
+  |  lineage           Display all dependent resources or resource dependencies
+  |  linstor           View and manage LINSTOR storage resources
+  |  liqo              Install and manage Liqo on your clusters
+  |  log2rbac          Fine-tune your RBAC using log2rbac operator
+  |  match-name        Match names of pods and other API objects
+  |  mc                Run kubectl commands against multiple clusters at once
+  |  minio             Deploy and manage MinIO Operator and Tenant(s)
+  |  moco              Interact with MySQL operator MOCO.
+  |  modify-secret     modify secret with implicit base64 translations
+  |  mtail             Tail logs from multiple pods matching label selector
+  |  multiforward      Port Forward to multiple Kubernetes Services
+  |  multinet          Shows pods' network-status of multi-net-spec
+  |  neat              Remove clutter from Kubernetes manifests to make them more readable.
+  |  net-forward       Proxy to arbitrary TCP services on a cluster network
+  |  node-admin        List nodes and run privileged pod with chroot
+  |  node-restart      Restart cluster nodes sequentially and gracefully
+  |  node-shell        Spawn a root shell on a node via kubectl
+  |  nodepools         List node pools/groups
+  |  np-viewer         Network Policies rules viewer
+  |  ns                Switch between Kubernetes namespaces
+  |  nsenter           Run shell command in Pod's namespace on the node over SSH connection
+  |  oidc-login        Log in to the OpenID Connect provider
+  |  oomd              Show recently OOMKilled pods
+  |  open-svc          Open the Kubernetes URL(s) for the specified service in your browser.
+  |  openebs           View and debug OpenEBS storage resources
+  |  operator          Manage operators with Operator Lifecycle Manager
+  |  oulogin           Login to a cluster via OpenUnison
+  |  outdated          Finds outdated container images running in a cluster
+  |  passman           Store kubeconfig credentials in keychains or password managers
+  |  permissions       Displays and traces service account permissions
+  |  pexec             Execute process with privileges in a pod
+  |  pod-dive          Shows a pod's workload tree and info inside a node
+  |  pod-inspect       Get all of a pod's details at a glance
+  |  pod-lens          Show pod-related resources
+  |  pod-logs          Display a list of pods to get logs from
+  |  pod-shell         Display a list of pods to execute a shell in
+  |  podevents         Show events for pods
+  |  popeye            Scans your clusters for potential resource issues
+  |  preflight         Executes application preflight tests in a cluster
+  |  print-env         Build config files from k8s environments.
+  |  profefe           Gather and manage pprof profiles from running pods
+  |  promdump          Dumps the head and persistent blocks of Prometheus.
+  |  prompt            Prompts for user confirmation when executing commands in critical namespaces or clusters, i.e., production.
+  |  prune-unused      Prune unused resources
+  |  psp-util          Manage Pod Security Policy(PSP) and the related RBACs
+  |  pv-migrate        Migrate data across persistent volumes
+  |  pvmigrate         Migrates PVs between StorageClasses
+  |  rabbitmq          Manage RabbitMQ clusters
+  |  rbac-lookup       Reverse lookup for RBAC
+  |  rbac-tool         Plugin to analyze RBAC permissions and generate policies
+  |  rbac-view         A tool to visualize your RBAC permissions.
+  |  realname-diff     Diffs live and local resources ignoring Kustomize hash-suffixes
+  |  reap              Delete unused Kubernetes resources.
+  |  relay             Drop-in "port-forward" replacement with UDP and hostname resolution.
+  |  reliably          Surfaces reliability issues in Kubernetes
+  |  rename-pvc        Rename a PersistentVolumeClaim (PVC)
+  |  resource-capacity Provides an overview of resource requests, limits, and utilization
+  |  resource-snapshot Prints a snapshot of nodes, pods and HPAs resource usage
+  |  resource-versions Print supported API resource versions
+  |  restart           Restarts a pod with the given name
+  |  rm-standalone-podsRemove all pods without owner references
+  |  rolesum           Summarize RBAC roles for subjects
+  |  roll              Rolling restart of all persistent pods in a namespace
+  |  rook-ceph         Rook plugin for Ceph management
+  |  safe              Prompts before running edit commands
+  |  schemahero        Declarative database schema migrations via YAML
+  |  score             Kubernetes static code analysis.
+  |  secretdata        Viewing decoded Secret data with search flags
+  |  service-tree      Status for ingresses, services, and their backends
+  |  shovel            diagnostics for .NET Core applications
+  |  sick-pods         and debug Pods that are "Not Ready"
+  |  skew              if your cluster/kubectl version is skewed
+  |  slice             Split a multi-YAML file into individual files.
+  |  snap              Delete half of the pods in a namespace or cluster
+  |  sniff             Start a remote packet capture on pods using tcpdump and wireshark
+  |  socks5-proxy      SOCKS5 proxy to Services or Pods in the cluster
+  |  sort-manifests    Sort manifest files in a proper order by Kind
+  |  split-yaml        Split YAML output into one file per resource.
+  |  spy               debugging tool for kubernetes clusters with docker runtimes
+  |  sql               the cluster via pseudo-SQL
+  |  ssh-jump          Access nodes or services using SSH jump Pod
+  |  sshd              Run SSH server in a Pod
+  |  ssm-secret        Import/export secrets from/to AWS SSM param store
+  |  starboard         Toolkit for finding risks in kubernetes resources
+  |  status            Show status details of a given resource.
+  |  stern             Multi pod and container log tailing
+  |  strace            Capture strace logs from a running workload
+  |  sudo              Run Kubernetes commands impersonated as group system:masters
+  |  support-bundle    Creates support bundles for off-cluster analysis
+  |  switch-config     Switches between kubeconfig files
+  |  tail              Stream logs from multiple pods and containers using simple, dynamic source selection.
+  |  tap               proxy Kubernetes Services with ease
+  |  tmux-exec         An exec multiplexer using Tmux
+  |  topology          Explore region topology for nodes or pods
+  |  trace             Trace Kubernetes pods and nodes with system tools
+  |  tree              Show a tree of object hierarchies through ownerReferences
+  |  ttsum             Visualize taints and tolerations
+  |  tunnel            Reverse tunneling between cluster and your machine
+  |  unlimited         Show running containers with no limits set
+  |  unused-volumes    List unused PVCs
+  |  vela              Easily interact with KubeVela
+  |  view-allocations  List allocations per resources, nodes, pods.
+  |  view-cert         View certificate information stored in secrets
+  |  view-secret       Decode Kubernetes secrets
+  |  view-serviceaccount-kubeconfig   Show a kubeconfig setting to access the apiserver with a specified serviceaccount.
+  |  view-utilization  Shows cluster cpu and memory utilization
+  |  view-webhook      Visualize your webhook configurations
+  |  viewnode          Displays nodes with their pods and containers and provides metrics for resources
+  |  virt              Control KubeVirt virtual machines using virtctl
+  |  volsync           Manage replication with the VolSync operator
+  |  vpa-recommendationCompare VPA recommendations to actual resources requests
+  |  warp              Sync and execute local files in Pod
+  |  whisper-secret    Create secrets with improved privacy
+  |  who-can           Shows who has RBAC permissions to access Kubernetes resources
+  |  whoami            Show the subject that's currently authenticated as.
+  |  windows-debug     Windows node access via kubect
+  ```
+[[}]]

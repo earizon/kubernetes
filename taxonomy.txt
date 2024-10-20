@@ -1,0 +1,27 @@
+## Categories
+
+* Pods
+* Cluster Management
+* Cluster with Core CLI tools
+* Alert and Monitoring
+* Logging and Tracing
+* Troubleshooting / Debugging
+* Developement Tools/Kit
+* Alternative Tools for Developement
+* CI/CD integration Tools
+* Security Tools
+* Network Policies
+* Testing Tools
+* Service Mesh
+* Observability
+* Machine Learning/Deep Learning
+* Compute Edge Tools
+* Kubernetes Tools for Specific Cloud
+* Storage Providers
+* Backup Tools
+* Multiple Tools Repo
+* Cost Optimisation
+* Function as a Service FaaS
+* Artificial Intelligence
+* Non-Categorize
+

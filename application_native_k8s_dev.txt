@@ -1,0 +1,143 @@
+# Native Kubernetes Development
+
+[[{dev_stack.java,network.balancing,application.knative,PM.TODO]]
+## k8s+okHTTP Load balancing
+* <https://medium.com/wandera-engineering/kubernetes-network-load-balancing-using-okhttp-client-54a2db8fc668>
+[[}]]
+
+## Monitoring .NET Apps [[{dev_stack.c#,application.knative,qa,monitoring.application,PM.TODO]]
+* <https://developers.redhat.com/blog/2020/08/05/monitoring-net-core-applications-on-kubernetes/>
+[[}]]
+
+## JKube: Deploying Java Apps [[{dev_stack.java,PM.TODO]]
+* How does it compares/Complements to Google Jib / Paketo?
+* Deploy your Java web application into the cloud using Eclipse JKube
+  <https://developers.redhat.com/blog/2020/07/27/deploy-your-java-web-application-into-the-cloud-using-eclipse-jkube/>
+[[}]]
+
+[[{dev_stack.wasm]]
+## WasmEdge + Dapr + Linkerd  
+ https://www.infoq.com/news/2022/01/ebpf-wasm-service-mesh/
+* By Dec 2021, the WasmEdge community of contributors demonstrated that
+  WasmEdge-based microservices can work with Dapr and Linkerd sidecars
+  as an alternative to heavyweight full-blown Linux containers with
+  guest OS and full software stacks. The WebAssembly microservices
+  consume 1% of resources, and cold starts in 1% of the time compared
+  with Linux container applications.
+[[dev_stack.wasm}]]
+
+[[{dev_stack.wasm]]
+## https://github.com/Liquid-Reply/kind-crun-wasm 
+
+  This repository shows how to run WASM on KinD. It is build on the
+awesome work of https://github.com/second-state/wasmedge-containers-examples
+
+  To get started:
+  ```
+  | $ IMAGE=ghcr.io/liquid-reply/kind-crun-wasm:v1.23.0
+  | $ kind create cluster --image $IMAGE   ← Create "WASM in KinD" Cluster
+  |                                          kind-crun-wasm replaces runc with crun,
+  |                                          allowing to run wasm workloads.
+  |
+  | $ kubectl run -it --rm --restart=Never \                ← Test WASM capabilities
+  |   wasi-demo \
+  |   --image=hydai/wasm-wasi-example:with-wasm-annotation \
+  |   --annotations="module.wasm.image/variant=compat" \
+  |   /wasi_example_main.wasm 50000000
+  ```
+
+* To create new WASM containers start here:
+  ```
+   https://wasmedge.org/book/en/kubernetes/demo.html
+  ```
+
+* <https://www.infoq.com/news/2022/01/ebpf-wasm-service-mesh/>:
+  ```
+  Kubernetes
+    KubeEdge | SuperEdge | OpenYurt |
+    k8s | k3s | minikube | kind | microk8s | ...
+
+  High-level container runtimes (e.g, CRI runtimes)
+    CRI-O | containerd | Podman | docker
+
+  Low-level container runtimes (OCI runtimes)
+    crun  | runc |  gVisor |  kata-runtime | ...
+
+  - Linux container images | WebAssembly app Images
+  ```
+[[dev_stack}]]
+
+[[{PM.TODO,troubleshooting]]
+## telepresence: local Dev&Debug
+* <https://kubernetes.io/docs/tasks/debug-application-cluster/local-debugging/>
+
+PRESETUP:
+1. install telepresence.
+```
+$ telepresence connect # launch telepresence Daemon, connect with local workstation
+> Launching Telepresence Daemon
+> ...
+> Connected to context default (https://<cluster public IP>)
+```
+
+Problem Context:
+```
+* Developers typically program or debug a single service.
+* A service under development might require access to other services for testing and debugging.
+* Even with the fastest deployment pipeline using continuous deployment to debug is "slow"
+```
+
+Solution: forward remote traffic to local service
+```
+* telepresence intercept \
+  \ $SERVICE_NAME --port $LOCAL_PORT:$REMOTE_PORT
+    ·           ·        ·        · └──────────┴─ port service listens to in the cluster
+    ·           ·        └────────┴─············· port that service is running in local workstation
+    └───────────┴─······························· name of local service
+
+  command to create an "intercept" for rerouting remote service traffic.
+```
+
+ Telepresence will install a traffic-agent sidecar next to the
+ application's container running in the remote cluster.
+  It then captures all traffic requests going into the Pod, and
+instead of forwarding this to the application in the remote cluster,
+it routes all traffic (when you create a global intercept) or a
+subset of the traffic (when you create a personal intercept) to your
+local development environment.
+[[}]]
+
+[[{arch.distributed,qa.best_patterns]]
+## Multi-Container Design Patterns 
+
+* REF <https://www.linkedin.com/pulse/multi-container-init-container-pod-kubernetes-prachika-kanodia->
+  ```
+  | Sidecar Container
+  |    shared fs ···┐
+  |    ^            v
+  |    App Cont.   sidecar
+  |    ---------   -------
+  | 
+  | Adapter Container
+  | App Cont.      Adapter
+  | ---------      -------
+  | Writes         Simplifies  <·· External Monitoring Service
+  | Complex        monitoring
+  | monit.output   output
+  | 
+  | 
+  | Ambassador Container
+  | App Cont. ···→ Ambassador   ┌··> Local
+  | needs DB       Provides DB ─┼··> Test
+  | connection     connection   └··> Production
+  ```
+[[arch.distributed}]]
+
+[[{application.build,PM.TODO]]
+## Kaniko, Container Build
+* Kaniko performs container builds inside a container environment,
+  **without relying on a container daemon** (Docker Daemon).
+* Kaniko extracts the file system from the base image,
+  executes the build commands in user space atop the extracted
+  file system, taking a snapshot of the file system after each command.
+[[}]]

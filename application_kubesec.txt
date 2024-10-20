@@ -1,0 +1,33 @@
+[[{security.101,security.auditing.kubesec]]
+## Kubesec: Security risk analysis of resources
+* cli tool
+ <https://github.com/controlplaneio/kubesec>
+ <https://kubesec.io/>
+
+ ```
+ $ kubesec ./deployment.yml  # multiple YAML documents can be scanned in a single input file.
+ [
+   {
+     "object": "Pod/security-context-demo.default",
+     "valid": true,
+     "message": "Failed with a score of -30 points",
+     "score": -30,
+     "scoring": {
+       "critical": [
+         {
+           "selector": "containers[] .securityContext .capabilities .add == SYS_ADMIN",
+           "reason": "CAP_SYS_ADMIN is the most privileged capability and should always be avoided"
+         }
+       ],
+       "advise": [
+         {
+           "selector": "containers[] .securityContext .runAsNonRoot == true",
+           "reason": "Force the running image to run as a non-root user to ensure least privilege"
+         },
+         ...
+       ]
+     }
+   }
+ ]
+ ```
+[[}]]

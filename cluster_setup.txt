@@ -1,0 +1,511 @@
+[[{cluster_admin.bootstrap.101,101,PM.low_code]]
+# BOOTSTRAPPING NEW CLUSTERS 
+
+[[{cluster_admin.bootstrap.kind]]
+## "Kind" k8s on Docker 
+* <https://kind.sigs.k8s.io/>
+* <https://github.com/kubernetes-sigs/kind/releases> (latest releases)
+
+- Cite from "Cloud_Native_Spring_in_Action_v7.pdf" (Chapter 2.4)
+  """... recommended when you have already installed Docker on your dev machine."""
+- Kind replaces "k8s server nodes" by "k8s Docker nodes".
+
+Features:
+- support for multi-node (including HA) clusters
+- easy switch to a different Kubernetes version/release (from source)
+- Support for Linux, macOS and Windows
+
+- PRE_SETUP) Install 'kind' cli tool:
+  (More options available at: <https://kind.sigs.k8s.io/docs/user/quick-start>)
+  ```
+  | $ KIND_V="v0.11.1"
+  | $ SRC_URL="https://kind.sigs.k8s.io/dl"
+  | $ SRC_URL="${SRC_URL}/${KIND_V}/kind-linux-amd64"
+  | $ curl -Lo ./kind ${SRC_URL}
+  | $ chmod +x ./kind
+  ```
+
+### "Kind" Ussage Cheat Sheet
+REF: <https://itnext.io/kubernetes-kind-cheat-shee-2605da77984>
+
+```
+$ editor .bashrc
++ source <(kind completion bash)  # add auto-completion
+
+$ kind create cluster      <·· Create cluster, 1 single command !!!
+                               wait (about 2minutes) for "readiness"
+$ kind load docker-image \ <·· Import image from local docker registry
+       $imgName:$imgVer
+
+$ kind get clusters        <·· Get running clusters
+$ kind get kubeconfig \    <·· Setup default kubectl config to use cluster
+   > ~/.kube/config
+$ kind delete cluster
+```
+
+* Advanced Configuration is available through `kind.yaml`.
+
+* Map cluster-control-plane:80 to host.
+```
+(
+  cat <<__EOF | kind create cluster
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+ extraPortMappings:
+ — containerPort: 80
+ hostPort: 80
+ protocol: TCP
+__EOF
+)
+```
+
+* Mount current directory into /app@clusters-control-plane
+
+```
+( cat <<__EOF | kind create cluster
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+ extraMounts:
+ — hostPath: .
+ containerPath: /app
+__EOF
+)
+```
+
+### Add Local Registry to Kind
+
+   ```sh
+   | Step 1: Create local registry ------------
+   | $ docker run -d — restart=always \ 
+   |   -p 127.0.0.1:5000:5000 \
+   |
+   | Step 2: Create cluster -------------------
+   | ( cat <<__EOF | kind create cluster
+   | kind: Cluster
+   | apiVersion: kind.x-k8s.io/v1alpha4
+   | containerdConfigPatches:
+   | - |-
+   |  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:5000"]
+   |  endpoint = [“http://cncf-cheat-sheet-registry:5000"]
+   | nodes:
+   | - role: control-plane
+   | __EOF
+   | 
+   | Step 3: Connect registry ------------------
+   |      with created network
+   | $ docker network connect kind
+   |
+   | Step 4: Update cluster about  -------------
+   |    new registry
+   | 
+   | ( cat <<__EOF | kubectl apply -f -
+   | apiVersion: v1
+   | kind: ConfigMap
+   | metadata:
+   |  name: local-registry-hosting
+   |  namespace: kube-public
+   | data:
+   |  localRegistryHosting.v1: |
+   |  host: “localhost:5000”
+   | __EOF
+   | )
+   ```
+
+### Multiple Workers (vs default 1 node -control-pane).
+
+   ```sh
+   cat <<__EOF | kind create cluster
+   kind: Cluster
+   apiVersion: kind.x-k8s.io/v1alpha4
+   nodes:
+   - role: control-plane
+   - role: worker
+   __EOF
+   ```
+[[cluster_admin.bootstrap.kind}]]
+
+[[{cluster_admin.bootstrap.minikube]]
+## MiniKube 
+
+* MiniKube inicialmente se diseñó como una solución rápida para instalar un k8s básico
+  dentro de una VM, pero ha ido mejorando con el tiempo hasta convertirse en una solución
+  completa que además ya no requiere VMs, sino que se puede ejecutar dockerizado al igual
+  que `Kind` y ofrece un soporte activo con una lista creciente de plugins:
+  ```
+  ┌─────────────────────┬──────────┬──────────┬──────────────────────────┐
+  │         ADDON NAME  │ PROFILE  │  STATUS  │           MAINTAINER     │
+  ├─────────────────────│──────────│──────────│──────────────────────────┤
+  │ ambassador          │ minikube │ disabled │ 3rd party (Ambassador)   │
+  │ auto─pause          │ minikube │ disabled │ minikube                 │
+  │ cloud─spanner       │ minikube │ disabled │ Google                   │
+  │ csi─hostpath─driver │ minikube │ disabled │ Kubernetes               │
+  │ dashboard           │ minikube │ disabled │ Kubernetes               │
+  │ default─storageclass│ minikube │  enabled■│ Kubernetes               │
+  │ efk                 │ minikube │ disabled │ 3rd party (Elastic)      │
+  │ freshpod            │ minikube │ disabled │ Google                   │
+  │ gcp─auth            │ minikube │ disabled │ Google                   │
+  │ gvisor              │ minikube │ disabled │ minikube                 │
+  │ headlamp            │ minikube │ disabled │ 3rd party (kinvolk.io)   │
+  │ helm─tiller         │ minikube │ disabled │ 3rd party (Helm)         │
+  │ inaccel             │ minikube │ disabled │ 3rd party (InAccel       │
+  │                     │          │          │ [info@inaccel.com])      │
+  │ ingress             │ minikube │ *enabled■│ Kubernetes               │
+  │ ingress─dns         │ minikube │ disabled │ minikube                 │
+  │ inspektor─gadget    │ minikube │ disabled │ 3rd party                │
+  │                     │          │          │ (inspektor─gadget.io)    │
+  │ istio               │ minikube │ disabled │ 3rd party (Istio)    <·· Service Mesh
+  │ istio─provisioner   │ minikube │ disabled │ 3rd party (Istio)        │
+  │ kong                │ minikube │ disabled │ 3rd party (Kong HQ)  <·· API Manager
+  │ kubeflow            │ minikube │ disabled │ 3rd party            <·· Kubeflow
+  │ kubevirt            │ minikube │ disabled │ 3rd party (KubeVirt)     │
+  │ logviewer           │ minikube │ disabled │ 3rd party (unknown)      │
+  │ metallb             │ minikube │ disabled │ 3rd party (MetalLB)      │
+  │ metrics─server      │ minikube │ disabled │ Kubernetes               │
+  │ nvidia-device       │ minikube │ disabled │ 3rd party (NVIDIA)       │
+  │         -plugin     │          │          │                          │
+  │ nvidia-driver       │ minikube │ disabled │ 3rd party (Nvidia)       │
+  │         -installer  │          │          │                          │
+  │ nvidia-gpu-device   │ minikube │ disabled │ 3rd party (Nvidia)       │
+  │         -plugin     │          │          │                          │
+  │ olm                 │ minikube │ disabled │ 3rd party (Ops.Framewo.) │
+  │ pod─security─policy │ minikube │ disabled │ 3rd party (unknown)      │
+  │ portainer           │ minikube │ disabled │ 3rd party (Portainer.io) │
+  │ registry            │ minikube │  enabled■│ minikube                 │
+  │ registry-aliases    │ minikube │ disabled │ 3rd party (unknown)      │
+  │ registry-creds      │ minikube │ disabled │ 3rd party (UPMC Enterp.) │
+  │ storage-provisioner │ minikube │  enabled■│ minikube                 │
+  │ storage-provisioner │ minikube │ disabled │ 3rd party (Gluster)  <·· Gluster
+  │         -gluster    │          │          │                          │
+  │ storage─provisioner │ minikube │ disabled │ 3rd party (Rancher)      │
+  │         -rancher    │          │          │                          │
+  │ volumesnapshots     │ minikube │ disabled │ Kubernetes               │
+  └─────────────────────┴──────────┴──────────┴──────────────────────────┘
+  ```
+[[cluster_admin.bootstrap.minikube}]]
+
+[[{cluster_admin.bootstrap.k0s]]
+## k0s 
+<https://docs.k0sproject.io/>
+All-inclusive Kubernetes distribution.
+- bootstrap in minutes with no special skills/expertise.
+- Any cloud, Bare metal.
+- Edge&IoT ready (etcd cluster can be replaced by sqlite)
+- CNCF certified.
+- straightforward to keep clusters up-to-date and secure.
+  Single single 'k0s' binary (zero dependencies) for any Linux.
+- Preferred to Kind when targeting production enviroments.
+- Allows setups with restricted Internet access (Airgap Install) [[{security.101}]]
+<https://docs.k0sproject.io/v1.23.6+k0s.2/airgap-install/>
+
+### k0s How-To summary:
+
+  ```
+$ sudo curl -sSLf https://get.k0s.sh | sudo sh  # <·· Install k0s
+$ sudo k0s --help
+  k0s command
+  ┌───┴─────┘
+  config suboption
+    ┌────┴───────┘
+    create      Output default k0s config to STDOUT
+    edit        Launch editor to edit k0s configuration
+    status      Display dynamic configuration reconciliation status
+    validate    Validate k0s configuration
+  install        Install k0s on new system.
+
+  airgap         Manage airgap setup (restricted Internet access setup)
+  api            Run the controller API
+  completion     Generate bash completion.
+
+  ctr           unsupported debug&admin client to "play"
+                with containerd daemon
+
+  docs           Generate k0s command documentation
+  etcd           Manage etcd cluster
+  kubeconfig     Create `kubeconfig` file for a given user
+  kubectl        embedded kubectl
+  reset          Uninstall
+  status         dump k0s status info.
+
+  start/stop     Start/Stop SystemD/... service in host.
+  backup/restore Back-Up/restore k0s configuration.  [[{security.101}]]
+
+  sysinfo        Display system information
+  token          Manage join tokens (to add new worker nodes to the cluster)
+  version        Print the k0s version
+
+  controller/worker "attach"/worker master node
+
+$ sudo k0s install controller --enable-worker
+  (Wait a few seconds)
+$ sudo k0s start
+$ sudo k0s status            # check it's running properly
+$ sudo k0s kubectl get nodes # alias kubectl="sudo k0s kubectl"
+  ```
+
+## REMOTE ACCESS
+  ```
+$ sudo cp /var/lib/k0s/pki/admin.conf ~/admin.conf
+$ export KUBECONFIG=~/admin.conf  # Now we can access the cluster itself
+3. $ editor ~/admin.conf
+-   server: localhost
++   server: https://52.10.92.152:6443
+
+$ sudo k0s kubectl get namespaces
+  NAME              STATUS   AGE
+  default           Active   5m32s
+  kube-node-lease   Active   5m34s
+  kube-public       Active   5m34s
+  kube-system       Active   5m34s
+  ^^^^^^^^^^^^^^^   Active   5m34s
+  no master node. control plane implemented  as "naked processes".
+  ```
+
+## Install new controller 
+  ```
+$ sudo k0s stop
+$ sudo k0s reset              # Clean up previous install and reinstall (next line)
+$ sudo k0s install \
+  controller --enable-worker -c k0s.yaml
+$ sudo k0s start
+  ```
+
+NOTE: We are free to change the config file even while k0s is running, then just
+  ```
+$ sudo k0s stop
+$ sudo k0s start
+  ```
+
+## Scaling the cluster (adding worker nodes -or control planes)
+
+  ```
+$ k0s token create --role=worker # fetch token used by new server "phone home".
+
+(a KUBECONFIG BASE64-encoded string will be returned)
+  ```
+
+In the new worker node:
+  ```
+$ sudo curl -sSLf https://get.k0s.sh | sudo sh
+  ```
+
+On your new worker host, create a text file to store the long join 
+token you just generated. Then go ahead and install the worker with 
+the join token:
+
+  ```
+$ sudo k0s install worker --token-file /path/to/token/file
+$ sudo k0s start
+  ```
+Now if you were to go back to kubectl and check for nodes, you'd see 
+the new node in your list, as in:
+
+  ```
+$ kubectl get nodes
+NAME               STATUS   ROLES    AGE   VERSION
+ip-172-31-14-157   Ready    <none>   81s   v1.19.3
+ip-172-31-8-33     Ready    <none>   11h   v1.19.3
+  ```
+[[cluster_admin.bootstrap.k0s}]]
+
+[[{cluster_admin.embedded,doc_has,PM.TODO]]
+## K3s (General/Edge/IoT)
+
+(By Rancher Labs)
+* <https://k3s.io/>
+* <https://www.itprotoday.com/containers/rancher-labs-k3s-shrinks-kubernetes-edge>
+
+![k3s how it works](./k8s_k3s_how_it_works_revised.svg)(width=10em)
+
+- highly available, certified k8s distribution designed for
+  PRODUCTION WORKLOADS in unattended, resource-constrained,
+  remote locations or inside IoT appliances with Traefik API 
+  manager.
+- Simplified and Secure:
+  K3s is packaged as a single <100MB binary that reduces the
+  dependencies and steps needed to install, run and auto-update a
+  production Kubernetes cluster.
+- Optimized for ARM RaspPi ut to AWS a1.4xlarge 32GiB server.
+- 512MB RAM to run.
+
+## k3s install
+
+* REF: <https://docs.k3s.io/installation>
+
+0. Presetup: SystemD must be running.
+  On WSL2 you can check first WSL2 related notes.
+1. Install like:
+  ```
+  | $ curl -sfL https://get.k3s.io | sh -  # <·· wait for about 30 secs
+  | $ sudo k3s kubectl get node            # <·· Check install 
+
+  ```
+2. Setup kubectl like  
+  ```
+  | $ export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+  | $ sudo kubectl get pods --all-namespaces
+  | NAMESPACE   NAME                        READY STATUS    RESTARTS    AGE
+  | kube-system coredns-7b98449c4-hwlsr     1/1   Running   1 (56m ago)  1m
+  | kube-system helm-install-traefik-c...   0/1   Completed 0            1m
+  | kube-system helm-install-traefik-mb...  0/1   Completed 1            1m
+  | kube-system local-path-provisioner-6... 1/1   Running   1 (56m ago)  1m
+  | kube-system metrics-server-cd..         1/1   Running   1 (56m ago)  1m
+  | kube-system svclb-traefik-57...         2/2   Running   2 (56m ago)  1m
+  | kube-system traefik-67f6c94c47-95zs4    1/1   Running   1 (56m ago)  1m
+  ```
+  Notice Traefik (Ingress controller, Web App Firewall, API Gateway, load balancer, 
+  auto TLS, OpenTelemetry, distributed tracing, ...) comes preinstalled,
+  as well as CoreDNS, Flannel (internal "virtual networks" for pods),  [[{PM.low_code}]]
+
+3. Install External Registry
+  ```
+  $ sudo apt install docker-registry # Alt 1. Install native OS image
+  $ docker run 
+  ```
+
+
+### WSL2 install notes
+
+1. k3s needs systemd running. This is not activated by default in WSL 
+   (Ubuntu) instances. To activate edit wsl.conf:
+   ```
+   $ sudo vim /etc/wsl.conf   # "inside" Ubuntu WSL instance
+     [boot]
+   + systemd=true             <·· add this line to [boot] section
+   ```
+   then restart and check that systemd is running properly:
+   ```
+   | $ systemctl status
+   | State: ...
+   |  Jobs: 0 queued
+   | Failed: 0 units
+   | Since: Fri 2024-10-04 12:25:09 CEST; 49min ago
+   | CGroup: /
+   | ├─user.slice
+   | │ └─user-1000.slice
+   | ....     
+   ```
+[[cluster_admin.bootstrap.k3s}]]
+
+## Other "cluster bootstrap" alternatives include
+
+* Kubespray: Cluster Bootstrap<br/>
+  <https://github.com/kubernetes-sigs/kubespray/blob/master/docs/comparisons.md>
+* KOPS: Deploy on Cloud<br/>
+  <https://github.com/kubernetes/kops/blob/master/README.md>
+[[cluster_admin.bootstrap.101}]]
+
+
+## Other Admin Tasks [[{cluster_admin,network,PM.TODO]]
+- TLS Cert Mng:
+<https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster/>
+<https://kubernetes.io/docs/tasks/tls/certificate-rotation/>
+- kubelet TLS setup:
+<https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-authentication-authorization/>
+<https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-tls-bootstrapping/>
+- Mng.Cluster DaemonSets:
+- Perform a Rollback on a DaemonSet:
+<https://kubernetes.io/docs/tasks/manage-daemon/rollback-daemon-set/>
+- Perform a Rolling Update on a DaemonSet:
+<https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/>
+[[}]]
+
+
+[[{101,PM.TODO]]
+## Resources install order
+
+  ```
+  | (Each resource has an associated "Resource"Spec and a "Resource"Status)
+  |  1  Namespace················ split k8s into virtual clusters
+  |  2  NetworkPolicy············ TODO:
+  |  3  ResourceQuota············ TODO:
+  |  4  LimitRange··············· TODO:
+  |  5  PodSecurityPolicy········ TODO:
+  |  6  PodDisruptionBudget······ TODO:
+  |  7  ServiceAccount··········· Used by k8s internal pods (and knative apps?) interacting with k8s apiserver.
+  |  8  Secret··················· Injected as ENV.VARs or ConfigFiles in running Pods
+  |  9  SecretList···············
+  | 10  ConfigMap·················Injected as ENV.VARs or ConfigFiles in running Pods
+  | 11  StorageClass············· Tunning of Storage (ceph|aws|gce|azure|... performance, fs, HD|SSD, ...)
+  | 12  PersistentVolume········· storage I/O resource applying to whole cluster.
+  | 13  PersistentVolumeClaim···· PersistentVolume claimed by Controller or Pod.
+  | 14  CustomResourceDefinition· TODO: Migrate a ThirdPartyResource to CustomResourceDefinition:
+  |     <https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/migrate-third-party-resource/>
+  | 15  ClusterRole·············· TODO
+  | 16  ClusterRoleList·········· TODO
+  | 17  ClusterRoleBinding······· TODO
+  | 18  ClusterRoleBindingList··· TODO
+  | 19  Role····················· TODO
+  | 20  RoleList················· TODO
+  | 21  RoleBinding·············· TODO
+  | 22  RoleBindingList·········· TODO
+  | 23  Service·················· INMUTABLE VIEW of applications (vs its "moving" Pods IPs/ports)
+  | 24  DaemonSet················ Controller prefered for pods providing a machine-level function.
+  | 25  Pod······················ runnable "unit of work" that can be scheduled (1+ Containers)
+  | 26  ReplicationController···· Deprecated in favor of Deployments configuring a ReplicaSet.
+  | 27  ReplicaSet··············· ensure "N" pod replicas are running simultaneously.
+  | 28  Deployment··············· Adds application lifecycle to ReplicaSet (e.g.: start wtih a
+  |                               ReplicaSet of 3, gradually move to ReplicaSet of 5, update
+  |                               with new ReplicaSet with new version, ...)
+  | 29  HorizontalPodAutoscaler·· Autoscales Deployments/StatefulSet to match demand  [[{application.scalability]]
+  |                               running more Pods.
+  |     <https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/> [[}]]
+  | 
+  | A Cluster Autoscaler must also be considered when using pod autoscaler.
+  | 
+  | 
+  | 30  StatefulSet··············
+  | 31  Job······················
+  | 32  CronJob··················
+  | 33  Ingress··················
+  | 34  APIService···············
+  ```
+[[101}]]
+
+
+[[{qa.UX,PM.low_code,monitoring.application,doc_has.comparative]]
+
+## UI Control panels (Alternatives to kubectl)
+
+
+* kube-dashboard:  official control panel.
+  Install it like:
+  ```
+  | $ kubectl apply -f \
+  |   https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+  | $ kubectl proxy # makes UI available at:
+  |   http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/.
+  ```
+* Lens k8s control pannel: "most powerful UI Panel for K8s" acording to some sources.
+  Features include:
+  - Electron based.
+  - Supports 'Custom Resource Definitions' (CRD) and Helm3 Package Manager.
+  - Built-in Terminal (to launch 'kubectl' inside the UI)
+* Octant k8s Control Panel
+  * easy to install and most portable.
+  * homepage shows overview of Deployments/Pods/ReplicaSets/Services/...
+  * It allows to enable port-forwarding on a pod, read logs, modify pods manifest,
+    check pod conditions (initialized, ready, containersReady, PodsScheduled, ...)
+  ```
+  | $ octant # ← creates dashboard at http://localhost:7777 by default.
+  ```
+* 'kubenav' k8s mobile Control Panel
+  * Support for Android/iOS
+[[qa.UX}]]
+
+[[{cluster_admin.image_registry,security.secret_mng,network,PM.TODO.now]]
+## Private Registry
+- using a private (image) registry:
+<https://kubernetes.io/docs/concepts/containers/images/#using-a-private-registry>
+- Pull Image from a Private Registry:
+<https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/>
+- imagePullSecrets:
+<https://kubernetes.io/docs/concepts/configuration/secret/>
+- method to pass a secret that contains a Docker image registry password
+  to the Kubelet so it can pull a private image on behalf of your Pod.
+[[}]]
+
+

@@ -1,0 +1,18 @@
+ [[{101,application.operators,qa,PM.TODO]]
+# Operators
+
+* By design Operators can provision, update, and delete
+  Kubernetes resources - which means they are in-cluster privileged
+  components.
+* OperatorHub.io
+* building operators:
+  Operator Framework, Kubebuilder
+
+## "Clearing House" for k8s Ops:
+<https://www.datacenterknowledge.com/open-source/aws-google-microsoft-red-hats-new-registry-act-clearing-house-kubernetes-operators>
+- AWS, Google, Microsoft, Red Hat's New Registry to Act as Clearing
+  House for Kubernetes Operators.
+- Operators make life easier for Kubernetes users, but they're so
+  popular that finding good ones is not easy. Operatorhub.io is an
+  attempt to fix that.
+[[}]]

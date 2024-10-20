@@ -1,0 +1,22 @@
+[[{qa.testing.chaos,PM.TODO]]
+## Litmus chaos engineering framework 
+
+* <https://www.infoq.com/news/2019/05/litmus-chaos-engineering-kube/>
+
+Chaos Engineering Kubernetes with the Litmus Framework
+
+- open source chaos engineering framework for Kubernetes
+  environments running stateful applications.
+- Litmus can be added to CI/CD pipelines
+- designed to catch hard-to-detect bugs in Kubernetes
+  that might be missed by unit or integration tests.
+- focus on application resilience:
+  - pre-existing tests for undesirable behavior such:
+    - container crash
+    - disk failure
+    - or network delay
+    - packet loss.
+- can also be used to determine if a Kubernetes deployment
+  is suitable for stateful workloads.
+[[}]]
+

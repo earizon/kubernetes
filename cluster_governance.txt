@@ -1,0 +1,67 @@
+[[{ $governance ]]
+
+# Cluster Governance
+
+[[{security.101,qa.governance,security.standards,security.aaa,security.auditing,PM.backlog]]
+## Gatekeeper policy controls
+
+* The Open Policy Agent project (OPA) provides a way to create policies
+  across cloud-native application stacks, from ingress to service-mesh
+  components to Kubernetes. More info available at:
+  <../Cloud/cloud_map.html#OPA_Summary>
+* OPA DECOUPLES POLICY DECISION-MAKING FROM POLICY ENFORCEMENT.
+* Gatekeeper provides a Kubernetes-native way to enforce OPA
+  policies on a cluster automatically, and to audit for any events or
+  resources violating policy. All this is handled by a relatively new
+  mechanism in Kubernetes, admission controller Webhooks, that fire on
+  changes to resources. With Gatekeeper, OPA policies can be maintained
+  as just another part of your Kubernetes cluster's defined state,
+  without needing constant babysitting.
+[[security.101}]]
+
+[[{security.101,security.aaa.2FA,cluster_admin.ssh,security.auditing,PM.backlog]]
+## Teleport 
+* implement industry-best practices for SSH and Kubernetes access,
+  meet compliance requirements, and have complete visibility into access and behavior.
+* Security best practices out-of-the-box.
+* Isolate critical infra and enforce 2FA with SSH and Kubernetes.
+* Provide role-based access controls (RBAC) using short-lived
+  certificates and your existing identity management service.
+* Log events and record session activity for full auditability.
+[[security.101}]]
+
+[[{security.auditing,cloud.billing,troubleshooting,PM.backlog]]
+## Kubecost 
+- monitor "the dollars" cost of running Kubernetes?
+
+- Kubecost uses real-time Kubernetes metrics, and real-world cost
+  information derived from running clusters on the major cloud
+  providers, to provide a dashboard view of the monthly cost of each
+  cluster deployment. Costs for memory, CPU, GPU, and storage are all
+  broken out by Kubernetes component (container, pod, service,
+  deployment, etc.).
+
+- Kubecost can also track the costs of “out of cluster” resources,
+  such as Amazon S3 buckets, although this is currently limited to AWS.
+
+- Kubecost is free to use if you only need to keep 15 days of logs. For
+  more advanced features, pricing starts at $199 per month for
+  monitoring 50 nodes.
+[[}]]
+
+[[{cluster_admin,security.auditing,PM.TODO]]
+## Auditing users/admins/others
+<https://kubernetes.io/docs/tasks/debug-application-cluster/audit/>
+* Kubernetes auditing provides a security-relevant chronological set of
+  records documenting the sequence of activities that have affected
+  system by individual users, administrators or other components of the
+  system. It allows cluster administrator to answer the following
+  questions:
+  * what happened?
+  * when did it happen?
+  * who initiated it?
+  * on what did it happen?
+  * where was it observed?
+  * from where was it initiated?
+  * to where was it going?
+[[}]]

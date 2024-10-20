@@ -1,0 +1,59 @@
+[[{01_PM.whats_new,01_PM.TODO]]
+# K8S What's New
+
+
+## 1.32
+
+## 1.31
+
+## 1.30
+
+## 1.29 
+
+## 1.28 
+
+## 1.27 
+
+## 1.26 
+
+## 1.25 
+
+## 1.24 
+
+* <https://sysdig.com/blog/kubernetes-1-24-whats-new/>
+
+
+## 1.23 Released with Improved Events, gRPC Probes, and Support for Dual-Stack
+<https://www.infoq.com/news/2021/12/kubernetes-1-23/>
+
+## 1.22 
+
+## 1.20 
+
+## 1.19
+
+## 1.18
+
+## 1.17
+
+## 1.16 
+
+## 1.15 
+
+## 1.14 
+
+## 1.13 
+
+
+## 1.12
+<https://www.infoq.com/news/2018/10/kubernetes-1-12>
+
+- Horizontal Pod Autoscaler ... automatically scales pods
+  in a replication controller,deployment,replica set or stateful set
+  based on observed CPU utilization (or, with custom metrics support,
+  on some other application-provided metrics).
+  ...  It does not apply to objects that can't be scaled, for example,
+  DaemonSets.
+  <https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/>
+
+[[01_PM.whats_new,01_PM.TODO}]]

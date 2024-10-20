@@ -1,0 +1,405 @@
+[[{troubleshooting.101]]
+# TROUBLESHOOTING 101 
+
+## POD MONITORING 101 [[{101,troubleshooting.101,monitoring.application.pods,]]
+                     [[PM.low_code,doc_has.diagram.decission_tree,101.kubectl,application]]
+  ```
+  | $ kubectl get pods                           # <·· List pods (in default namespace)
+  | $ kubectl get pod my-pod                     # <·· ensure pod is running
+  | $ kubectl top pod POD_NAME --containers      #
+  | $ kubectl logs my-pod (-c my-container) (-f) # <·· Get logs (-f) to follow "tail"
+  | $ kubectl attach mypod -i -c $container      # <·· attach to running process
+  |                                                    -i: Pass STDIN to container
+  |                                                    -t: STDIN is a TTY.
+  |                                                    -c $cont: Needed in 2+ containers are
+  |                                                              "co-scheduled" in the same Pod
+  | $ kubectl port-forward my-pod 5000:6000      # <·· local-machine-port:pod-port
+  | $ kubectl run -it  busybox \                 # <·· Exec. (temp. pod) shell for OCI image
+  |           --image=busybox -- sh              # <·· -t: create tty, -i: Interactive
+  | $ kubectl exec my-running-pod -it \          # <·· Get a shell inside already-running Pod
+  |          -- /bin/bash                        # <·· -c my-container needed if Pod has 2+ containers
+  | $ kubectl exec my-pod env                    # <·· Dump all ENV.VARs inside container
+  |                                                    Very useful to see Services that were "UP"
+  |                                                    at container startup.
+  ```
+[[}]]
+
+[[{troubleshooting.decission_tree,troubleshooting.101,doc_has.decision_tree]]
+## TROUBLESHOOTING DECISSION TREE
+- <https://kubernetes.io/docs/tasks/debug-application-cluster/debug-application/>
+
+  TRICK: On a separate (tmux)window monitor kubectl resources ike:
+         $  watch -n 4 "kubectl get pods,services,... -n $namespace"
+  ```
+  | $ kubectl get events --all-namespaces
+  |   └─────────────┬───────────────────┘
+  |     Q: Can you see the error?
+  | ┌───┘
+  | ├ YES > Fix it.
+  | └ NO  > $ kubectl get pods
+  |         └───────┬────────┘
+  | Q: Is there any pending Pod?
+  | │ 
+  | ├ YES >   $ kubectl describe pod $pod_name  
+  | │         └───────────┬──────────────────┘
+  | │  ┌────── Q: Is the cluster full?
+  | │  │
+  | │  ├ NO  >  Q: Are you hitting ResourceQuotaLimits?
+  | │  │  ┌─────┘
+  | │  │  ├ NO  > Q: Are you mounting a PENDING
+  | │  │  │       │  PersistentVolumeClaim?
+  | │  │  │       │ (`kubectl describe pod $pod` will
+  | │  │  │       │  show an even "pod has unbound 
+  | │  │  │       │  immediate PersistenceVolumeClaim")
+  | │  │  │  ┌────┘
+  | │  │  │  ├ NO  >  $ kubectl get pods-o wide
+  | │  │  │  │        └───────┬───────────────┘
+  | │  │  │  │   ┌─── Q: Is the Pod assigned to the Node?
+  | │  │  │  │   ├ YES >  There is an issue with the Kubelet
+  | │  │  │  │   └ NO  >  There is an issue with the Scheduler
+  | │  │  │  │
+  | │  │  │  └ YES >  Fix the PersistentVolumeClaim
+  | │  │  │
+  | │  │  └ YES >  Relax Quota Limits
+  | │  │
+  | │  └ YES > Q: Are nodes "OK"  <·$ kubectl get nodes [[cluster_admin]]
+  | │    ┌─────┴───────────────┘      NAME          STATUS   ROLES    ....
+  | │    ├  NO > Fix Node/s           master-node   Ready    master,control-plane,...
+  | │    │                    worker-node01 Ready    worker
+  | │    │                            worker-node02 Ready    worker
+  | │    └ YES > Add worker node      ...           ^^^^^
+  | │                                      "Node Problem Detector" DaemonSet helps to monitor
+  | │                                          node's health
+  | │
+  | └ NO  >  Q: Are the Pods Running?
+  |          └──────┬───────────────┘
+  | ┌───────────────┘
+  | ├ NO  →  $ kubectl logs $pod_name ←    
+  | │        └──────────┬───────────┘         
+  | │  ┌──── Q: Can you see the logs for the App?
+  | │  │
+  | │  ├ Yes >  Fix the issue in the App
+  | │  └ NO  >  Q: Did the container died too Quickly?
+  | │           │
+  | │  ┌────────┘
+  | │  ├ NO  > $ kubectl describe pod $pod_name    
+  | │  │       └───────────┬──────────────────┘
+  | │  │  ┌───  Q: Is the Pod in status ImagePullBackOff?
+  | │  │  │
+  | │  │  ├ NO  >  Q: Is the Pode Status CrashLoopBackOff?
+  | │  │  │        │
+  | │  │  │  ┌─────┘
+  | │  │  │  ├ NO >  Q: Is the Pod status RunContainerError?
+  | │  │  │  │       │       
+  | │  │  │  │  ┌────┘
+  | │  │  │  │  ├ NO  >  Consult StackOverflow
+  | │  │  │  │  │
+  | │  │  │  │  └ YES >  The issue is likely to be with
+  | │  │  │  │           mounting volumes
+  | │  │  │  │
+  | │  │  │  └ YES >  Q: Did you inspect the logs and fixed the crashes?
+  | │  │  │           │  $ kubectl logs --previous $POD_NAME
+  | │  │  │           │    (--previous: See logs of chrased pod)
+  | │  │  │  ┌────────┘
+  | │  │  │  ├ NO  >  Fix the app crahses
+  | │  │  │  │
+  | │  │  │  └ YES >  Q: Did you forget the 'CMD' instruction
+  | │  │  │           │  in the Dockerfile?
+  | │  │  │           │
+  | │  │  │  ┌────────┘
+  | │  │  │  ├ YES >  Fix the Dockerfile
+  | │  │  │  │
+  | │  │  │  └ NO  >  Q: Is the Pod restarting frequently?
+  | │  │  │           │  Cycling between Running and
+  | │  │  │           │  CrashLoopBackoff?
+  | │  │  │   ┌───────┘
+  | │  │  │   │
+  | │  │  │   ├ YES >  Fix the liveness probe
+  | │  │  │   │
+  | │  │  │   └ NO  >  Unknown State
+  | │  │  │
+  | │  │  └ YES >  Q: Is the name of the image correct?
+  | │  │           │
+  | │  │  ┌────────┘
+  | │  │  ├ NO  >  Fix the image name
+  | │  │  │
+  | │  │  └ YES >  Q: Is the image tag valid?
+  | │  │           │  Does it exists?
+  | │  │  ┌────────┘
+  | │  │  ├ NO  >  Fix the tag
+  | │  │  │
+  | │  │  └ YES >  Q: Are you pulling images from a
+  | │  │           │  private registry?
+  | │  │   ┌───────┘
+  | │  │   ├ NO  >  The Issue could be with CRI|Kubelet
+  | │  │   │
+  | │  │   └ YES >  Configure pulling images from a
+  | │  │            private registry
+  | │  │
+  | │  └ YES >   $ kubectl logs $pod_name --previous
+  | │  
+  | └ YES >  Q: Are ther Pods READY?
+  |          │  
+  | ┌────────┘
+  | ├ NO  >   $ kubectl describe pod $pod_name 
+  | │         └──────────┬───────────────────┘
+  | │  ┌───── Q: Is the Readiness probe failing? 
+  | │  │
+  | │  ├ YES >  Fix the Readiness Probe
+  | │  │
+  | │  └ NO  >  Unknown State
+  | │
+  | └ YES >   $ kubectl port-forward $pod_name  8080:$pod_port   
+  |           └──────────────────────┬───────────────────────┘
+  |            Q: Can you access the app through http://localhost:8080/...?
+  |            │  
+  |   ┌────────┘
+  |   │              
+  |   ├ NO  > if error "... error forwarding port 8080 to pod 1234..."
+  |   │       is displayed check that pod 1234... is the intended one by
+  |   │       executing '$ kubectl describe pods' and checking pod number
+  |   │       is correct. If it isn't, delete and recreate the service.
+  |   │       try again until to see if '$ wget ...' works. Continue next
+  |   │       checks otherwise.)
+  |   │       └───────────────────────────┬─────────────────────────────┘
+  |   │  ┌──── Q: Do you have 2+ different deployments with colliding selector
+  |   │  │          names? (this can be the case in "complex" Apps composed of N deployments)
+  |   │  │
+  |   │  ├ YES >  Fix one or more deployments to avoid colliding selectors
+  |   │  │        For example if two deployments have a selector labels like
+  |   │  │        'app: myApp' split into 'app: myApp-ddbb' and 'app: myApp-frontend' or
+  |   │  │        selector 1:     selector 2:
+  |   │  │        'app: myapp'    'app: myapp'
+  |   │  │        'layer: ddbb'   'layer: frontend'
+  |   │  │        update both on Deployment and related services
+  |   │  │
+  |   │  └ NO  >  Q: Is the port exposed by container correct
+  |   │           │  and listening on 0.0.0.0?
+  |   │           │  You can check it like: (-c flag optional for 1 container pods)
+  |   │           │  $ kubectl exec -ti $pod -c $container -- /bin/sh
+  |   │           │  # netstat -ntlp
+  |   │      ┌────┘
+  |   │      ├ NO  >  Fix the app. It should listen on
+  |   │      │        0.0.0.0.
+  |   │      │        Update the containerPort
+  |   │      │
+  |   │      └ YES >  Unknown State
+  |   │               Try debugging issues in cluster:
+  |   │               $ SELECTOR=""
+  |   │               $ SELECTOR="${SELECTOR},status.phase!=Running"
+  |   │               $ SELECTOR="${SELECTOR},spec.restartPolicy=Always"
+  |   │               $ kubectl get pods --field-selector=${SELECTOR} 
+  |   │                 -n kube-system                                     
+  |   │               Check failing pods in kube-system namespace                                     
+  |   │
+  |   └ YES > ─────┐
+  |   ┌────────────┴───────────────────┐
+  |   │¡¡¡ POD ARE RUNNING PROPERLY !!!│ 
+  |   └────────────┬───────────────────┘
+  |   At this point, the app (realted containers) is running
+  |   and waiting for incomming requests but the network "path"
+  |   client > ingress > ...> service is "broken" (misconfigured)
+  |                │
+  |                v                
+  | $ kubectl describe service $SERVICE_NAME
+  | └────────────────┬─────────────────────┘
+  | Q: Can you see a list of endpoints?     
+  | │
+  | ├ NO  > Q: Is the Selector matching the right Pod label?
+  | │       │
+  | │  ┌────┘
+  | │  ├ NO  > Fix the Service selector to match targeted-Pod labels
+  | │  │
+  | │  └ YES > Q: Does the Pod have an IP address assigned?
+  | │          │
+  | │  ┌───────┘
+  | │  ├ NO  > There is an issue with the Controller Manager
+  | │  │
+  | │  └ YES > There is an issue with the Kubelet
+  | │
+  | └ YES >  $ kubectl port-forward service/$SRV_NAME 8080:$SRV_PORT
+  |          └────────────────┬────────────────────────────────────┘
+  | ┌─────── Q: Can you visit the app? 
+  | │
+  | ├ NO  >  Q: Is the targetPort on the Service matching 
+  | │        │  the containerPort in the Pod?
+  | │  ┌─────┘
+  | │  │ 
+  | │  ├ NO  > Fix the Service targetPort and
+  | │  │     > the containerPod
+  | │  │
+  | │  └ YES > The issue could be with Kube Proxy
+  | │
+  | └ YES > ──────┐
+  | ┌─────────────┴────────────────────┐
+  | │ ¡¡¡SERVICE IS SETUP PROPERLYY!!! │
+  | └─────────────┬────────────────────┘
+  |  At this point the is an inmutable view of the application
+  |  in the Cluster internal network and all other apps inside
+  |  the cluster (other pods) can reach our app though its service
+  |               │
+  |               v 
+  |  $ kubectl describe ingress $INGRESS_NAME
+  |  └────────┬─────────────────────────────┘                             
+  | ┌─  Q: Can you see a list of Backends?
+  | │
+  | ├ NO  >  Q: Are the serviceName and servicePort
+  | │        │  mathcing the service?
+  │ │  ┌─────┘
+  | │  ├ NO  > Fix the ingress serviceName and servicePort
+  | │  │
+  | │  └ YES > The issue is specific to the Ingress Controller
+  | │          Consult the docs for your Ingress
+  | │
+  | └ YES > ─────┐
+  |              │  
+  | ┌────────────v────────────────────────────┐
+  | │ !!!THE INGRESS IS RUNNING CORRECTLY !!! │
+  | └────────────┬────────────────────────────┘
+  | At this point everything related to Kubernetes is OK.
+  | 1. public external ingress rules point to the correct internal services
+  | 2. internal services point (match) the correct pods.
+  | 3. pods are running properly waiting for external requests
+  |               │
+  |               v 
+  | ┌─ Q: Can you visit app from the Internet?
+  | │
+  | ├ NO  > There must be some external load balancer, DNS
+  | │       TLS end point missconfigured between clients and
+  | │       your Kubernetes cluster.
+  | │
+  | └ YES > !!! YOU WON !!!
+  ```
+[[troubleshooting.decission_tree}]]
+
+[[{troubleshooting.101,PM.TODO.now]]
+## kubectl debug and ephemeral Pods 
+
+Kubernetes Ephemeral Containers and kubectl debug Command
+* <https://iximiuz.com/en/posts/kubernetes-ephemeral-containers/>
+* <https://iximiuz.com/en/series/mastering-container-debugging/>
+
+See also:
+* <https://kubectl.docs.kubernetes.io/guides/container_debugging/>
+  ... port forward to pods, proxying traffic to services ...
+[[troubleshooting.101}]]
+
+
+## Best Patterns [[{101,qa,PM.TODO]]
+
+* "...Without an indication how much CPU and memory a container needs,
+  Kubernetes has no other option than to treat all containers equally.
+  That often produces a very uneven distribution of resource usage.
+  Asking Kubernetes to schedule containers without resource
+  specifications is like entering a taxi driven by a blind person..."
+  "...The fact that we can use Deployments with PersistentVolumes
+  does not mean that is the best way to run stateful applications..."
+[[}]]
+
+## Managing resources: 5 things to remember [[{101,troubleshooting]]
+<https://enterprisersproject.com/article/2020/8/managing-kubernetes-resources-5-things-remember>
+1. Use namespaces and resource quotas
+   Resource quotas (limits for namespace) allow cluster admins to control overall resource consumption per namespace.
+   (compute, memory, and storage).
+   For example, we can set CPU limits or memory limits across all pods in a non-terminal state,
+2. Use limit ranges (limits at pod or container level)
+3. Set network policies including:
+   * how pods communicate (or are prevented from communicating) with one another.
+     For example, setiing ingress and egress rules traffic to the pods.
+4. Don't forget about storage when applicable:
+   * Limits for a namespace can be set for PersistentVolumeClaims.
+   * Plan up front whether you need persistent storage in the first place,
+     such as for a database, and if you do, which volume plugin is most
+     appropriate for the workload.
+5. Keep things tidy: API objects and monitoring
+   * Do and automate housekeeping.
+[[}]]
+
+## Virtual clusters (namespace++) [[{troubleshooting]]
+
+<https://opensource.com/article/22/3/virtual-kubernetes-clusters-new-model-multitenancy>
+Improves over namespace and cluster-based multitenancy
+
+* Namespace-based multitenancy problems:
+  * team members can't administer global objects such as custom resource definitions (CRDs).
+  * constantly adding exceptions to the namespace isolation rules.
+    (network policies, ...)
+* Cluster-based multitenancy problems:
+  * many clusters to manage, which can be a massive headache.
+* A virtual cluster is a shared Kubernetes cluster that appears to the tenant as a dedicated cluster.
+
+### vcluster (2020): open source implementation of virtual Kubernetes clusters.
+* vcluster allows engineers to provision virtual clusters on top of shared Kubernetes clusters.
+  running inside  the underlying cluster's regular namespaces.
+* An admin can spin up virtual clusters and hand them out to tenants,
+* users can also spin up virtual clusters themselves inside their namespace.
+  with full control inside the virtual cluster but very restricted access
+  outside the virtual cluster.
+* Behind the scenes, vcluster accomplishes this by running a Kubernetes API server
+  and some other components in a pod within the namespace on the host cluster.
+  The user sends requests to that virtual cluster API server inside their namespace
+  instead of the underlying cluster's API server.
+* vclusters are quick to provision and delete.
+[[}]]
+
+## Kompose (docker-compose to K8s)  [[{PM.low_code]]
+<https://github.com/kubernetes/kompose>
+* tool to automatically convert docker-compose applications to Kubernetes.
+
+  ```
+  $ kompose convert -f docker-compose.yaml  # Convert to k8s resources file/s
+  $ kubectl apply -f .
+  $ kubectl get po
+  NAME                            READY     STATUS              RESTARTS   AGE
+  frontend-591253677-5t038        1/1       Running             0          10s
+  redis-master-2410703502-9hshf   1/1       Running             0          10s
+  redis-slave-4049176185-hr1lr    1/1       Running             0          10s
+  ```
+
+Alternatively:
+  ```
+  $ kompose up   -f docker-compose.yml # Deploy to Kubernetes
+  $ kompose down -f docker-compose.yml # Delete instantiated 
+                                       # services/deployments from Kubernetes
+  ```
+[[}]]
+
+## stern [[{troubleshooting,monitoring.application]]
+* display the tail end of logs for containers and multiple pods.
+* the stern project comes from Wercker (acquired by Oracle in 2017).
+* rather than viewing an entire log to see what happened most
+  recently, you can use stern to watch a log ....
+[[}]]
+
+## kubetail [[{troubleshooting,monitoring.application]]
+- Bash script that enables you to aggregate (tail/follow) logs from
+  multiple pods into one stream. This is the same as running 
+  `kubectl logs -f` but for multiple pods.
+[[}]]
+
+## Kured reboot daemon [[{PM.TODO]]
+* Kured, an open-source reboot daemon for Kubernetes.
+* Kured runs as a [DaemonSet][aks-daemonset] and monitors each node for the presence of
+  a file indicating that a reboot is required.
+[[}]]
+
+## Unused secret detector [[{security.secret_mng,troubleshooting]]
+* REF:
+  * <https://github.com/tldr-pages/tldr/blob/master/pages/common/k8s-unused-secret-detector.md>
+  * <https://github.com/tldr-pages/tldr/blob/master/pages/common/k8sec.md>
+
+* Command line interface tool for detecting unused Kubernetes secrets.
+  More information: https://github.com/dtan4/k8s-unused-secret-detector.
+
+  Command line interface tool to manage Kubernetes secrets.
+  More information: https://github.com/dtan4/k8sec.
+[[}]]
+
+## get External IPs of nodes [[{troubleshooting.network]]
+  ```
+  $ kubectl get nodes -o jsonpath=\
+    '{.items[*].status.addresses[?(@.type=="ExternalIP")].address}'
+  ```
+[[}]]
+
+[[troubleshooting.101}]]

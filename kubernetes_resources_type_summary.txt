@@ -1,4 +1,7 @@
-- RESOURCE TYPES EXTENDED:
+[[{doc_has.summary]]
+## RESOURCE TYPES EXTENDED
+
+  ```
   https://github.com/kubernetes/api/blob/master/core/v1/types.go
   https://github.com/kubernetes/kubernetes/blob/master/pkg/apis/core/types.go
 
@@ -112,5 +115,5 @@
   WeightedPodAffinityTerm
   PreferAvoidPodsEntry
   AvoidPods
-
-
+  ```
+[[doc_has.summary}]]

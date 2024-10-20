@@ -1,0 +1,87 @@
+[[{monitoring.application.logs]]
+## Logs Aggretation Sidecars 
+
+ Kubernetes describes a plugable cluster-level logging approach
+allowing for backends like ELK, Splunk, Stackdriver, ...
+using sidecars. Eg.:
+
+  ```
+  |                ┌───────────────────┐
+  |                │ fluentd aggregator├····> ELK
+  |                └──^───────────^────┘
+  |                   ·           ·
+  |                   ·           └············┐
+  | ┌─ Service 1 ─────·────┐   ┌── Service 2 ──·──────┐   ...
+  | │                 ·    │   │               ·      │
+  | │ │App│ │fluentd─agent││   │ │App│ │fluentd─agent││
+  | │ │Pod│ │Pod          ││   │ │Pod│ │Pod          ││
+  | │  └───┬───┘           │   │  └───┬───┘           │
+  | │ /share/log/volume    │   │ /share/log/volume    │
+  | └──────────────────────┘   └──────────────────────┘
+  ```
+
+ The complete solution for the application logs looks like the following.
+
+* PRESETUP)
+  1. Install fluentd aggregator in 8s cluster
+     (using the official operator for example)
+  2. Attach "sidecar" fluentd-agent to the application Pod on each affected deployment.
+  3. For each Deployment add a sidecar
+
+  ```
+  |apiVersion: apps/v1
+  |kind: Deployment
+  |metadata:
+  |  name: frontend-deployment
+  |  ...
+  |      containers:
+  |      - name: frontend
+  |        image: frontend-app:1.0
+  |        ...
+  |        env:
+  |        - name: LOG_PATH               <··· instructs Spring where
+  |          value: /var/log                   to create spring.log
+  |        volumeMounts:
+  |        - name: varlog
+  |          mountPath: /var/log          <··· mounted
+  |  ...
+  |      - name: log-agent                <··· sends logs to ELK aggregator
+  |        image: k8s.gcr.io/fluentd-gcp:1.30
+  |        env:
+  |        - name: FLUENTD_ARGS
+  |          value: -c /etc/fluentd-config/fluentd.conf
+  |       volumeMounts:                       ^
+  |       - name: varlog                      ·
+  |         mountPath: /var/log               ·
+  |       - name: config-volume               ·
+  |         mountPath: /etc/fluentd-config    ·
+  | ...                                       ·
+  |                                           ·
+  |<source> ··································┘
+  |  type tail
+  |  format /^\[.*[^ ]* (?<time>[^\]]*)\] \[(?<level>[^\]]*)\]
+  |(?<message>.*)$/
+  |  time_format %b %d %H:%M:%S %Y
+  |  path /var/log/spring.log
+  |  pos_file /var/log/agent/spring.log.pos
+  |  tag hostname.system
+  |</source>
+  |<match *.**>
+  |  type forward
+  |<server>...</server>
+  |<!--removed for Brevity -->
+  |</match>
+  |<match **>                     <··· opinionated. Send to ELK stack
+  |       type elasticsearch
+  |       log_level info
+  |       host elasticsearch
+  |       port 9200
+  |       logstash_format true
+  |       buffer_chunk_limit 2M
+  |       buffer_queue_limit 8
+  |       flush_interval 5s
+  |       num_threads 2
+  | </match>
+  ```
+
+[[monitoring.application.logs}]]

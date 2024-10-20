@@ -1,0 +1,16 @@
+[[{network.SDN,network.Oterize]]
+# Oterize
+
+* Oterize offers an Istio alternative, simpler to  operate.
+<https://www.kubetools.io/kubernetes/securely-scaling-microservices-on-kubernetes-with-otterize/>
+
+""" Istio is known for its complexity, which can make it
+ difficult to deploy and manage. It requires a steep
+ learning curve, and its configuration can become
+ complicated as the number of microservices grows. Otterize,
+ on the other hand, is designed to be easy to deploy and
+ manage. It is built specifically for Kubernetes, which
+ means it integrates seamlessly with Kubernetes ConfigMaps
+ and RBAC."""
+
+[[network.SDN}]]

@@ -1,0 +1,43 @@
+[[{PM.low_code.Okteto,QA.UX,PM.TODO]]
+## Okteto 
+* A Tool to Develop Applications in Kubernetes
+* <https://github.com/okteto/okteto/blob/master/README.md>
+* <https://www.infoq.com/news/2020/01/qa-okteto-kubernetes-development/>
+
+> We created a few guides to get you started with your favorite programming language:
+* ASP.NET Core
+* Golang
+* Java Gradle
+* Java Maven
+* Node
+* PHP
+* Python
+* Ruby
+
+... development practices have not evolved at the same
+speed as application deployment patterns.
+
+... most developers try to either run parts of the
+infrastructure locally or just test their integrations 
+directly in the cluster via CI jobs, or the docker
+build/redeploy cycle. It works, but this workflow is
+painful and incredibly slow.
+
+okteto accelerates the development workflow of Kubernetes 
+applications. You write your code locally and okteto detects 
+the changes and instantly updates your Kubernetes applications.
+
+## How it works
+
+**... development inside a container ... with seamless IDE and
+tool integration as if you were working locally but with the 
+resources of a remote cluster.
+... When you run okteto up your Kubernetes deployment is 
+replaced by a Development Container that contains your 
+development tools (e.g. maven and jdk, or npm, python, 
+go compiler, debuggers, etc).
+ This development container can use any docker image. 
+The development container inherits the same secrets, configmaps, 
+volumes or any other configuration value of the original Kubernetes 
+deployment**.
+[[PM.low_code.Okteto}]]

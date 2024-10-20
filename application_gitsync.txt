@@ -1,0 +1,13 @@
+## git-sync "sidecar" [[{qa.gitops,application.sidecar,PM.TODO]]
+<https://github.com/kubernetes/git-sync>
+* simple command that pulls a git HEAD|tag|hash repo into
+  a local dir. It is a perfect "sidecar" container in Kubernetes -
+* it can periodically pull files down from a repository so that an
+  application can consume them.
+  It will only re-pull if the target of the run has changed in
+  the upstream repository. When it re-pulls, it updates the destination
+  directory atomically. In order to do this, it uses a git worktree in
+  a subdirectory of the --root and flips a symlink.
+* A webhook call upon successful git repo synch is allowed after the
+  symlink is updated.
+[[}]]

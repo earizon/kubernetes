@@ -1,0 +1,67 @@
+[[{application.skaffold,PM.low_code,qa,PM.TODO]]
+
+## Skaffold 
+
+* <https://www.infoq.com/news/2018/03/skaffold-kubernetes/>
+
+* lightweight client-side tool triggering  highly optimized local deployment
+  pipelines when source-code changes are detected by compiling, building
+  OCI images, pushing, and deploying the app automatically with policy-based
+  image tagging, resource port-forwarding, logging, file syncing, and much more.
+
+  ```
+  | NON-SKAFFOLD                      │  SKAFFOLD
+  |   PIPELINE                        │  PIPELINE
+  | ============                      │  =========
+  | · git clone                       │  git clone
+  | · build app                       │  $ skaffold run   ← Support for: ✓ profiles ✓ env.vars
+  | · create Dockerfile               │    └─────┬────┘                  ✓ local-user-config ✓ flags
+  | · build app OCI                   │    Build,deploy, watch for changes. When source changes
+  | · push image to k8s cluster       │    , roll out updated  objects in local k8s.
+  | · deploy DDBB from Helm chart     │    Skaffold's inner loop PROVIDES
+  | · create k8s YAML manifest        │      INSTANT FEEDBACK WHILE DEVELOPING!!!
+  |     for app deployment, services, │
+  |     ...                           │  $ skaffold dev   --port-forward ← like run, forward ports
+  | · collecting logs and dump into   │  $ skaffold debug --port-forward ← like run, forward ports
+  | · local console.                  │                                    and add remote debugger
+  |                                                                        (JVM def: localhost:5005)
+  | ===================
+  | = Skaffold HOW-TO =
+  | ===================
+  | $ cd .../"project_root"
+  | $ skaffold init --XXenableBuildbacksInit   ← init skaffold using "Cloud Native Buildpacks"
+  |                                              to build OCI image.
+  |                                             './skaffold.yaml' will be created: It can be
+  |                                              customized to use "Cloud Native Buildpacks" Paketo
+  |                                              implementation (e.g. Used by Spring Boot),
+  |                                              define new resources to deploy, ...
+  ```
+  
+  ```
+  | apiVersion: skaffold/v2beta13                ← k8s manifest for k8s non-standard object
+  | kind: Config
+  | metadata:
+  |   name: catalog-service
+  | build:                                       ← How to build the App from source
+  |   artifacts:                                   (java+mvn in this example)
+  |     - image: myCompany/myApp01
+  |       buildpacks:
+  |         builder: gcr.io/paketo-buildpacks/builder:base
+  |         env:
+  |           - BP_JVM_VERSION=11.*
+  | deploy:
+  |   helm:
+  |     releases:
+  |       - name: myApp01-ddbb
+  |       remoteChart: bitnami/postgresql
+  |       setValues:
+  |         postgresqlUsername: admin
+  |         postgresqlPassword: admin
+  |         postgresqlDatabase: myApp01-ddbb
+  |      image.tag: 13
+  | kubectl:
+  |   manifests:
+  |     - k8s/*.yml
+  ```
+  
+[[application.skaffold}]]

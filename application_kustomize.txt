@@ -1,0 +1,65 @@
+[[{application.kustomize,]]
+## Kustomize  
+* Kustomize compares to Helm&Helm Charts.
+
+* C&P from https://foghornconsulting.com/2022/01/25/helm-versus-kustomize/<br/>
+  """
+  To boil it all down to its base elements, Helm encapsulates
+  Kubernetes objects into a single deployable unit and hides a lot of
+  the complexity. Kustomize exposes everything and allows for more
+  surgical changes that can change anything in a Kubernetes manifest.
+  """
+
+* "Top" project in K8s Special Interest Groups (SIGs).
+  *  <https://github.com/orgs/kubernetes-sigs/repositories?q=&type=all&language=&sort=stargazers>
+
+REFs:
+* <https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/>
+* <https://kubectl.docs.kubernetes.io/>
+  Kustomize lets you customize raw, template-free YAML
+  files for multiple purposes, leaving the original YAML untouched and usable as is.
+  ```
+  /Pod patch.yaml
+  /Dev patch.yaml    → kustomize → Kubernetes
+  /Stagin patch.yaml
+  ```
+[[application.kustomize}]]
+
+[[{application.kustomize,application.helm,application.kubes,doc_has.comparative]]
+
+### Kustomize vs Helm vs Kubes 
+* <https://blog.boltops.com/2020/11/05/kustomize-vs-helm-vs-kubes-kubernetes-deploy-tools>
+
+> ...Kubes is another tool that handles deployment.
+> Kubes has some similar concepts to both Kustomize and Helm and improves on them.
+> ...Kubes introduces a conventional folder structure. Conventions takes you a long way.
+
+* With Helm, you can also add templating methods with custom helpers.
+  The helper method definitions are awkward looking, though. <br/>
+  Example:`templates/_helpers.tpl`
+  ```
+  {{- define "demo.serviceAccountName" -}}
+    {{- if .Values.serviceAccount.create }}
+    {{- default (include "demo.fullname" .) .Values.serviceAccount.name }}
+  {{- else }}
+   {{- default "default" .Values.serviceAccount.name }}
+  {{- end }}
+  {{- end }}
+  ```
+* With Kubes, custom template helper definitions is just Ruby code.
+  Example:.kubes/helpers/my_helpers.rbmodule MyHelpers
+  ```
+  def database_endpoint
+    case Kubes.env
+    when "dev"
+      "dev-db.cbuqdmc3nqvb.us-west-2.rds.amazonaws.com"
+    when "prod"
+      "prod-db.cbuqdmc3nqvb.us-west-2.rds.amazonaws.com"
+    end
+  ```
+
+* Helm supports packaging, Kubes no.
+  Kubes supports OCI Image builds, helm doesn't.
+[[application.kubes}]]
+
+

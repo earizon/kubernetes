@@ -1,0 +1,84 @@
+[[{application.knative,PM.low_code,qa.gitops,PM.TODO]]
+# Knative 
+
+* <https://cloud.google.com/knative/>
+* Kubernetes-based platform to build, deploy, and manage modern
+  serverless workloads.
+* set of middleware components to build source-centric+container-based apps
+  that can run anywhere: on premises, cloud.
+* applying best practices shared by successful real-world Kubernetes-based
+  frameworks.
+* ENABLES DEVELOPERS TO FOCUS ON WRITING INTERESTING CODE, without worrying
+  about the “boring but difficult” parts of building, deploying, and
+  managing application.
+* solve mundane but difficult tasks such as orchestrating
+  source-to-container workflows, routing and managing traffic during
+  deployment, auto-scaling your workloads, or binding running services
+  to eventing ecosystems.
+* supports common GitOps, DockerOps, ManualOps, ... patterns
+  for common stacks like  Django, Ruby on Rails, Spring, ...
+* Operator-friendly
+
+## JAVA api Client [[{101,application.knative,dev_stack.java]]
+* Useful for example to get k8s service config inside
+  a running container.
+* Summary extracted from:
+
+* <https://github.com/hyperledger/besu/blob/master/nat/src/main/java/org/hyperledger/besu/nat/kubernetes/KubernetesNatManager.java>
+
+   ```
+   | import io.kubernetes.client.ApiClient;
+   | import io.kubernetes.client.Configuration;
+   | import io.kubernetes.client.apis.CoreV1Api;
+   | import io.kubernetes.client.models.V1Service;
+   | import io.kubernetes.client.util.ClientBuilder;
+   | import io.kubernetes.client.util.KubeConfig;
+   | import io.kubernetes.client.util.authenticators.GCPAuthenticator;
+   | ...
+   | 
+   |       try {
+   |   KubeConfig.registerAuthenticator(new GCPAuthenticator());
+   |   final ApiClient client = ClientBuilder.cluster().build();
+   |   Configuration.setDefaultApiClient(client);
+   |   final CoreV1Api api = new CoreV1Api();
+   |   // invokes the CoreV1Api client
+   |   final V1Service service =
+   |     api.listServiceForAllNamespaces(
+   |       null, null, null, null, null, null, null, null, null)
+   |         .getItems().stream()
+   |         .filter(
+   |            v1Service -> 
+   |              v1Service.getMetadata()
+   |                .getName().contains(besuServiceNameFilter))
+   |         .findFirst()
+   |         .orElseThrow(() -> new 
+   |            NatInitializationException("Service not found"));
+   |   updateUsingBesuService(service);
+   | 
+   |   internalAdvertisedHost =
+   |     getIpDetector(service)
+   |       .detectAdvertisedIp()
+   |       .orElseThrow(
+   |           () -> new NatInitializationException(
+   |                       "Unable to retrieve IP from service") );
+   | 
+   |    final String internalHost = 
+   |      queryLocalIPAddress()
+   |        .get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+   |    service.getSpec().getPorts().forEach( v1ServicePort -> { ... } );
+   | 
+   |    final String serviceType = service.getSpec().getType();
+   |    final Optional<String> clusterIP = v1Service.getSpec().getClusterIP();
+   |        } catch (Exception e) {
+   |    throw new RuntimeException(
+   |     "Failed update information using pod metadata : " + e.getMessage(), e);
+   |       }
+   ```
+[[}]]
+
+## Knative support for CNCF bnuildpacks 
+(source to image without docker and/or Dockerfile)
+* https://medium.com/google-cloud/knative-buildpacks-source-code-to-container-image-without-dockerfile-34cb2dbfc49c
+
+
+[[application.knative}]]

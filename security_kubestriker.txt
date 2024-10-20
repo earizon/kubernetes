@@ -1,0 +1,18 @@
+[[{security.kubestriker,security.auditing]]
+## Kubestriker: k8s Cluster security auditing  
+* <https://www.helpnetsecurity.com/2021/05/04/security-kubernetes/>
+
+Features:
+* Scans self-managed and cloud provider-managed (Amazon EKS, Azure 
+  AKS, Google GKE) Kubernetes infrastructure.
+* Completes reconnaissance phase checks for various services and/or 
+  open ports.
+* Performs automated enumeration to discover misconfigured services
+* Can conduct both authenticated scans and unauthenticated scans
+* Scans for a wide range of IAM misconfigurations in the cluster
+* Detects a broad range of misconfigured containers, pod security 
+  policies, network policies.
+* Assesses the excessive privileges of subjects in the cluster
+* Runs commands on the containers and streams back the output
+[[security.kubestriker}]]
+

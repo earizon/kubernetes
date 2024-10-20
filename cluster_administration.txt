@@ -1,0 +1,250 @@
+[[{cluster_admin]]
+
+# Cluster Administration 
+
+[[{101.DNS,PM.TODO]]
+## Internal (Pods&Services) DNS 
+
+* <https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/>
+* Kubernetes creates DNS records for Services and Pods. (no need for IPs anymore)
+* Kubelet configures Pods' DNS
+* By default, a client Pod's DNS search list includes:
+  * Pod's own namespace
+  * cluster's default domain.
+  Querying in another non-default namespace require explicit mention like:
+  'someService.someNameSpace'
+* Kubelet can also update Pod's /etc/resolv.conf
+  ```
+  |FQDN for Pod:
+  |     172-17-0-3.subdomain.domain01.pod.cluster.local.
+  |                                      └───────────┴─· Domain name for our cluster
+  |                                  └─┴─··············· K8s resource type
+  |                          └──────┴─·················· Namespace of Pod
+  |                 └───────┴─·························· (optional in Pod's spec.subdomain)
+  |     └─────────┴─···································· Pod IP (or spec.hostname if set)
+  ```
+
+### Pod spec.dnsPolicy
+
+* "Default"                : The Pod inherits name resolution config from the node that the Pods run on.
+* "ClusterFirst"           : Any non-matching DNS query is forwarded to upstream nameserver.
+* "ClusterFirstWithHostNet": (for Pods running with hostNetwork only)
+* "none": Use dnsConfig in this case.
+
+### Pod's spec.dnsConfig: v1.14+
+- it works with any dnsPolicy settings.
+- when Pod's dnsPolicy is set to "None", this field is mandatory.
+* spec.dnsConfig.nameservers: IP_address{1,3}
+  The list will be combined to the base nameservers generated
+  from the specified DNS policy.
+* spec.dnsConfig.searches: DNS search domain list (up to 6 search domains).
+* spec.dnsConfig.options: optional name-value property list
+  to be merged with the options generated from the specified DNS policy.
+
+## spec.HostAliases [[{]]
+- set /etc/hosts in running Pod.
+ <https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/>
+- Useful when when DNS and other options are not applicable.
+```
+$ editor myPod.yml
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: my-pod01
+  spec:
+    restartPolicy: Never
++   hostAliases:
++   - ip: "127.0.0.1"
++     hostnames:
++     - "foo.local"
++     - "bar.local"
++   - ip: "10.1.2.3"
++     hostnames:
++     - "foo.remote"
++     - "bar.remote"
+    containers:
+    - name: cat-hosts
+      image: busybox:1.28                    Always (default for ":latest" tags)
+      imagePullPolicy: IfNotPresent     <··· IfNotPresent (default for non ":latest tags)
+      command:                               Never
+      - cat
+      args:
+      - "/etc/hosts"
+```
+
+```
+$ kubectl apply -f myPod.yaml
+
+$ kubectl exec my-pod01 -- cat /etc/hosts
+> # Kubernetes-managed hosts file.
+> 127.0.0.1	localhost
+> ::1	localhost ip6-localhost ip6-loopback
+> fe00::0	ip6-localnet
+> fe00::0	ip6-mcastprefix
+> fe00::1	ip6-allnodes
+> fe00::2	ip6-allrouters
+> 10.200.0.5	hostaliases-pod
+>
+> # Entries added by HostAliases.
+> 127.0.0.1	foo.local	bar.local
+> 10.1.2.3	foo.remote	bar.remote
+```
+
+* WARN: avoid modifying with internal Pod's scripts.
+  /etc/hosts is managed by kubelet and can be overwritten "at random".
+
+* * **Q:** Why does the kubelet manage the hosts file?<br/>
+  * **A:** kubelet manages it for each container of the Pod to
+    prevent the container runtime from modifying the file after the
+    containers have already been started.
+    
+  * Historically, Kubernetes always used Docker Engine as its
+    container runtime, and Docker Engine would then modify the /etc/hosts
+    file after each container had started.
+
+  * Current Kubernetes can use a variety of container runtimes; even
+    so, the kubelet manages the hosts file within each container so that
+    the outcome is as intended regardless of which container runtime you
+    use.
+[[}]]
+
+[[101.DNS}]]
+
+## K8s cluster networking 101 [[{101,cluster_admin,network.101,troubleshooting ]]
+* Max Node Lattency:
+<https://stackoverflow.com/questions/46891273/kubernetes-what-is-the-maximum-distance-latency-supported-between-kubernetes-no>
+* There is no latency limitation between nodes in kubernetes cluster.
+  They are configurable parameters.
+  ```
+  └ For kubelet@worker-node:
+    --node-status-update-frequency secs
+      Sets how often kubelet posts node status to master.
+      Note: be cautious when changing the constant, it must work
+      with nodeMonitorGracePeriod in nodecontroller. (default 10s)
+  └ For controller-manager on master node:
+    --node-monitor-grace-period secs
+      Amount of time which we allow running Node to be unresponsive
+      before marking it unhealthy. Must be N times more than kubelet's
+      'nodeStatusUpdateFrequency', where N means number of retries
+      allowed for kubelet to post node status. (default 40s)
+    --node-monitor-period secs
+      Period for syncing NodeStatus in NodeController. (default 5s)
+    --node-startup-grace-period secs
+      Amount of time which we allow starting Node to be unresponsive before
+      marking it unhealthy. (default 1m0s)
+  ```
+[[}]]
+
+## ServiceAccount [[{security.101.serviceAccount,security.aaa]]
+* Useful for k8s internal pods (and knative apps?) that want to
+  interact with k8s apiserver.
+  Running processes (at pod-containers) are authenticated trough
+  a given (namespaced) Service Account:
+* a 1-hour-expiration-token for API access is provided through
+  an "injected" mounted volumeSource added to each pod container
+  @ '/var/run/secrets/kubernetes.io/serviceaccount'
+  (can be disabled with automountServiceAccountToken)
+```
+note:
+   $ kube-controller-manager --service-account-private-key-file ← set priv. sign.key
+   $ kube-apiserver          --service-account-key-file         ← pub.key
+
+   $ kubectl get serviceAccounts
+   NAME      SECRETS    AGE
+   default   1          1d   ← service-account controller ensures  it exists in
+   ...                         every active namespace.
+
+   $ kubectl apply -f - <<EOF  ← Creating new ServiceAccount:
+   apiVersion: v1                (by k8s cluster-namespace-admin)
+   kind: ServiceAccount
+   metadata:
+     name: build-robot
+   EOF
+```
+
+- To create additional API tokens:
+```
+kind: "Secret"
+type: "kubernetes.io/service-account-token"
+apiVersion": "v1"
+metadata":
+  name: secretForTaskN
+  annotations:
+    kubernetes.io/service-account.name : "myserviceaccount"
+                                          └───────┬──────┘
+                                     reference to service account
+```
+[[security.101.serviceAccount}]]
+
+[[{troubleshooting.cluster,application.observability,monitoring]]
+## kubespy: observe K8s resources in REAL TIME
+
+**Q**: What happens when you boot up a Pod? What happens to a Service
+  before it is allocated a public IP address? How often is a
+  Deployment`s status changing?
+
+  kubespy is a small tool that makes it easy to observe how
+Kubernetes resources change in real time, derived from the work we
+did to make Kubernetes deployments predictable in Pulumi`s CLI. Run
+kubespy at any point in time, and it will watch and report
+information about a Kubernetes resource continuously until you kill it
+[[troubleshooting.cluster}]]
+
+
+[[{cluster_admin.backup,security.backup,PM.TODO]]
+## Gravity (Portable clusters&snahpshots)
+* "take a cluster as is and deploy it somewhere else"
+
+* Gravity takes snapshots of Kubernetes clusters, their container
+  registries, and their running applications, called "application
+  bundles." The bundle, which is just a .tar file, can replicate the
+  cluster anywhere Kubernetes runs.
+
+* Gravity also ensures that the target infrastructure can support the
+  same behavioral requirements as the source, and that the Kubernetes
+  runtime on the target is up to snuff. The enterprise version of
+  Gravity adds security features including role-based access controls
+  and the ability to synchronize security configurations across
+  multiple cluster deployments.
+
+* latest major version, Gravity 7, can deploy a Gravity image into
+  an existing Kubernetes cluster, versus spinning up an all-new cluster
+  using the image. Gravity 7 can also deploy into clusters that
+  aren’t already running a Gravity-defined image. Plus, Gravity now
+  supports SELinux and integrates natively with the Teleport SSH
+  gateway.
+[[}]]
+
+[[{cluster_admin.gpu,PM.TODO]]
+## GPU and Kubernetes 
+<https://www.infoq.com/news/2018/01/gpu-workflows-kubernetes>
+<https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/>
+[[}]]
+
+[[{security.pod_policies,security.101,PM.TODO]]
+## K8s Sec. Policies 
+* allows to  define & control fine-grained authorization of
+  Pods creation and updates by defining a set of conditions
+  that a pod must run with in order to be accepted into the
+  system, as well as defaults for the related fields.
+* Policies allow an cluster administrator to control:
+  * Running of privileged containers
+  * Usage of host namespaces
+  * Usage of host networking and ports
+  * Usage of volume types
+  * Usage of the host filesystem
+  * Restricting escalation to root privileges
+  * The user and group IDs of the container
+  * AppArmor or seccomp or sysctl profile used by containers
+[[security.pod_policies}]]
+
+## BrewOPA: Admin Policy made easy [[{security.governance,PM.low_code,PM.TODO]]
+* <https://www.zdnet.com/article/kubernetes-administration-policy-made-easy-with-brewopa/>
+
+* Kubernetes administration policy made easy with brewOPA
+
+* Administering policies across Kubernetes and other cloud native environments
+  isn't easy. Now, Cyral wants to take the trouble out of the job with brewOPA.
+[[}]]
+
+[[cluster_admin}]]

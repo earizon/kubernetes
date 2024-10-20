@@ -1,0 +1,25 @@
+[[{storage.kubedb,application.operators,PM.low_code,qa,PM.TODO]]
+
+# KubeDB: Production DBs
+
+* <https://kubedb.com/>
+
+* operators exists for MySQL/PostgreSQL/Redis/... BUT THERE ARE PLENTY OF GAPS.
+
+kubedb allows to create custom kubernetes operators for managing databases.
+
+* Running backups, cloning, monitoring, snapshotting, and declaratively
+  creating databases are all part of the mix.
+* supported features vary among databases. Ex: clustering is available for
+  PostgreSQL but not MySQL.
+
+
+  ```
+  | $ helm install kubedb oci://ghcr.io/appscode-charts/kubedb \
+  |     --version v2024.9.30 \
+  |     --namespace kubedb --create-namespace \
+  |     --set-file global.license=/path/to/the/license.txt \
+  |     --wait --burst-limit=10000 --debug
+  ```
+
+[[storage.kubedb}]]

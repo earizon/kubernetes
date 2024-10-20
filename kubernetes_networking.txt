@@ -1,0 +1,64 @@
+# Kubernetes Networking
+
+[[{network.SDN,network.CNI,network.101]]
+## Software Defined Network (SDN) introduction 
+
+REF: <https://www.redhat.com/sysadmin/getting-started-sdn>
+
+
+... SDNs allows projects to control network traffic in
+  complex networking topologies through a centralized panel,
+  rather than handling each network device, such as routers
+  and switches, manually ("hierarchical" topology).
+
+... sdn should increase security by isolating multiple
+namespaces: by default containers from different namespaces
+cannot send packets to or receive packets from pods  in a
+different namespace.
+
+... container network interface (CNI) is a library and a set
+of tools to configure network interfaces in linux containers
+through many supported plugins.
+- N plugins can run simultaneously in a given container.
+- networks use json configuration files ...
+
+NOTE: SDN and CNI apply to the internal Kubernetes cluster 
+network. They are ussualy complemented with API Managers
+controlling incomming HTTP and TLS traffic. 
+
+[[{doc_has.comparative,network.SDN,network.CNI]]
+## common CNI plugins include:
+
+- calico:
+  - high scalability.
+  <https://docs.projectcalico.org/v3.7/getting-started/kubernetes/>
+  <https://kubernetes.io/docs/tasks/administer-cluster/network-policy-provider/calico-network-policy/>
+- cilium:
+  - provides network connectivity and load balancing
+    between application workloads, such as application
+    containers and processes, and ensures transparent security.
+- contiv:
+  - integrates containers, virtualization, and physical servers
+    based on the container network using a single networking fabric.
+- contrail :
+  - provides overlay networking for multi-cloud and
+    hybrid cloud through network policy enforcement.
+- flannel :
+  - makes it easier for developers to configure a layer 3
+    network fabric for kubernetes.
+- multus :
+  - supports multiple network interfaces in a single pod on
+    kubernetes for sriov, sriov-dpdk, ovs-dpdk, and vpp workloads.
+- open vswitch (ovs) :
+  - production-grade cni platform with a standard management
+    interface on openshift and openstack.
+- ovn-kubernetes :
+  - enables virtual networks for multiple containers on different
+    hosts using an overlay function.
+- romana :
+  - makes cloud network functions less expensive to build,
+    easier to operate, and better performing than traditional
+    cloud networks.
+[[doc_has.comparative}]]
+
+[[network.SDN}]]

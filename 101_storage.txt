@@ -1,0 +1,265 @@
+[[{storage.101,application,cloud.storage,PM.TODO,]]
+# Storage 101 
+
+* REF:<https://www.youtube.com/watch?v=OulmwTYTauI>
+
+  ```
+  |      Cluster Admin tasks (PRESETUP)              Developer tasks
+  |   ┌──────────────┴──────────────────┐   ┌──────────┴─────────────┐
+  | STEP 0)  ¹,² ╶╶╶╶╶╶▷ STEP 1) ³╶╶╶╶╶╶╶╶╶╶╶▷ STEP 2)  ╶╶╶▷ STEP 3)
+  | cluster admins       cluster admins        App.Dev       App.Dev
+  | ==============       ==============        =======       =======
+  | Add storage          Add PV (storage       Add PVC       Link PVC to Volumes
+  | "hardware" (or       I/O resource                        and Volumes to
+  | NFS, Cloud,..)       applying to the                     Mount Points@Containers
+  | partition, format    to whole cluster
+  | and mount disks to
+  | nodes using standard OS utilities
+  |
+  | ¹: raw block device support, used by Oracle,... is also provided.
+  |    bypassing OS file-system and gaining in performance.
+  | ²: K8s is also able to format the block device on demand, avoiding
+  |    manual formating. (any gain?)
+  | ³: PV can be created:
+  |   - Alt 1: Manually
+  |   - Alt 2: Let a DaemonSet handle the creation.
+  |
+  |                                             once underlying
+  |                                             storage has been
+  |                                             assigned to a pod
+  |      ┌···plugin is one of ····←┐              PV is bound to PVC
+  |  ┌───↓──────────────┐    ┌Persistent ┐      one-to-one relation
+  |  │-NFS: path,srvDNS │    │ Volume(PV)│···┐ ┌───────────────────┐   ┌ Container@Pod┐
+  |  │-AWS: EBS|EFS|... │    └───────────┘   · │ Persistent  ⁴     ←·┐ │              │
+  |  │-Azure:...        │                    · │ Volume            │ · │ - Vol.Mounts │
+  |  │-...              │    ┌ Local ────┐   · │ Claim (PVC)       │ · │   /foot      │
+  |  └ NETWORK ATTACHED ┘  ┌·· Persistent····┤ │                   │ · │              │
+  |    STORAGE             · │Volume(LPV)│   · │  100Gi            │ · │ ┌───────────┐│
+  |                        · └── GA 1.14+┘   └··· Selector         │ · │ │ Volumes:  ││
+  |  ┌──────────────┐      ·          ⁵      ┌··· StorageClassName │ └···· ─PVC      ││
+  |  │ eNVM,SSD     ·······┘                 · └───────────────────┘   │ │ ─claimName││
+  |  └─ PCI/CPU-BUS ┘          ┌─Storage ─┐  ·                         │ └───────────┘│
+  |▶ Local disk/s requires     │ Class(SC)│··┘                         └──────────────┘
+  |  LocalPV(vs PV) since      └──────────┘
+  |  it also affects Pod      (L)PV LIFESPAM: ◁ ─ ─ ─ ─ ─ ─ ─ ─ ─ ▷     VOLUME LIFESPAM:
+  |  allocation scheduling    that of cluster                           that of Pod
+  |
+  |TIP:  Sometimes, it is useful to share one volume for multiple uses in a single pod.
+  |'volumeMounts.subPath' can be used to specify a sub-path inside the volume (vs root).
+  |
+  | ⁴ Similar to how Pods can request/limit CPU and Memory, PVClaims can request
+  |   specific size and access modes (mount once read/write, many-times read-only, ...)
+  |   - PV contains "maxsize", PVC contains "minsize" with PV.maxsize > PVC.minsize
+  | ⁵ Local Persistent Volume: [[{]]
+  |   * REF: <https://kubernetes.io/blog/2019/04/04/kubernetes-1.14-local-persistent-volumes-ga/>
+  |     Authors: Michelle Au (Google), Matt Schallert (Uber), Celina Ward (Uber)
+  |   * LPV LEVERAGES HIGH PERF./DIRECTLY-ATTACHED DISKS (PCI vs network)
+  |   * Preferred for applications handling data replication themself.
+  |     (software defined storage, replicated databases, blockchains, kafka,
+  |      Cassandra, ...).
+  |     Discourages for other types of apps.PVs takes care of replication.
+  ```
+
+* PersistentVolumes can be configured to be expandable when the
+  underlying StorageClass also allows it. (k8s 1.11+) [[storage.101]]
+
+* hostPath vs LPV:
+  **Q:** "hostPath" already allows to use local disk as a storage for Pods.
+     why SHOULD we use Local Persistent Volume instead?<br/>
+  **A:** With Local PV, the Scheduler is aware of the Local PV, so on Pod
+     re-start, execution will be assigned to the same worker node.
+     With hostPath, k8s can re-schedule in a different node, loosing all
+     previously stored data.
+
+### USSAGE STEPS:
+
+* PRE-SETUP Plannification)
+  * how many LOCAL disks would each node cluster have?
+  * How would they be partitioned?
+    The **local static provisioner** provides guidance to help answer
+    these questions. It can be used to help manage the Local PV lifecycle
+    - create,clean up,reuse - for individual disks.
+    <https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner>
+  * WARN: DYNAMIC VOLUME PROVISIONING NOT SUPPORTED. [[{PM.TODO.update}]]
+
+> Hint: It’s best to be able to dedicate a full disk to each local
+> volume (for IO isolation) and a full partition per-volume (for
+> capacity isolation).
+
+* STEP 1) Create StorageClass:
+  ```
+  | kind: StorageClass                       
+  | apiVersion: storage.k8s.io/v1            
+  | metadata:                                
+  |   name: local-storage                    
+  | provisioner: kubernetes.io/no─provisioner
+  | volumeBindingMode: WaitForFirstConsumer ¹ 
+  | 
+  | ¹ enable volume topology-aware scheduling
+  |   Consumer == "Pod requesting the volume"
+  ```
+
+* STEP 2) the external static provisioner can be configured and run to
+          create PVs for all the local disks on your nodes.
+  ```
+  | $ kubectl get pv
+  | NAME              CAPA  ACC. RECLAIM  STATUS    CLAIM STORAGECLASS  REASON AGE
+  |                         MODE POLICY
+  | local-pv-27c0f084 368Gi RWO  Delete   Available       local-storage         8s
+  | local-pv-3796b049 368Gi RWO  Delete   Available       local-storage         7s
+  | local-pv-3ddecaea 368Gi RWO  Delete   Available       local-storage         7s
+  ```
+
+* STEP 3) Start using PVs in workloads by:
+  ```
+  | - Alt 1: creating a PVC and Pod (not show)
+  | - Alt 2: creating a StatefulSet with volumeClaimTemplates
+  |   ┌ Ex: ───────────────────────────────────┐
+  |   │ apiVersion: apps/v1                    │
+  |   │ kind: StatefulSet                      │
+  |   │ metadata:                              │
+  |   │   name: local-test                     │
+  |   │ spec:                                  │
+  |   │   serviceName: "local-service"         │
+  |   │   replicas: 3                          │
+  |   │   selector: ...                        │
+  |   │   template: ...                        │
+  |   │     spec:                              │
+  |   │       containers:                      │
+  |   │       - name: test-container           │
+  |   │         ...                            │
+  |   │         volumeMounts:                  │
+  |   │ ┌····   - name: local-vol              │
+  |   │ ·         mountPath: /usr/test-pod     │
+  |   │ · volumeClaimTemplates:                │
+  |   │ · - metadata:                          │
+  |   │ └···· name: local-vol                  │
+  |   │     spec:                              │
+  |   │       accessModes: [ "ReadWriteOnce" ] │
+  |   │       storageClassName:"local-storage" │
+  |   │       resources:                       │
+  |   │         requests:                      │
+  |   │           storage: 368Gi               │
+  |   └────────────────────────────────────────┘
+  |    Once the StatefulSet is up and running, the PVCs will be bound:
+  |
+  | $ kubectl get pvc
+  | NAME             STATUS VOLUME              CAPACITY ACC.. STORAGECLASS   AGE
+  | local-vol-test-0 Bound  local-pv-27c0f084   368Gi    RWO   local-storage  3m45s
+  | local-vol-test-1 Bound  local-pv-3ddecaea   368Gi    RWO   local-storage  3m40s
+  | local-vol-test-2 Bound  local-pv-3796b049   368Gi    RWO   local-storage  3m36s
+  ```
+
+* STEP 4) Automatic Clean Up. Ex modifying replicas for stateful set (sts):
+  ```
+  | $ kubectl patch sts local-test \     ←  e.g: Reduce Pod replicates 3→2 for StatefulSet
+  |   -p '{"spec":{"replicas":2}}'               associated local-pv-... is not needed anymore.
+  | statefulset.apps/local-test patched          The external static provisioner will clean up
+  |                                              the disk and make the PV available for use again.
+  |
+  | $ kubectl delete pvc local-vol-test-2
+  | persistentvolumeclaim "local-vol-test-2" deleted
+  |
+  | $ kubectl get pv
+  | NAME              CAPA  ACC. RECLAIM  STATUS    CLAIM STORAGECLASS  REASON AGE
+  |                         MODE POLICY
+  | local-pv-27c0f084 368Gi RWO  Delete   Bound      ...-0 local-storage        11m
+  | local-pv-3796b049 368Gi RWO  Delete   Available        local-storage         7s
+  | local-pv-3ddecaea 368Gi RWO  Delete   Bound      ...-1 local-storage        19m
+  |                                                  └─┬─┘
+  |                                      default/local-vol-test-0/1
+  ```
+
+### LPV LIMITATIONS AND CAVEATS:
+* It ties apps to a specific node, making it harder to schedule.
+  Those apps   should specify a high priority  so that lower priority pods,
+  can be preempted if necessary.
+* Also if the tied-to node|local volume become inaccessible, then the pod
+  also becomes inaccessible requiring manual intervention, external controllers
+  or operators.
+* If a node becomes unavailable (removed from the cluster or drained), pods using
+  local volumes on that node are stuck in "Unknown" or "Pending" state depending
+  on whether or not the node was removed gracefully.
+  To recover from these interim states:
+  STEP 1) the PVC binding the pod to its local volume must be deleted
+  STEP 2) the pod must be deleted to forcerescheduled
+  (or wait until the node and disk are available again).
+  "... We took this into account when building our operator for
+   M3DB, which makes changes to the cluster topology when a pod is
+   rescheduled such that the new one gracefully streams data from the
+   remaining two peers..."
+  "...Thanks to the k8s scheduler’s intelligent handling of volume topology,
+   M3DB is able to programmatically evenly disperse its replicas across multiple
+   local persistent volumes in all available cloud zones, or, in the case of     [cloud]
+   on-prem clusters, across all available server racks..."
+* Because of these constraints, IT’S BEST TO EXCLUDE NODES WITH
+  LOCAL VOLUMES FROM AUTOMATIC UPGRADES OR REPAIRS, and in fact some
+  cloud providers explicitly mention this as a best practice.
+  (Basically most of the benefits of k8s are lost for apps managing
+   storage at App level. This is the case with most DDBBs and stream
+   architectures).
+[[}]]
+
+<https://kubernetes.io/docs/concepts/storage/volume-snapshot-classes/>
+- Dynamic Provisioning (when supported by the underlying StorageClass)
+  allows to provising storage on-demand  [[{cloud.billing}]]
+
+## Dynamic volume limits (k8s v1.17+)
+<https://kubernetes.io/docs/concepts/storage/storage-limits/>
+* Allowed for Amazon EBS, Google Persistent Disk, Azure Disk, CSI (2023-02)
+
+  ```
+  |- On GCE       : up to 127 volumes per node.
+  |- On Amazon EBS: M5,C5,R5,T3 and Z1D instance types, up to 25 volumes per Node.
+  |                 Other               instance types, up to 39 volumes per Node.
+  |- Azure        : up to 64 disks per node.
+  |```
+  |
+  |## StorageClass: [[{storage.tunning]]
+  |* Map to different I/O performance level, SLAs, backups and custom policies.
+  |
+  |```
+  |kubernetes.io/... <··· AzureFile,AzureDisk,AWSElasticBlockStore,CephFS,Cinder,
+  |                       FC,FlexVolume,GCEPersistentDisk,iSCSI,NFS,RBD,
+  |                       VsphereVolume,PortworxVolume,Local
+  |aws-ebs.gp2       <··· Custom StorageClass: aws supports io1, gp2, sc1, st1.
+  |                       (and for each one we can tune iopsPerGB, fsType, encryption, ..)
+  |                       can be customized)
+  ```
+
+* Different Storage Classes allows for different tunning  (fstype, replication-type,
+  encryption, magnetic or SSD, ...)
+
+* `reclaimPolicy := Delete (default) or Retain`  [[{security.backups}]]
+[[storage.tunning}]]
+
+[[{storage.distributed.rook,storage.101,scalability.storage,01_PM.low_code,01_PM.TODO]]
+## Rook.io
+<https://rook.io/>
+<https://www.infoq.com/news/2019/08/rook-v1-release/>
+- Rook turns distributed storage systems into self-managing, self-scaling,
+  self-healing storage services AUTOMATING THE TASKS OF A STORAGE
+  ADMINISTRATOR: DEPLOYMENT, BOOTSTRAPPING, CONFIGURATION,
+  PROVISIONING, SCALING, UPGRADING, MIGRATION, DISASTER RECOVERY,
+  MONITORING, AND RESOURCE MANAGEMENT.
+
+- 2019-08: release v1.0 for production-ready workloads that use file,
+  block, and object storage in containers.
+  storage providers through operators include:
+  - Ceph Nautilus
+  - EdgeFS
+  - NFS.
+  - eg: pod requests an NFS file system, Rook provisions it without any
+    manual intervention.
+
+- 1st storage project accepted by (CNCF)
+[[storage.distributed.rook}]]
+
+[[{storage.101,security.backups,PM.TODO]]
+## Volume Snapshot,Restore 1.12+
+* <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#volume-snapshot-and-restore-volume-from-snapshot-support>
+[[}]]
+
+
+
+[[storage.101}]]

@@ -1,15 +1,102 @@
+[[{istio]]
+# ISTIO mesh network 
 ## Summary:
 * Istio solves similar problems to existing "SERVICE MESH" libraries
   like Netflix OSS or Spring Cloud ( Service Discovery, Circuit Breaker,
   Intelligent Routing, Client Side Load Balancing, distributed tracing,
   monitoring, ...) by replacing "embedded" libraries with (Envoy) sidecards.
 * MAIN ADVANTAGE: Provides for low-code polyglot architectures.
+* OTHER ADVANTAGES: Infrastructure backends are designed to provide
+  support functionality used to build services including
+  access control systems, telemetry capturing systems, quota
+  enforcement systems, billing systems, ...
+   Istio allows to decouple apps from such backend systems.
+
+* Alternatives include Oterize [[{PM.TODO]]
+ (looks to be simpler and more K8s friendly)
+  https://www.kubetools.io/kubernetes/securely-scaling-microservices-on-kubernetes-with-otterize/
+[[}]]
+
+
+## External Resources
+* Google’s Site Reliability Engineering book
+  https://sre.google/sre-book/table-of-contents
+
+## Supported Mixer Adapters
+<https://istio.io/v1.3/docs/reference/config/policy-and-telemetry/adapters/>
+  Apache SkyWalking (metrics)
+  Apigee            (distributed policy checks&analytics)
+  App Ident.&Access (enforce AA policies for web apps and APIs)
+  Circonus          (monitoring)
+  CloudMonitor      (metrics)
+  CloudWatc
+  Datadog           (deliver metrics to dogstatsd agent for delivery to DataDog)
+  Denier            (always returns a precondition denial)
+  Fluentd           (logs)
+  Kubernetes Env    (extracts info from k8s environment)
+  List              (performs white/black list checks)
+  Memory quota      (simple in-memory quota management system)
+  OPA               (implements Open Policy Agent engine).
+  Prometheus        (metrics)
+  Redis Quota
+  SignalFx          (metrics)
+  SolarWinds        (logs, metrics)
+  Stackdriver       (logs, metrics, traces)
+  StatsD            (metrics)
+  Stdio             (logs and metrics locally)
+  Wavefront         (metrics)
+  Zipkin            (tracing)
+
+
 
 * Istio architecture:
   * CONTROL PLANE: Manage service mesh configuration.
   * DATA    PLANE: (Envoy sidecar proxies) manage dataflow
     (translates, forwards and monitor every network packet
      flowing among application services)
+
+
+   ```
+
+   k8s worker Node 1           k8s worker Node 2
+
+                              │Istio node-agent│> CSR ··┐
+                                                        ·
+   ┌─ ServiceA Pod  ───┐      ┌─ ServiceB Pod  ───┐     ·
+   │· App   Container  │      │· App   Container  │     ·
+   │                   │      │                   │     ·
+   │       ┌─ Istio ───┤      │       ┌─ Istio ───┤     ·
+   │       │Envoy Proxy│      │       │Envoy Proxy│     ·
+   └───────┴^──────•───┘      └───────┴^────•─────┘     ·
+           ·      └····mTLS············(····┘           ·
+            ·                          ·                ·
+     ┌······┴··························┴·············┐  ·
+     ·                                               ·  ·
+     ·        ┌·····> Infra <·········┐              ·  ·
+     ·        ^                       ^              ·  ·
+     ·  │Adapter│<···│       │······>│Adapter│       ·  ·
+     ·    ^          │ istio │                       ·  ·
+     ·    ·          │ mixer │                      TLS ·
+     ·    ·          │ ^   ^ │                     Certs·.
+     ·    ·            ·   ·                         ·  ·
+     ·    ·            ·   └······················ ┐ ·  ·
+     ·    ·            ·                           · ·  ·
+     ·    ·            ·Config.data                · ·  ·
+    │^    ^ │        │ ^      │                  │ ^ ^     │
+    │ Pilot │        │ Galley │                  │ Citadel │
+    │  ^    │        │ ^      │                  │  ^      │
+       ·               ·                            ·
+       ·               ·                       PKI, CA, AAA, Acounting
+       ·               ·
+       ·               Isolate Config.Input from real Istio mesh config
+       ·
+     inject config to proxies. Gets in charge of routing, provides
+     service discovery, and facilitates timeouts, retries, circuit breakers, ...
+     Pilot separates out the platform-specific way of service discovery
+     from Istio, THUS ALLOWING ISTIO TO RUN ON MULTIPLE ENVIRONMENTS SUCH
+     AS KUBERNETES, NOMAD, ... (This doesn't look to be the case for
+     Mixer, since it is configured through k8s CRS)
+   ```
 
 * Out of the box k8s offers Service Discovery, Service Invocation and
   Service Elasticity. On top of them Istio offer:
@@ -18,7 +105,8 @@
     KEY-POING: **Istio intercepts all requests/responses and sends them
                  to Jaeger**
 
-## Installing Istio [[{devops.101]]
+[[{cluster_admin.istio,cluster_admin.bootstrap,]]
+## Installing Istio 
 1. Download and install inside k8s cluster:
 ```
   $ URL=https://istio.io/downloadIstio
@@ -26,7 +114,7 @@
   $ cd istio-1.17.2/              #
   $ export PATH=$PWD/bin:$PATH    # add istio to path
   $ istioctl install -y \         # install "inside" k8s cluster.
-    --set profile=demo \          <·· demo is a pre-packaged istio profile
+    --set profile=demo            <·· demo is a pre-packaged istio profile
   ...
   ✔ Istio core installed          NOTE: To remove/clean Istio install:
   ✔ Istiod installed              $ istioctl uninstall -y --purge
@@ -35,7 +123,22 @@
   ✔ Addons installed
   ✔ Installation complete
 ```
-2. Wait until all Pods in **istio-system namespace** are in RUNNING
+2. Install Prometheus & Grafana
+   ( Demo purposes. Not tuned for performance or security )
+   ```
+   $ kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.17/samples/addons/prometheus.yaml
+   $ kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.17/samples/addons/grafana.yaml
+     (Grafana bundled with all Istio preconfigured dashboards already installed)
+    ┌──────────────────────┴────────────────────────────────┘
+    v
+    Mesh         : overview of all mesh services.
+    Service      : detailed breakdown of metrics for a service.
+    Workload     : detailed breakdown of metrics for a workload.
+    Performance  : monitors the resource usage of the mesh.
+    Control Plane: monitors the health and performance of the control plane.
+   ```
+
+3. Wait until all Pods in **istio-system namespace** are in RUNNING
 ```
   $ kubectl  get pods -n istio-system
   NAME
@@ -71,16 +174,21 @@
                                  -n istio-system \
                                  grafana-b54bb57b9-k5qbm 3000:3000
 ```
-3. Inject Istio sidecar automatically (**NO need to change Deployments!!!**)
+4. Inject Istio sidecar automatically (**NO need to change Deployments!!!**)
    into pods for a given NS ("default" in example).
    Adding a namespace label instructs Istio to automatically inject
    Envoy sidecar proxies when deploying the application later:
-```sh
- $ kubectl label namespace default istio-injection=enabled
-```
-[[devops.101}]]
+   ```sh
+   $ kubectl label namespace default istio-injection=enabled
+   ```
 
-# Istio + k8s "Application" how to  [[{101]]
+   Otherwise we need to inject (enrich) the Istio container into Pods manually like
+   ```sh
+   $ istioctl kube-inject -f myAppResources.yaml  # *yaml contains Deployment/s,Serice/s, ...
+   ```
+[[cluster_admin.istio}]]
+
+# Istio + k8s "Application" how to  [[{istio.101]]
 1. Deploy an standard K8S deployment v1/v2/... + Service:
    ```
    $ kubectl apply -f service.yml       -n default
@@ -217,58 +325,152 @@
 
    $ $istioctl get virtualservices  # check
 ```
-[[101}]]
+[[istio.101}]]
 
-# Authentication [[{ $authentication ]]
-## Authentication: zero-code HTTPs mutual Authentication [[{]]
+[[{ $aaa ]]
+# Authentication & Authorization
 
-* Istio in charge of managing certificates, CAs and revoking/renewing certificates.
+[[{security.mTLS]]
+## host-to-host mTLS Auth.
 
-1. STEP 1) validate that mTLS is enabled:
-```
-$ istioctl experimental authz check book-service-5cc59cdcfd-5qhb2 -a
-LISTENER[FilterChain]   HTTP ROUTE                        ALPN                                mTLS (MODE)         AuthZ (RULES)
-...
-virtualInbound[5]       inbound|8080|http|book-service... istio-http/1.1...  noneSDS: default yes  (PERMISSIVE)   no    (none)
-...                                                                                           \---------------/
-                                                                                              mTLS configured with
-                                                                                              permissive strategy
-```
+* mTLS stands for mutual TLS. Both client and server identify and check each other's 
+  certificate before starting the (encrypted) connection. <br/>
+  
+* Istio Citadel and Node-Agent is in charge of managing CAs and Certificate issuance/renew/revoke.
+
+1.validate that mTLS is enabled:
+  ```
+  | $ istioctl experimental authz check $k8s_service_id -a
+  | LISTENER[FilterChain]  HTTP ROUTE              ...  mTLS (MODE)    AuthZ (RULES) ...
+  | virtualInbound[5]      inbound|8080serviceA...      (PERMISSIVE)   no    (none)
+  | ...                                                 └───────────────┘
+  |                                                     mTLS configured with
+  |                                                     permissive strategy
+  ```
+
+ NOTE:  For external services Istio provides a permissive mode allowing
+      services to accept both plain-text traffic and mutual TLS traffic
+ at the same time.
+
+* mutual TLS authentication is configured by creating a policy.
+  enforces the type of exchange supported by the application.
+  policy scopes:
+  * Service
+  * Namespace
+  * Mesh      : preinstalled with Istio install
+
+  ```
+  | $ kubectl get meshpolicies.authentication.istio.io -o yaml
+  | apiVersion: v1
+  | items:
+  | - apiVersion: authentication.istio.io/v1alpha1
+  |   kind: MeshPolicy
+  |   metadata:
+  |   ## REMOVED for BREVITY
+  |     generation: 1
+  |     labels:
+  |       app: security
+  |       chart: security
+  |       heritage: Tiller
+  |       release: istio
+  |     name: default
+  |   spec:
+  |     peers:
+  |     - mtls:
+  |         mode: PERMISSIVE    <·· non TLS allowed from outside the mesh
+  | kind: List
+  | metadata:
+  |   resourceVersion: ""
+  |   selfLink: ""
+  | ---
+  | apiVersion: "authentication.istio.io/v1alpha1"
+  | kind: "Policy"
+  | metadata:
+  |   name: "strict-policy"
+  | spec:
+  |   targets:
+  |   - name: webservice      <·· Strict policy
+  |   peers:                      · (null defaults to strict??)
+  |   - mtls:                     ·
+  |       mode: null          <···┘
+  ```
+
+
+NOTE: As soon as mTLS  is enforced services will start to fail since live&readiness probes will fail.
+
+FIX 1: Use probes on another port bypassing Envoy.
+
+FIX 2: enable ProbeRewrite for checks.<br/>
+This will forward Probe requests through the Pilot-Agent
+
+   ```
+   | -- STEP 1 -----------------------------------------------------------------
+   | $ kubectl get \
+   |     cm istio-sidecar-injector \
+   |     -n istio-system -o yaml | \
+   |   sed -e "s/ rewriteAppHTTPProbe: false/ rewriteAppHTTPProbe: true/" | \
+   |   kubectl apply -f -
+   |
+   | -- STEP 2 configure rewriteAppHTTPProbers annotation for our deployment ---
+   |
+   | apiVersion: apps/v1
+   | kind: Deployment
+   | metadata:
+   |   name: webapp-deployment-6.0
+   |  ...
+   |   template:
+   |     metadata:
+   |       ...
+   |       annotations:
+   |         sidecar.istio.io/rewriteAppHTTPProbers: "true"   <···
+   |     spec:
+   |       containers:
+   |       - name: webapp
+   |  ...
+   ```
+
+* instruct envoy side-car clients to perform the mtls handshake.
+
+  ```
+  | apiVersion: "networking.istio.io/v1alpha3"
+  | kind: "DestinationRule"
+  | metadata:
+  |   name: "wb-rule"
+  |   namespace: "default"
+  | spec:
+  |   host: webservice
+  |   trafficPolicy:
+  |     tls:
+  |       mode: ISTIO_MUTUAL    <···
+  ```
 [[}]]
 
-## Authenticating end-users with JWT [[{]]
-1. Create RequestAuthentication policy resource.
-```
-$ editor request-authentication-jwt.yml
-apiVersion: "security.istio.io/v1beta1"
-kind: "RequestAuthentication"
-metadata:
- name: "bookjwt"
- namespace: default
-spec:
- selector:
-   matchLabels:                                    policy ensures that if the "Authorization" header
-     app.kubernetes.io/name: book-service          contains a JWT token, it must be valid, not expired,
- jwtRules:                                     <·· issued by the correct issuer, and not manipulated.
- - issuer: "testing@secure.istio.io"               <··· Valid issuer of the token.
-   jwksUri: "https://.../raw/jwks.json"            <··· URL where public keys are registered
-                                                        for validation
+## JWT end-users Auth.[[{]]
+1. Create RequestAuthentication policy resource
+  ```
+    $ editor request-authentication-jwt.yml
+  + apiVersion: "security.istio.io/v1beta1"
+  + kind: "RequestAuthentication"
+  + metadata:
+  +  name: "serviceAjwt"
+  +  namespace: default
+  + spec:
+  +  selector:
+  +    matchLabels:                                    policy ensures that if the "Authorization" header
+  +      app.kubernetes.io/name: serviceA              contains a JWT token, it must be valid, not expired,
+  +  jwtRules:                                     <·· issued by the correct issuer, and not manipulated.
+  +  - issuer: "testing@secure.istio.io"               <··· Valid issuer of the token
+  +    jwksUri: "https://.../raw/jwks.json"            <··· URL where public keys are registered
+                                                            for validation
 
-$ kubectl apply -f request-authentication-jwt.yml -n default
-```
-1. Test with a non-valid JWT:
-```
-$ curl .../book/1 \
-   -H "Authorization: Bearer ${WRONG_JWT}" ... <·· invalid token 401 Unauthorized response
-$ curl .../book/1 \
-   -H "Authorization: Bearer ${VALID_JWT}" .. <··   valid token
-  (response)
-```
+    $ kubectl apply -f request-authentication-jwt.yml -n default
+    $ curl .../X/1 -H "Authorization: Bearer ${WRONG_JWT}" ... <·· invalid token 401 Unauthorized response
+    $ curl .../X/1 -H "Authorization: Bearer ${VALID_JWT}" .. <··   valid token (normal response)
+  ```
 [[}]]
 
-## Authorizing end-users with RBAC model. [[{]]
- Let’s create . Create a file with name authorization-policy-jwt.yml:
-1. Create AuthorizationPolicy allowing only valid request with claim role set to customer in JWT
+## RBAC end-user Authorization [[{]]
+1. Create AuthorizationPolicy
 ```
 $ editor authorization-policy-jwt.yml
 apiVersion: security.istio.io/v1beta1
@@ -279,275 +481,363 @@ metadata:
 spec:
  selector:
    matchLabels:
-     app.kubernetes.io/name: book-service
+     app.kubernetes.io/name: serviceA
  action: ALLOW
  rules:
  - from:
    - source:
       requestPrincipals: ["testing@secure.istio.io/testing@secure.istio.io"]
-   when:
-   - key: request.auth.claims[role]
-     values: ["customer"]
+   when:                            <·· allowing only valid request with
+   - key: request.auth.claims[role] <·· claim role set to "customer" in JWT
+     values: ["customer"]           <···┘
 
 $ kubectl apply -f authorization-policy-jwt.yml
 ```
 [[}]]
 
-[[ $authentication }]]
+[[ $aaa }]]
 
-
-
-
----------------------------------------------------------------
-$ istioctl kube-inject -f myAppResources.yaml  # *yaml contains Deployment/s,Serice/s, ...
-           ^^^^^^^^^^^
-           enrich Pods with istio (Envoy) sidecar proxy + additional components:
-
-# Envoy Filters:
- Filters enable Envoy to perform various operations such as routing, translating protocols, generating statistics, etc., on a received message. Each port listener configures its own set of filters. All these filters are combined for a filter chain, which is invoked for every TCP message. Envoy has a large set of out-of-the-box filters. These filters can be broadly classified as follows:
-
-## Listener filters (L4): invoked as part of a handshake in a connection request. Responsible for TLS inspection, remote destination ,...
-## Network filters: invoked for every TCP message after a connection. Responsible for application authorization, rate limiting, TLS authentication,.
-## Filters for application-specific protocols like MySQL and MongoDB exists in order to gather statistics, perform role-based access, etc.
-## HTTP filters (L7): gzip compression, gRPC to JSON translation, etc.
-
-# Istio Mixer [[{istio.mixer]]
-* platform-independent component to collect telemetry,
-* It currently supports the following three use cases:
-  * Precondition checking
-  * Quota management, such as API limits
-  * Telemetry reporting such as logs and requests
-
+# Mixer [[{istio.mixer]]
+At a high level, Mixer provides:
+* Backend Abstraction: (to the rest of Istio components and apps) through Mixer logger
+                       and Telemetry Adapters (aka "plugins") such as
+                     <https://istio.io/docs/reference/config/policy-and-telemetry/adapters/>
+                      Zipkin, StatsD, Stackdriver, CloudWatch, ...
+* Intermediation     : Mixer allows operators to have fine-grained control over
+                       all interactions between the mesh & infrastructure backends.
+* Policy enforcement :
+* telemetry collect  : entirely driven from configuration such as logs and requests.
+* Precondition checking
+* Quota management   : such as API limits
 * It also enforces the authorization policy.
 
-## Mixer Adapters  [[{]]
-* Abstract Istio Mixer from current providers.
-  (Zipkin, StatsD, Stackdriver, CloudWatch, ...)
-  A complete list of adaptars can be found at:
-@[https://istio.io/docs/reference/config/policy-and-telemetry/adapters/]
+### Q: Why does Istio need Mixer?
+  * Mixer and Envoy task are very different in nature, leading to
+    different scalability requirements.
+  * Mixer is complex allowing Envoy to stay light and simple.
+  * Mixer and its open-ended extensibility model create distinct
+    failure domains which allowing Envoy to continue operating
+    even when Mixer fails.
+  * Allow to keep Envoy instances configured in a very narrow scope
+    of interaction, limiting the impact of potential attacks.
+
+### Mixer Attributes Ex:
 
   ```
-  $ kubectl get crd -listio=mixer-adapter  # list available mixer adapters
-  NAME                              CREATED AT
-  adapters.config.istio.io          2019-07-14T07:46:10Z
-  bypasses.config.istio.io          2019-07-14T07:45:59Z
-  circonuses.config.istio.io        2019-07-14T07:45:59Z
-  deniers.config.istio.io           2019-07-14T07:46:00Z
-  fluentds.config.istio.io          2019-07-14T07:46:00Z
-  Kubernetes envs.config.istio.io   2019-07-14T07:46:00Z
-  listcheckers.config.istio.io      2019-07-14T07:46:00Z
-  memquotas.config.istio.io         2019-07-14T07:46:01Z
-  noops.config.istio.io             2019-07-14T07:46:01Z
-  opas.config.istio.io              2019-07-14T07:46:02Z
-  prometheuses.config.istio.io      2019-07-14T07:46:02Z
-  rbacs.config.istio.io             2019-07-14T07:46:03Z
-  redisquotas.config.istio.io       2019-07-14T07:46:03Z
-  servicecontrols.config.istio.io   2019-07-14T07:46:04Z
-  signalfxs.config.istio.io         2019-07-14T07:46:04Z
-  solarwindses.config.istio.io      2019-07-14T07:46:04Z
-  stackdrivers.config.istio.io      2019-07-14T07:46:05Z
-  statsds.config.istio.io           2019-07-14T07:46:05Z
-  stdios.config.istio.io            2019-07-14T07:46:05Z
-
-
+  |             request.path: xyz/abc     <··· small "bit of typed data" (STRING, INTE64,...)
+  |             request.size: 234              for a single request|env property
+  |             request.time: 12:34:56.789 04/17/2017
+  |                source.ip: [192 168 0 1]
+  | destination.service.name: example
+  | └───────────────────────┴─ FIXED VOCABULARY that Mixer can understand.
+  | REF:
+  | <https://istio.io/v1.3/docs/reference/config/policy-and-telemetry/attribute-vocabulary/>
+  |
+  | source.              destination         request.       response.
+  | .uid                 .uid                .headers       .headers
+  | .ip                  .ip                 .id            .size
+  | .labels              .port               .path          .total_size
+  | .name                .labels             .url_path      .time
+  | .namespace           .name               .query_params  .duration
+  | .principal           .namespace          .host          .code
+  | .owner               .principal          .method        .grpc_status
+  | .workload.uid        .owner              .reason        .grpc_message
+  | .workload.name       .workload.uid       .referer
+  | .workload.namespace  .workload.name      .scheme
+  |                      .workload.namespace .size
+  |                      .container.name     .total_size
+  |                      .container.image    .time
+  |                      .service.host       .useragent
+  |                      .service.uid
+  |                      .service.name
+  | origin.ip            .service.namespace
+  |
+  |
+  | connection.             context.            api.        request.
+  | .id                     .protocol           .service    .auth.principal
+  | .event                  .time               .version    .auth.audiences
+  | .received.bytes         .reporter.kind      .operation  .auth.presenter
+  | .received.bytes_total   .reporter.uid       .protocol   .auth.claims
+  | .sent.bytes             .proxy_error_code               .api_key
+  | .sent.bytes_total
+  | .duration               check.error_code
+  | .mtls                   check.error_message
+  | .requested_server_name  check.cache_hit     quota.cache_hit
   ```
 
-### Logging Backends
-* Amazon CloudWatch: Sends logs to CloudWatchLogs.
-* Fluentd daemon:
-* Prometheus??
 
-### Quota Backends
-(keep track of different endpoint quotas)
-* Redis Quota: rate-limiting quota for a fixed or rolling
-  window algorithm.
+* KEY-POINT: Mixer is in essence an attribute processing machine.
+  FOR EVERY REQUEST:
+  ```
+  | E.sidecar ···> Mixer: attributes describing the request + the  "environment around"
+  | Mixer     ···> Mixer: based on current configuration and incomming attributes
+  |                       generates calls to a variety of infrastructure backends.
+  ```
 
-### Authorization Backend
-* List: Simple deny/allow list for IP addresses or regex patterns.
+### Attribute expressions.
 
-### (Pod,...) Telemetry backend
-* StatsD: delivers metric data to a StatsD monitoring back end.
+* Used when configuring Mixer instances. Ex:
+  ```
+  destination_service: destination.service.host
+        response_code: response.code
+  destination_version: destination.labels["version"] | "unknown"
+                       └─────────────────┬─────────────────────┘
+                         attribute expressions
+  ```
 
-### (Data plane) Attributes
-* Attribute: smallest data chunk that defines a property of a request.
-* They include: request path, destination IP address, response code,
-  response size, request size, ...
-  (Used by Mixer & Envoy)
+### Configuration Model for policy and telemetry:
 
-### Configuration Model
-* Based on adapters + templates.
-* Templates: define how attributes are fed into the adapters.
-  * Handlers: define the configuration of an adapter.
-    ("how the adapter needs to be invoked")
-    e.g: In StatsD, requests count can be one attribute to be fed
-      The list of available handlers depends on the adapters deployed
-    in the service mesh. Also, we need to refer to the adapter
-    documentation to know what configuration options are available. As an
-    example let's look at the fluentds.config.istio.io adapter. The
-    adapter is used to send access logs to the fluentd aggregator demon.
-[[}]]
-
-
-  * Instances:
-    * raw data "understood" by an adapter is compiled in four templates,
+* designed to put operators in control
+* configuration resources types:
+  * (config) instances: describe how to map request-attributes into adapter inputs.
+    Instances represent a chunk of data that one or more adapters will operate on.
+    Eg: an operator wants to generate `requestcount` metric instances from attributes
+    [ `destination.service.host` , `response.code` ]
+    * raw data "understood" by an adapter is compiled in 4 **templates**
       each one with a set of properties that can be captured by the adapter.
+    * Templates express "how attributes are fed into the adapters"
+      defining the schema for specifying request mapping from attributes
+      to adapter inputs. A GIVEN ADAPTER MAY SUPPORT ANY NUMBER OF TEMPLATES.
     * The template also assigns default values for missing attributes.
     * Each adapter has a list of templates that can be used to send the data.
       Thus, an instance can be defined as a mapping of instance attributes
       to template inputs associated to the adapter.
-    ```
-    $ kubectl get crd -listio=mixer-instance # sow available templates
-    NAME                                    CREATED AT
-    apikeys.config.istio.io                 2019-07-14T07:46:06Z
-    authorizations.config.istio.io          2019-07-14T07:46:06Z
-    checknothings.config.istio.io           2019-07-14T07:46:06Z
-    edges.config.istio.io                   2019-07-14T07:46:07Z
-    instances.config.istio.io               2019-07-14T07:46:11Z
-    Kubernetes es.config.istio.io           2019-07-14T07:46:06Z
-    listentries.config.istio.io             2019-07-14T07:46:07Z
- ┌> logentries.config.istio.io              2019-07-14T07:46:07Z
- ·  metrics.config.istio.io                 2019-07-14T07:46:08Z
- ·  quotas.config.istio.io                  2019-07-14T07:46:08Z
- ·  reportnothings.config.istio.io          2019-07-14T07:46:08Z
- ·  servicecontrolreports.config.istio.io   2019-07-14T07:46:08Z
- ·  tracespans.config.istio.io              2019-07-14T07:46:09Z
- ·
- └· $ kubectl get logentries.config.istio.io --all-namespaces
-    NAMESPACE      NAME           AGE
-    istio-system   accesslog      41d
-    istio-system   tcpaccesslog   41d
+  * (config)  handlers: determine the set-of-adapters ("plugins") being used and how they operate.
+  * (config)     rules: describe when a given adapter is called and which instances it is given.
+    Rules consist of a match expression and actions.
+    * match expression: "when to invoke an adapter"
+    * actions         :  set of instances to give the adapter.
+    eg.: Operator wants to  push a request count for only one service:
+      `destination.service.name == serviceA`
 
-    # look at accesslog-definition to fetch which details are captured.
-    $ kubectl get logentries.config.istio.io accesslog -n istio-
-    system -o yaml
+###  Use-case Example:
+
+ Create rules to manage resource utilization or control
+application deny/allow listing at runtime without custom code.
+
+0. PRESETUP) Enable "disablePolicyChecks" flag to toggle a rules check
+   (Q: will this enable a mixer-adapter in background??) [[{PM.TODO}]]
+  ```
+  | $ kubectl get cm istio \
+  |   -n istio-system -o yaml | \
+  |   sed -e "s/ disablePolicyChecks: true/ disablePolicyChecks: false/" | \
+  |   kubectl apply -f - configmap/istio configured
+  ```
+1. Configure allow-list rule:
+  ```yaml
+  | ---
+  | apiVersion: config.istio.io/v1alpha2
+  | kind: handler                      <·· (Configured mixer-adapter to listhchecker)
+  | metadata:
+  |   name: allowlist01
+  | spec:
+  |   compiledAdapter: listchecker         allow access from front-end to webapp service.
+  |   params:                              deny  access to any other source.
+  |     overrides: ["frontend"]            it can be toggled to blacklisting.
+  |     blacklist: true                <·· Istio provides also handlers to perform checks
+  | #                                      for quota management, simple denials, ...
+  | #                                      for quota management, simple denials, ...
+  | #                                      Alternatively:
+  | #                                      params:
+  | #                                        providerUrl: http://white_list_registry/
+  | #                                        blacklist: false
+  | ---
+  | apiVersion: config.istio.io/v1alpha2
+  | kind: instance
+  | metadata:
+  |   name: appsource
+  | spec:
+  |   compiledTemplate: listentry
+  |   params:
+  |     value: source.labels["app"]
+  | ---
+  | apiVersion: config.istio.io/v1alpha2
+  | kind: rule                         <··· specify when a given handler is invoked with a given instance
+  | metadata:
+  |   name: checksrc
+  | spec:
+  |   match: destination.labels["app"] == "webapp"  <··· $ curl http://10.152.183.230/ # will fail
+  |   actions:                                    ^      $ curl $http_frontend_service # will work
+  |   - handler: allowlist01                      ·      Alternative match expression:
+  |     instances: [ appsource ]                  └····· example "complex" rule:
+  |                                                      "webapp" && request.headers["x-user"] == "user1"
+  ```
+
+## Ex 2.  trace to Prometheus [[{]]
+
+  This adapter implement functionality beyond simple "connection" to backend.
+It can aggregate metrics as distributions or counters in a configurable way.
+
+  ```
+  | apiVersion: config.istio.io/v1alpha2
+  | kind: handler
+  | metadata:
+  |   name: promhandler
+  |   namespace: istio-system
+  | spec:
+  |   compiledAdapter: prometheus            <··· mixer-handler
+  |   params:
+  |     metrics:                             <··· prometheus specific "mapping"
+  |     - name: request_count
+  |       instance_name: requestcount.instance.istio-system
+  |       kind: COUNTER
+  |       label_names:
+  |       - destination_service
+  |       - destination_version
+  |       - response_code
+  |     - name: request_duration
+  |       instance_name: requestduration.instance.istio-system
+  |       kind: DISTRIBUTION
+  |       label_names:
+  |       - destination_service
+  |       - destination_version
+  |       - response_code
+  |       buckets:
+  |         explicit_buckets:
+  |           bounds: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
+  ```
+[[}]]
+
+## Ex3. Trace `requestduration` metric [[{]]
+
+  ```
+  | apiVersion: config.istio.io/v1alpha2
+  | kind: instance
+  | metadata:
+  |   name: requestduration
+  |   namespace: istio-system
+  | spec:
+  |   compiledTemplate: metric
+  |   params:
+  |     value: response.duration | "0ms"
+  |     dimensions:              <··· dimensions expected by handler configuration are specified in the mapping.
+  |       destination_service    : destination.service.host | "unknown"
+  |       destination_version    : destination.labels["version"] | "unknown"
+  |       response_code          : response.code | 200
+  |       monitored_resource_type: '"UNSPECIFIED"'
+  ```
+[[}]]
+
+## Browse Mixer config [[{]]
+  ```
+  $ kubectl get rules --all-namespaces     # rules == istio mixer CDR, -o yaml for details
+  $ kubectl get crd -listio=mixer-adapter  # identify the list of adapter kinds
+  $ kubectl get crd -listio=mixer-instance # identify the list of instance kinds
+    ...
+ ┌> logentries.config.istio.io       ...
+ ·  ...
+ └· $ kubectl get logentries.config.istio.io --all-namespaces
+    ...
+ ┌> istio-system   accesslog      41d
+ ·  istio-system   tcpaccesslog   41d
+ ·
+ ·
+ └· $ kubectl get logentries.config.istio.io accesslog -n istio-system -o yaml
     apiVersion: config.istio.io/v1alpha2
     kind: logentry
     metadata:
       // REMOVED FOR BREVITY
-    spec:
+    spec:                                       <··· details captured by mixer-adapter ("plugin")
       monitored_resource_type: '"global"'
       severity: '"Info"'
       timestamp: request.time
       variables:
-        apiClaims: request.auth.raw_claims | ""
-        apiKey: request.api_key | request.headers["x-api-key"] | ""
-        .......
-        destinationApp: destination.labels["app"] | ""
-        destinationIp: destination.ip | ip("0.0.0.0")
+        destinationApp : destination.labels["app"] | ""
+        destinationIp  : destination.ip | ip("0.0.0.0")
         destinationName: destination.name | ""
-        latency: response.duration | "0ms"
-        method: request.method | ""
-        protocol: request.scheme | context.protocol | "http"
-        receivedBytes: request.total_size | 0
-        // REMOVED for brevity
-
+        latency        : response.duration | "0ms"
+        method         : request.method | ""
+        protocol       : request.scheme | context.protocol | "http"
+        receivedBytes  : request.total_size | 0
+        ...
+        apiClaims      : request.auth.raw_claims | ""
+        apiKey         : request.api_key | request.headers["x-api-key"] | ""
+        ......
     ```
-
-  * Rules: eg: "we want to push a request count for only one service" maps to rule:
-    `destination.service.name == <Service Name>`
 [[}]]
 [[istio.mixer}]]
 
-## Pilot [[{]]
-* it does the routing, provides service discovery, and facilitates
-  timeouts, retries, circuit breakers, and so on.
-* Pilot separates out the platform-specific way of service discovery
-  from Istio, THUS ALLOWING ISTIO TO RUN ON MULTIPLE ENVIRONMENTS SUCH
-  AS KUBERNETES, NOMAD, AND SO ON
+# Istio cli Summary [[{]]
 
-Comparative from
-https://stackoverflow.com/questions/48639660/what-is-the-difference-between-mixer-and-pilot-in-istio
-
-* Pilot gets in charge of:
-  * Routing (eg:90% of traffic goes to v1, 10% goes to v2)
-    also also:
-    * a) rewrite
-    * b) redirect
-  * Support for microservices (dev/deploy/test)
-    * a) timeouts
-    * b) retries
-    * c) circuit breakers
-    * d) load balancing
-    * e) fault injection (for testing)
-* Mixer is responsible for:
-  * Logging, Distributed Tracing, Telemetry
-  * Policy enforcement
-* Citatel:
-  * Secure communication and strong identity.
-
-          │Citadel│··PKI·······┐
-                               v
-|Pilot|·> (routing,config) ··>|Envoy|··(req/res trace)·>|Mixer|
-                                 ^│                       ^│
-                                 │└ Q:allow/deny request?─┘│
-                                 └─ A:YES/NO ──────────────┘
-
+  ```
+  | $ istioctl get virtualservices
+  | 
+  | $ istioctl authn tls-check $pod_name
+  |            └───┴─·· interact with the Istio authentication policies.
+  | 
+  | $ istioctl deregister <service-name> <ip-to-be-removed>
+  | $ istioctl   register <service-name> <ip-to-be-added> <port>
+  | 
+  | $ istioctl experimental auth check <pod-name>
+  | 
+  | $ istioctl experimental convert-ingress # k8s ingress ···> Istio VirtualService
+  |                                           config. (best effort conver)
+  | 
+  | $ istioctl experimental dashboard grafana
+  | 
+  | $ istioctl experimental metrics $serv_name # depends on Prometheus.
+  | $ istioctl kube-inject ... # converts k8s config ··> Istio config
+  |                            # by injecting the Envoy sidecar.
+  | 
+  | $ istioctl proxy-config bootstrap|cluster|endpoint|listener|route
+  | $ istioctl validate ...
+  ```
 [[}]]
 
-## Citadel [[{]]
-* provides features to encrypt requests within the Istio mesh.
-  "injecting" or "pushing" certificates to Envoy
-* provides role-based access control for services within the mesh.
-[[}]]
+# Communication with External clients/services
 
-## Galley [[{]]
-* management plane abstracting the Istio mesh of a configuration's input
-  from the user as well as from the underlining environment.
-[[}]]
+## Ingress [[{]]
 
-
-## Istio cli Summary [[{]]
-$ istioctl get virtualservices
-
-$ istioctl authn tls-check $pod_name
-           └───┴─·· interact with the Istio authentication policies.
-
-$ istioctl deregister <service-name> <ip-to-be-removed>
-$ istioctl   register <service-name> <ip-to-be-added> <port>
-
-$ istioctl experimental auth check <pod-name>
-
-$ istioctl experimental convert-ingress # k8s ingress ···> Istio VirtualService
-                                          config. (best effort conver)
-
-$ istioctl experimental dashboard grafana
-
-$ istioctl experimental metrics $serv_name # depends on Prometheus.
-$ istioctl kube-inject ... # converts k8s config ··> Istio config
-                           # by injecting the Envoy sidecar.
-
-$ istioctl proxy-config bootstrap|cluster|endpoint|listener|route
-$ istioctl validate ...
-[[}]]
+  ```
+  | apiVersion: networking.istio.io/v1alpha3
+  | kind: Gateway
+  | metadata:
+  |   name: webapp-gateway
+  | spec:
+  |   hosts:
+  |   - "*.greetings.com"    <··· allow external HTTP traffic for *.greetings.com
+  |   selector:                   (from k8s load balancer to istio Gateway)
+  |   istio: ingressgateway
+  |   servers:
+  |   - port:
+  |   number: 80
+  |   name: http
+  |   protocol: HTTP
+  | 
+  | apiVersion: networking.istio.io/v1alpha3
+  | kind: VirtualService
+  | metadata:
+  |  name: webservice-wtdist-vs
+  | spec:
+  |  hosts:
+  |  - webservice
+  |  - webservice.greetings.com
+  |  gateways :             <··· "attach" ingress gateway to Virt.Service
+  |  - webapp-gateway
+  |  http:
+  ```
 
 
-## Ingress Rule [[{]]
-apiVersion: networking.istio.io/v1alpha3
-kind: Gateway
-metadata:
-  name: webapp-gateway
-spec:
-  hosts:
-  - "*.greetings.com"    <··· allow external HTTP traffic for *.greetings.com
-  selector:                   (from k8s load balancer to istio Gateway)
-  istio: ingressgateway
-  servers:
-  - port:
-  number: 80
-  name: http
-  protocol: HTTP
 
-apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
-metadata:
- name: webservice-wtdist-vs
-spec:
- hosts:
- - webservice
- - webservice.greetings.com
- gateways :             <··· "attach" ingress gateway to Virt.Service
- - webapp-gateway
- http:
+  Traffic Flow Summary with Ingress:
+  ```
+  | Ext.Req.
+  |    ·
+  |    v                                       ┌─ moving Pod ───┐
+  | |LoadBalancer├··(alt 1)····>│Kubernetes ├··>│Istio proxy   ││
+  |    ┬                    ┌··>│(Inmutable)│  │  ·     ^       │
+  |  (alt 2)                ·   │Service v1 │  │  v     ·       │
+  |    ·                    ·                  ││App v1 cont.  ││
+  |    ·                    ·                  └────────────────┘
+  |    ·                    ·(95% traffic)
+  |    ·                    ·
+  | ┌──v──────────────────┐ ·                  ┌─ moving Pod ───┐
+  | ││Istio  ├··>│Istio  ├··┴··>│Kubernetes ├··>│Istio proxy   ││
+  | ││Ingress│   │Virtual││  5% │(Inmutable)│  │  ·     ^       │
+  | │            │Service││     │Service v2 │  │  v     ·       │
+  | └─────────────────────┘                    ││App v2 cont.  ││
+  |                                            └────────────────┘
+  ```
 [[}]]
 
 ## Service Entry (Ext.Services) [[{]]
@@ -567,117 +857,125 @@ spec:
 
 * To explicetely allow external service:
   ```
-  ---
-  apiVersion: networking.istio.io/v1alpha3
-  kind: ServiceEntry
-  metadata: { name: wikipedia }
-  spec:
-   hosts: [ "en.wikipedia.org" ]
-   ports: { number: 443 }
-   name: https
-   protocol: HTTPS
-   resolution: DNS           <··· DNS or static (IP address)
-   location: MESH_EXTERNAL   <·· MESH_EXTERNAL(Istio disables mTLS) | MESH_INTERNAL
+  | ---
+  | apiVersion: networking.istio.io/v1alpha3
+  | kind: ServiceEntry
+  | metadata: { name: wikipedia }
+  | spec:
+  |  hosts: [ "en.wikipedia.org" ]
+  |  ports: { number: 443 }
+  |  name: https
+  |  protocol: HTTPS
+  |  resolution: DNS           <··· DNS or static (IP address)
+  |  location: MESH_EXTERNAL   <·· MESH_EXTERNAL(Istio disables mTLS) | MESH_INTERNAL
   ```
 [[}]]
 
-## Egress Gateway  [[{]]
+[[{]]
+## Egress Gateway
 * ServiceEntry restrict global access to a limited set of external services.
 * Egress: Every request must be inspected to restrict access to only authorized ones.
 
----
-apiVersion: networking.istio.io/v1alpha3
-kind: Gateway                             <·· handle requests matching a given host& port
-metadata:
- name: wikipedia-egressgateway
-spec:
-  selector:
-  istio: egressgateway
-  servers: [ { port: } ]
-  number: 80
-  name: http
-  protocol: HTTP
-  hosts: [ "en.wikipedia.org" ]
----
-apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService                    <··· "glue between Gateway and ServiceEntry.
-                                             1) VirtualService handles all requests for en.wikipedia.org.
-                                                (it applies to the gateway and all sidecar proxies).
-                                             2) Requests from sidecars are routed to istio-egressgateway
-                                             Pod
-                                              ··> Envoy Side(VirtualService)
-                                                ··> istio-egressgateway (with ServiceEntry)
-                                                  ··> wikipedia
-metadata:
- name: wiki-egress-gateway
-spec:
- hosts: [ "en.wikipedia.org" ]
- gateways:
- - wikipedia-egressgateway
- - mesh
- http:
- - match:
- - gateways:
- - mesh
- port: 80
- route:
- - destination:
- host: istio-egressgateway.istio-system.svc.cluster.local
- port:
- number: 80
- weight: 100
- - match:
- - gateways:
- - wikipedia-egressgateway
- port: 80
- route:
- - destination:
- host: en.wikipedia.org
- port:
- number: 80
- weight: 100
----
-apiVersion: networking.istio.io/v1alpha3
-kind: ServiceEntry          <··· allow en.wikipedia.org to be accessed by services inside the mesh
-metadata:
- name: wikipedia
-spec:
- hosts:
- - en.wikipedia.org
- ports:
- - number: 80
- name: http
- protocol: HTTP
- resolution: DNS
- location: MESH_EXTERNAL
+  ```
+  |---
+  |apiVersion: networking.istio.io/v1alpha3
+  |kind: Gateway                             <·· handle requests matching a given host& port
+  |metadata:
+  | name: wikipedia-egressgateway
+  |spec:
+  |  selector:
+  |  istio: egressgateway
+  |  servers: [ { port: } ]
+  |  number: 80
+  |  name: http
+  |  protocol: HTTP
+  |  hosts: [ "en.wikipedia.org" ]
+  |---
+  |apiVersion: networking.istio.io/v1alpha3
+  |kind: VirtualService                    <··· "glue between Gateway and ServiceEntry.
+  |                                             1) VirtualService handles all requests for en.wikipedia.org.
+  |                                                (it applies to the gateway and all sidecar proxies).
+  |                                             2) Requests from sidecars are routed to istio-egressgateway
+  |                                             Pod
+  |                                              ··> Envoy Side(VirtualService)
+  |                                                ··> istio-egressgateway (with ServiceEntry)
+  |                                                  ··> wikipedia
+  |metadata:
+  | name: wiki-egress-gateway
+  |spec:
+  | hosts: [ "en.wikipedia.org" ]
+  | gateways:
+  | - wikipedia-egressgateway
+  | - mesh
+  | http:
+  | - match:
+  | - gateways:
+  | - mesh
+  | port: 80
+  | route:
+  | - destination:
+  | host: istio-egressgateway.istio-system.svc.cluster.local
+  | port:
+  | number: 80
+  | weight: 100
+  | - match:
+  | - gateways:
+  | - wikipedia-egressgateway
+  | port: 80
+  | route:
+  | - destination:
+  | host: en.wikipedia.org
+  | port:
+  | number: 80
+  | weight: 100
+  |---
+  |apiVersion: networking.istio.io/v1alpha3
+  |kind: ServiceEntry          <··· allow en.wikipedia.org to be accessed by services inside the mesh
+  |metadata:
+  | name: wikipedia
+  |spec:
+  | hosts:
+  | - en.wikipedia.org
+  | ports:
+  | - number: 80
+  | name: http
+  | protocol: HTTP
+  | resolution: DNS
+  | location: MESH_EXTERNAL
+  ```
 [[}]]
 
-## fault injection (Chaos testing) [[{]]
-apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
-metadata:
-  name: webservice
-spec:
-  hosts:
-  - webservice
-  http:
-  - fault:
-      abort:
-        httpStatus: 503
-        percent: 50           <·· Simulate failures  for 50% of request. No code change needed.
-  - fault:
-      delay:
-        fexedDelay: 5s        <·· Simulate 5s delays for 50% of request. No code change needed.
-        percent: 50
+# Fault injection (Chaos testing) [[{]]
 
-    route :
-    - destination:
-        host: webservice
-    retries:
-      attempts: 0
+  ```
+  |apiVersion: networking.istio.io/v1alpha3
+  |kind: VirtualService
+  |metadata:
+  |  name: webservice
+  |spec:
+  |  hosts:
+  |  - webservice
+  |  http:
+  |  - fault:
+  |      abort:
+  |        httpStatus: 503
+  |        percent: 50           <·· Simulate failures  for 50% of request. No code change needed.
+  |  - fault:
+  |      delay:
+  |        fexedDelay: 5s        <·· Simulate 5s delays for 50% of request. No code change needed.
+  |        percent: 50
+  |
+  |    route :
+  |    - destination:
+  |        host: webservice
+  |    retries:
+  |      attempts: 0
+  ```
 [[}]]
 
-## Prometheus [[{]]
+[[{]]
+# Prometheus 
+
 * OOSS monitoring and alerting (through Grafana) tool.
 * Time Series engine with data grouped on the basis of metric name and labels (key-value pairs).
 * query language to analyze the data
@@ -686,7 +984,11 @@ spec:
 Prometheus INPUT (collects metrics):
 * Pull model over HTTP.
 
-* preconfigured to scrape Mixer endpoints to collect exposed metrics.
+* To gather metrics for the entire mesh, Istio preconfigures Prometheus to scrape:
+  * The control plane (istiod deployment)
+  * Ingress and Egress gateways
+  * The Envoy sidecar
+  * The user applications (if they expose Prometheus metrics)
   - istio-telemetry.istio-system:42422/metrics: This returns all Mixer-generated metrics.
   - istio-telemetry.istio-system:15014/metrics: This returns all Mixer-specific metrics.
   - istio-proxy:15090/metrics: raw stats generated by Envoy.
@@ -695,158 +997,99 @@ Prometheus INPUT (collects metrics):
   - istio-policy.istio-system:15014/metrics:  all policy-related metrics
   - istio-citadel.istio-system:15014/metrics: all Citadel-generated metrics
 
-WARN:  For a production environment, it may be better to set up Prometheus separately from istio.
+
+* By default Istio comes preconfigured to merge metrics using
+  the pseudo-standard `prometheus.io` annotations
+  `--set meshConfig.enablePrometheusMerge=true`
+   WHILE PROMETHEUS.IO ANNOTATIONS ARE NOT A CORE PART OF         [[{doc_has.keypoint]]
+  PROMETHEUS, THEY HAVE BECOME THE DE FACTO STANDARD TO CONFIGURE
+  SCRAPING.                                                       [[}]]
+  It can be disabled with per Pod with
+   `prometheus.istio.io/merge-metrics: "false"`.
+  when merge is active appropriate prometheus.io annotations will
+  be added to all data plane pods to set up scraping:
+     Envoy sidecar will merge Istio’s metrics with the app metrics
+    and scraped from :15020/stats/prometheus
+   (Go to official doc for custom config like scraping metrics
+    using TLS, colliding names)
+    https://istio.io/latest/docs/ops/integrations/prometheus/
+
+   WARN:  For a production environment, set up Prometheus separately.
 
 * the predefined configuration has instances and handlers connected by
   rules. The predefined instances provided are:
-  INSTANCE              : Captures ...
-  ──────────────────────┼────────────────────────────────────────────────────
-  - accesslog           : log entry for request src&dest details
-  - attributes          : source and destination pod, workload, and namespace details
-  - requestcount        : number of source to destination requests
-  - requestduration     : response time of ALL THE CALLS in the mesh
-  - requestsize         :
-  - responsesize        :
-  - tcpaccesslog        : metrics of the TCP request
-  - tcpbytereceived     : bytes received by the destination in the TCP request
-  - tcpbytesent         : bytes sent by the source in the TCP request
-  - tcpconnectionsclosed: the number of times the TCP connection is closed
-  - tcpconnectionsopened: the number of times TCP connection is opened
+  ```
+  | INSTANCE              : Captures ...
+  | ──────────────────────┼────────────────────────────────────────────────────
+  | - accesslog           : log entry for request src&dest details
+  | - attributes          : source and destination pod, workload, and namespace details
+  | - requestcount        : number of source to destination requests
+  | - requestduration     : response time of ALL THE CALLS in the mesh
+  | - requestsize         :
+  | - responsesize        :
+  | - tcpaccesslog        : metrics of the TCP request
+  | - tcpbytereceived     : bytes received by the destination in the TCP request
+  | - tcpbytesent         : bytes sent by the source in the TCP request
+  | - tcpconnectionsclosed: the number of times the TCP connection is closed
+  | - tcpconnectionsopened: the number of times TCP connection is opened
+  ```
 
-## Prometheus Custom Metrics [[{]]
+[[{]]
+## Prometheus Custom Metrics 
 * there are scenarios when the mixed metrics to Prometheus need to be recalculated to make sense.
 
-### Eg scenario: double all the requests to the webapp service.
-
-apiVersion: config.istio.io/v1alpha2
-kind: instance                              <··· Mixer instance
-metadata:
-  name: requestdouble
-  namespace: istio-system
-spec:
-  compiledTemplate: metric                  <·· gets metrics from mesh and reports each
-  params:                                       metric value times, in this case 2.
-    value: "2"
-    dimensions:
-      source: source.workload.name | "unknown"
-      destination: destination.workload.name | "unknown"
----
-apiVersion: config.istio.io/v1alpha2
-kind: handler
-metadata:
-  name: doublehandler
-  namespace: istio-system
-spec:                                                    <·· push metrics to Prometheus
-  compiledAdapter: prometheus                                - It also accommodates the two new dimensions and
-  params:                                                      propagates them as labels in Prometheus.
-    metrics:
-    - name: doublerequest_count # Prometheus metric name
-      instance_name: requestdouble.instance.istio-system     <·· from
-      kind: COUNTER
-      label_names:
-      - source
-      - destination
----
-apiVersion: config.istio.io/v1alpha2
-kind: rule                  <··· combines deployed (fully qualified name) handlers
-#                                with (fully qualified name)deployed instances
-#                                (or just short-names for instances in the same  namespace)
-metadata:
-  name: requestdouble-prometheus
-  namespace: istio-system
-spec:                                                       <·· Connecting handler <··> instance
-  match: match(destination.service.name, "webservice")     <·· match req. for given
-  actions:                                                     condition before invoking
-  - handler: doublehandler                                     the associated instances.
-    instances: [ requestdouble ]
+* Eg scenario: double all the requests to the webapp service.
+  ```
+  | apiVersion: config.istio.io/v1alpha2
+  | kind: instance                              <··· Mixer instance
+  | metadata:
+  |   name: requestdouble
+  |   namespace: istio-system
+  | spec:
+  |   compiledTemplate: metric                  <·· gets metrics from mesh and reports each
+  |   params:                                       metric value times, in this case 2.
+  |     value: "2"
+  |     dimensions:
+  |       source: source.workload.name | "unknown"
+  |       destination: destination.workload.name | "unknown"
+  | ---
+  | apiVersion: config.istio.io/v1alpha2
+  | kind: handler
+  | metadata:
+  |   name: doublehandler
+  |   namespace: istio-system
+  | spec:                                      <·· push metrics to Prometheus
+  |   compiledAdapter: prometheus                  - It also accommodates the two new dimensions and
+  |   params:                                        propagates them as labels in Prometheus.
+  |     metrics:
+  |     - name: doublerequest_count # Prometheus metric name
+  |       instance_name: requestdouble.instance.istio-system     <·· from
+  |       kind: COUNTER
+  |       label_names:
+  |       - source
+  |       - destination
+  | ---
+  | apiVersion: config.istio.io/v1alpha2
+  | kind: rule                  <··· combines deployed (fully qualified name) handlers
+  | #                                with (fully qualified name)deployed instances
+  | #                                (or just short-names for instances in the same  namespace)
+  | metadata:
+  |   name: requestdouble-prometheus
+  |   namespace: istio-system
+  | spec:                                                    <·· Connecting handler <··> instance
+  |   match: match(destination.service.name, "webservice")   <·· match req. for given
+  |   actions:                                                   condition before invoking
+  |   - handler: doublehandler                                   the associated instances.
+  |     instances: [ requestdouble ]
+  ```
 [[}]]
-[[}]]# Prometheus [[{]]
-* OOSS monitoring and alerting tool.
-* Time Series engine with data grouped on the basis of metric name and labels (key-value pairs).
-* query language to analyze the data
-* An alerting system to send notifications based on analysis done in the second step
 
-Prometheus INPUT (collects metrics):
-* Pull model over HTTP.
-
-* preconfigured to scrape Mixer endpoints to collect exposed metrics.
-  - istio-telemetry.istio-system:42422/metrics: This returns all Mixer-generated metrics.
-  - istio-telemetry.istio-system:15014/metrics: This returns all Mixer-specific metrics.
-  - istio-proxy:15090/metrics: raw stats generated by Envoy.
-  - istio-pilot.istio-system:15014/metrics:   Pilot-generated metrics
-  - istio-galley.istio-system:15014/metrics   Galley-generated metrics
-  - istio-policy.istio-system:15014/metrics:  all policy-related metrics
-  - istio-citadel.istio-system:15014/metrics: all Citadel-generated metrics
-
-WARN:  For a production environment, it may be better to set up Prometheus separately from istio.
-
-* the predefined configuration has instances and handlers connected by
-  rules. The predefined instances provided are:
-  INSTANCE              : Captures ...
-  ──────────────────────┼────────────────────────────────────────────────────
-  - accesslog           : log entry for request src&dest details
-  - attributes          : source and destination pod, workload, and namespace details
-  - requestcount        : number of source to destination requests
-  - requestduration     : response time of ALL THE CALLS in the mesh
-  - requestsize         :
-  - responsesize        :
-  - tcpaccesslog        : metrics of the TCP request
-  - tcpbytereceived     : bytes received by the destination in the TCP request
-  - tcpbytesent         : bytes sent by the source in the TCP request
-  - tcpconnectionsclosed: the number of times the TCP connection is closed
-  - tcpconnectionsopened: the number of times TCP connection is opened
-
-## Prometheus Custom Metrics [[{]]
-* there are scenarios when the mixed metrics to Prometheus need to be recalculated to make sense.
-
-### Eg scenario: double all the requests to the webapp service.
-
-apiVersion: config.istio.io/v1alpha2
-kind: instance                              <··· Mixer instance
-metadata:
-  name: requestdouble
-  namespace: istio-system
-spec:
-  compiledTemplate: metric                  <·· gets metrics from mesh and reports each
-  params:                                       metric value times, in this case 2.
-    value: "2"
-    dimensions:
-      source: source.workload.name | "unknown"
-      destination: destination.workload.name | "unknown"
----
-apiVersion: config.istio.io/v1alpha2
-kind: handler
-metadata:
-  name: doublehandler
-  namespace: istio-system
-spec:                                                    <·· push metrics to Prometheus
-  compiledAdapter: prometheus                                - It also accommodates the two new dimensions and
-  params:                                                      propagates them as labels in Prometheus.
-    metrics:
-    - name: doublerequest_count # Prometheus metric name
-      instance_name: requestdouble.instance.istio-system     <·· from
-      kind: COUNTER
-      label_names:
-      - source
-      - destination
----
-apiVersion: config.istio.io/v1alpha2
-kind: rule
-metadata:
-  name: requestdouble-prometheus
-  namespace: istio-system
-spec:                                                       <·· Connecting handler <··> instance
-  match: match(destination.service.name, "webservice")
-  actions:
-  - handler: doublehandler
-    instances: [ requestdouble ]
-[[}]]
 [[}]]
 
 ## Grafana [[{]]
-* OOSS tool to visualize, analyze, and monitor metrics.
+  OOSS tool to visualize, analyze, and monitor metrics.
   ```
-  metrics provider -> prometheous -> Grafana -> alerts
+  | metrics provider -> prometheous -> Grafana -> alerts
   ```
 
 * Preconfigured with Dashboards for Istio.
@@ -857,48 +1100,53 @@ spec:                                                       <·· Connecting han
 Ex alert: requests rate to webapp-deployment-v8 crosses the threshold 2.5.
 
 1.set up the an alerting channel:
-  HipChat                  Discord, Email         Pushover   Microsoft Teams
-  OpsGenie                 VictorOps              Webhook    Telegram
-  Sensu                    Google Hangouts Chat   DingDing
-  Threema Gateway          Kafka REST Proxy       PagerDuty
-  Prometheus Alertmanager  LINE                   Slack
-
-  webhook example:
-  https://myalerts.mycomp.com/api/alerts/app0023
+  ```
+  | HipChat                  Discord, Email         Pushover   Microsoft Teams
+  | OpsGenie                 VictorOps              Webhook    Telegram
+  | Sensu                    Google Hangouts Chat   DingDing
+  | Threema Gateway          Kafka REST Proxy       PagerDuty
+  | Prometheus Alertmanager  LINE                   Slack
+  |
+  | webhook example:
+  | https://myalerts.mycomp.com/api/alerts/app0023
+  ```
 1. Go to panel "..." ··> Alert tab ··> set up new alert
 
-   Webhook will start receiving alerts similar to:
-   {
-     "evalMatches": [{
-       "value": 107.19741952834556,
-       "metric": "{destination=\"webapp-deployment-8\",
-       instance=\"172.17.0.6:42422\", job=\"istio-mesh\",
-       source=\"frontend-deployment\"}",
-       "tags": {
-           "destination": "webapp-deployment-8",
-           "instance": "172.17.0.6:42422",
-           "job": "istio-mesh",
-           "source": "frontend-deployment"
-       }
-     }],
-     "message": "Requests threshold ... reaching threshold, action required",
-     "ruleId": 1,
-     "ruleName": "RequestDouble Rate alert",
-     "ruleUrl": "http://localhost:3000/...",
-     "state": "alerting",
-     "title": "[Alerting] RequestDouble Rate alert"
-   }
+  ```
+  | Webhook will start receiving alerts similar to:
+  | {
+  |   "evalMatches": [{
+  |     "value": 107.19741952834556,
+  |     "metric": "{destination=\"webapp-deployment-8\",
+  |     instance=\"172.17.0.6:42422\", job=\"istio-mesh\",
+  |     source=\"frontend-deployment\"}",
+  |     "tags": {
+  |         "destination": "webapp-deployment-8",
+  |         "instance": "172.17.0.6:42422",
+  |         "job": "istio-mesh",
+  |         "source": "frontend-deployment"
+  |     }
+  |   }],
+  |   "message": "Requests threshold ... reaching threshold, action required",
+  |   "ruleId": 1,
+  |   "ruleName": "RequestDouble Rate alert",
+  |   "ruleUrl": "http://localhost:3000/...",
+  |   "state": "alerting",
+  |   "title": "[Alerting] RequestDouble Rate alert"
+  | }
+  ```
 [[}]]
 
-## Distributed Tracing  [[{]]
-   tracking a request flow across different applications.
+# Distributed Tracing  [[{]]
+
+  tracking a request flow across different applications.
 
 * solutions for distributed tracing exists such as Zipkin, Jagger, Skywalking, ...
   and Istio can work with all of them.
 * KEY-POINT: Distributed tracing relies on an additional set of HTTP headers.
              widely known as b3 request headers.
 * In summary, the following set of headers will be propagated (by Envoy proxies)
-  from an incoming request to all outgoing subrequests:
+  from an incoming request to all outgoing subrequests:[[doc_has.keypoint]]
   * x-request-id
   * x-b3-traceid
   * x-b3-spanid
@@ -910,42 +1158,45 @@ Ex alert: requests rate to webapp-deployment-v8 crosses the threshold 2.5.
   the required header propagation.
 
 PRESETUP:
+
 1. deploy  jaeger (-by Uber-) Operator to k8s cluster.
   ```
-  $ git clone https://github.com/jaegertracing/jaeger-operator.git
-  $ kubectl create namespace observability
-  namespace/observability created
-  $ cd jaeger-operator/deploy
-  $ kubectl create -f crds/jaegertracing_v1_jaeger_crd.yaml
-  $ kubectl create -f service_account.yaml
-  $ kubectl create -f role.yaml
-  $ kubectl create -f role_binding.yaml
-  $ kubectl create -f operator.yaml
-  $ kubectl get all -n observability # check install
+  | $ git clone https://github.com/jaegertracing/jaeger-operator.git
+  | $ kubectl create namespace observability
+  | namespace/observability created
+  | $ cd jaeger-operator/deploy
+  | $ kubectl create -f crds/jaegertracing_v1_jaeger_crd.yaml
+  | $ kubectl create -f service_account.yaml
+  | $ kubectl create -f role.yaml
+  | $ kubectl create -f role_binding.yaml
+  | $ kubectl create -f operator.yaml
+  | $ kubectl get all -n observability # check install
   ```
 2. Deploy jaeger instance "AllInOne" (simplest setup) using the jaeger operator.
    configured with in-memory storage.
    "all-in-one" Pod == agent+collector+query+ingester+Jaeger UI.
-   $ (
-   cat << EOF
-   ---
-   apiVersion: jaegertracing.io/v1
-   kind: Jaeger
-   metadata:
-     name: simplest
-   EOF
-   ) | kubectl apply -f jagger.yaml
-   $ kubectl get all # check
-   NAME
-   pod/frontend-deployment-c9c975b4-p8z2t ...
-   pod/simplest-56c7bd47bf-z7cnx          ...
-   pod/webapp-deployment-6.2-654c5fd8f9-mrc22 ...
-
-   NAME
-   service/simplest-agent
-   service/simplest-collector
-   service/simplest-collector-headless
-   service/simplest-query
+  ```
+  | $ (
+  | cat << EOF
+  | ---
+  | apiVersion: jaegertracing.io/v1
+  | kind: Jaeger
+  | metadata:
+  |   name: simplest
+  | EOF
+  | ) | kubectl apply -f jagger.yaml
+  | $ kubectl get all # check
+  | NAME
+  | pod/frontend-deployment-c9c975b4-p8z2t ...
+  | pod/simplest-56c7bd47bf-z7cnx          ...
+  | pod/webapp-deployment-6.2-654c5fd8f9-mrc22 ...
+  |
+  | NAME
+  | service/simplest-agent
+  | service/simplest-collector
+  | service/simplest-collector-headless
+  | service/simplest-query
+  ```
 3. Once Jagger is available, make Istio refer to it.
    1. Alt 1: While installing the service mesh:<br/>
       `global.tracer.zipkin.address=jagger-FQDN:16686`
@@ -964,110 +1215,6 @@ PRESETUP:
    requests/events/... traces.
 [[}]]
 
-# mTLS Transport Authentication [[{]]
-* Istio implements PKI logic with Citadel and Node-Agent.
-
-  Cert. Emission: (repeated periodically for key and certificate rotation)
-  node-agent ··> node-agent: generates private key + CSR
-  node-agent ··> Citadel   : CSR
-  Citadel    ··> Citadel   : validate credentials ··> sign
-  Citadel    ··> node-agent: Cert
-  node-agent ··> Envoy     : private key + Cert
-
-  TLS communication:
-  Envoy1 ··> Envoy2 : starts mutualTLS handshake
-  Envoy1 ··> Envoy1 : secure naming check (verify Service account
-                      presented in Envoy2 is is authorized to run
-                      the target service).
-  Envoy1<··> Envoy2 : establish mutual TLS connection
-
- For external services Istio provides a permissive mode allowing
- services to accept both plain-text traffic and mutual TLS traffic
- at the same time.
-
-* mutual TLS authentication is configured by creating a policy.
-  enforces the type of exchange supported by the application.
-
-  policy scopes:
-  * Service
-  * Namespace
-  * Mesh      : preinstalled with Istio install
-
-  $ kubectl get meshpolicies.authentication.istio.io -o yaml
-  apiVersion: v1
-  items:
-  - apiVersion: authentication.istio.io/v1alpha1
-    kind: MeshPolicy
-    metadata:
-    ## REMOVED for BREVITY
-      generation: 1
-      labels:
-        app: security
-        chart: security
-        heritage: Tiller
-        release: istio
-      name: default
-    spec:
-      peers:
-      - mtls:
-          mode: PERMISSIVE    <·· non TLS allowed from outside the mesh
-  kind: List
-  metadata:
-    resourceVersion: ""
-    selfLink: ""
-  ---
-  apiVersion: "authentication.istio.io/v1alpha1"
-  kind: "Policy"
-  metadata:
-    name: "strict-policy"
-  spec:
-    targets:
-    - name: webservice      <·· Strict policy
-    peers:                      · (null defaults to strict??)
-    - mtls:                     ·
-        mode: null          <···┘
-
-
-NOTE: As soon as mTLS  is enforced services will start to fail since live&readiness probes will fail.
-
-FIX 1: Use probes on another port bypassing Envoy.
-FIX 2: enable ProbeRewrite for checks.
-       This will forward Probe requests through the Pilot-Agent
-       STEP 1)
-       $ kubectl get \
-           cm istio-sidecar-injector \
-           -n istio-system -o yaml | \
-         sed -e "s/ rewriteAppHTTPProbe: false/ rewriteAppHTTPProbe: true/" | \
-         kubectl apply -f -
-       STEP 2) configure rewriteAppHTTPProbers annotation for our deployment.
-       apiVersion: apps/v1
-       kind: Deployment
-       metadata:
-         name: webapp-deployment-6.0
-        ...
-         template:
-           metadata:
-             ...
-             annotations:
-               sidecar.istio.io/rewriteAppHTTPProbers: "true"   <···
-           spec:
-             containers:
-             - name: webapp
-        ...
-
-* instruct envoy side-car clients to perform the mtls handshake.
-
-  apiVersion: "networking.istio.io/v1alpha3"
-  kind: "DestinationRule"
-  metadata:
-    name: "wb-rule"
-    namespace: "default"
-  spec:
-    host: webservice
-    trafficPolicy:
-      tls:
-        mode: ISTIO_MUTUAL    <···
-[[}]]
 
 # User OAuth Authentication [[{]]
 * Istio provides OAuth token-based authentication.
@@ -1076,42 +1223,48 @@ FIX 2: enable ProbeRewrite for checks.
 
 Istio authentication is performed as per the following steps:
 
-    XXX ··> Auth_server: initial request to  exchange credentials and generate a token.
-    Auth_server ··> Auth_server: new JWT with a seet of specific user roles and permissions.
-    XXX ··> Envoy_proxy: JWT
-    Envoy_proxy1 ··> Envoy_proxy1: Validate
-    Envoy_proxy1 ··> Envoy_proxy2: JWT
+  ```
+  XXX ··> Auth_server: initial request to  exchange credentials and generate a token.
+  Auth_server ··> Auth_server: new JWT with a seet of specific user roles and permissions.
+  XXX ··> Envoy_proxy: JWT
+  Envoy_proxy1 ··> Envoy_proxy1: Validate
+  Envoy_proxy1 ··> Envoy_proxy2: JWT
+  ```
 
 PRESETUP Example:
 1. Install KeyCloak OpenID provider (alternatively Auth0, Google Auth, ...)
 1. select/add a realm in KeyCloak. (allowing for Apps clients identified by ID-secret pair)
 1. add users in KeyCloak.
 1. Configure OpenID endpoints details allowing to perform user authentication and token validation.
-   issuer                   "http://172.18.0.1:8181/auth/realms/k8s-dev"
-   authorization_endpoint   "http://172.18.0.1:8181/auth/realms/k8s-dev/protocol/OpenID-connect/auth"
-   token_endpoint           "http://172.18.0.1:8181/auth/realms/k8s-dev/protocol/OpenID-connect/token"
-   jwks_uri                 "http://172.18.0.1:8181/auth/realms/k8s-dev/protocol/OpenID-connect/certs"
+   ```
+   | issuer                 "http://172.18.0.1:8181/auth/realms/k8s-dev"
+   | authorization_endpoint "http://172.18.0.1:8181/auth/realms/k8s-dev/protocol/OpenID-connect/auth"
+   | token_endpoint         "http://172.18.0.1:8181/auth/realms/k8s-dev/protocol/OpenID-connect/token"
+   | jwks_uri               "http://172.18.0.1:8181/auth/realms/k8s-dev/protocol/OpenID-connect/certs"
+   ```
 
 1. Configure Istio user authentication by using the previously provided endpoints.
 
-   apiVersion: "authentication.istio.io/v1alpha1"
-   kind: "Policy"
-   metadata:
-     name: "user-auth"
-   spec:
-     targets:
-     - name: webservice
-     origins:
-     - jwt:
-         issuer: http://172.18.0.1:8181/auth/realms/k8s-dev
-         jwksUri: http://172.18.0.1:8181/auth/realms/k8s-dev/
-         protocol/OpenID  -connect/certs
-         trigger_rules:
-         - excluded_paths:
-           - exact: /health
-     principalBinding: USE_ORIGIN
+   ```
+   | apiVersion: "authentication.istio.io/v1alpha1"
+   | kind: "Policy"
+   | metadata:
+   |   name: "user-auth"
+   | spec:
+   |   targets:
+   |   - name: webservice
+   |   origins:
+   |   - jwt:
+   |       issuer: http://172.18.0.1:8181/auth/realms/k8s-dev
+   |       jwksUri: http://172.18.0.1:8181/auth/realms/k8s-dev/
+   |       protocol/OpenID  -connect/certs
+   |       trigger_rules:
+   |       - excluded_paths:
+   |         - exact: /health
+   |   principalBinding: USE_ORIGIN
+   ```
 
-   NOTE: JWT token authentication can be disabled for a specific path.
+NOTE: JWT token authentication can be disabled for a specific path.
          and add multiple JWT blocks to handle different paths.
 [[}]]
 
@@ -1122,135 +1275,81 @@ PRESETUP Example:
 
 PRESETUP)
 1. enable RBAC control for "default" namespace.
-   apiVersion: "rbac.istio.io/v1alpha1"
-   kind: ClusterRbacConfig             <·· singleton cluster-scoped object, named default.
-   metadata:
-     name: default
-   spec:
-     mode: 'ON_WITH_INCLUSION'         <·· OFF              : authorization is disabled.
-     inclusion:                            ON               : enabled for all services
-       namespaces: ["default"]             ON_WITH_INCLUSION: enabled for services&namespaces specified
-                                           ON_WITH_EXCLUSION: enabled for services&namespaces not specified
+   ```
+   | apiVersion: "rbac.istio.io/v1alpha1"
+   | kind: ClusterRbacConfig             <·· singleton cluster-scoped object, named default.
+   | metadata:
+   |   name: default
+   | spec:
+   |   mode: 'ON_WITH_INCLUSION'         <·· OFF              : authorization is disabled.
+   |   inclusion:                            ON               : enabled for all services
+   |     namespaces: ["default"]             ON_WITH_INCLUSION: enabled for services&namespaces specified
+   |                                         ON_WITH_EXCLUSION: enabled for services&namespaces not specified
+   ```
 
   RBAC can be fine-tuned for a path and/or an HTTP method and/or request headers. eg:
-  ---
-  apiVersion: "rbac.istio.io/v1alpha1"
-  kind: ServiceRole                          <·· It needs to be assigned to a 1+ users
-  metadata:                                      or left for anonymous access
-    name: http-viewer
-  spec:
-    rules:
-    - services: ["webservice"]
-      methods: ["GET"]
-  ---
-  apiVersion: "rbac.istio.io/v1alpha1"
-  kind: ServiceRole
-  metadata:
-    name: http-update-webservice
-  spec:
-    rules:
-    - services: ["webservice"]
-      methods: ["POST"]
-  ---
-  apiVersion: "rbac.istio.io/v1alpha1"
-  kind: ServiceRoleBinding
-  metadata:
-    name: bind-http-viewer
-  spec:
-    subjects:
-    - user:  "*"
-    roleRef:
-      kind: ServiceRole
-      name: "http-viewer"
-  ---
-  apiVersion: "rbac.istio.io/v1alpha1"
-  kind: ServiceRoleBinding
-  metadata:
-    name: bind-http-update
-  spec:
-    subjects:
-    - properties:
-        request.auth.claims[scope]: "webservice"
-    roleRef:
-      kind: ServiceRole
-      name: "http-update-webservice"
+   ```
+   | ---
+   | apiVersion: "rbac.istio.io/v1alpha1"
+   | kind: ServiceRole                          <·· It needs to be assigned to a 1+ users
+   | metadata:                                      or left for anonymous access
+   |   name: http-viewer
+   | spec:
+   |   rules:
+   |   - services: ["webservice"]
+   |     methods: ["GET"]
+   | ---
+   | apiVersion: "rbac.istio.io/v1alpha1"
+   | kind: ServiceRole
+   | metadata:
+   |   name: http-update-webservice
+   | spec:
+   |   rules:
+   |   - services: ["webservice"]
+   |     methods: ["POST"]
+   | ---
+   | apiVersion: "rbac.istio.io/v1alpha1"
+   | kind: ServiceRoleBinding
+   | metadata:
+   |   name: bind-http-viewer
+   | spec:
+   |   subjects:
+   |   - user:  "*"
+   |   roleRef:
+   |     kind: ServiceRole
+   |     name: "http-viewer"
+   | ---
+   | apiVersion: "rbac.istio.io/v1alpha1"
+   | kind: ServiceRoleBinding
+   | metadata:
+   |   name: bind-http-update
+   | spec:
+   |   subjects:
+   |   - properties:
+   |       request.auth.claims[scope]: "webservice"
+   |   roleRef:
+   |     kind: ServiceRole
+   |     name: "http-update-webservice"
+   ```
 [[}]]
 
-# (Application) Rules [[{]]
-* Eg: create rules to manage resource utilization or control
-      application deny/allow listing at runtime without
-      custom code.
-* rule validation is provided by the Mixer.
-
-* Reminder: Mixer consists of three parts.
-  - Handler : Defines the adapter configuration
-  - Instance: Defines the attributes that need to be captured
-              for a request
-  - Rule    : Associates a handler with instances that can send
-              the required data
-
- Previously, the handler was capturing data in external systems.
- The handler can perform a Boolean check for the received request.
-
-PRESETUP) Enable "disablePolicyChecks" flag to toggle a rules check
-
-  $ kubectl get cm istio \
-    -n istio-system -o yaml | \
-    sed -e "s/ disablePolicyChecks: true/ disablePolicyChecks: false/" | \
-    kubectl apply -f - configmap/istio configured
-
-## configure allow-list rule:
-eg: allow  acesss from front-end to webapp service.
-    denied access to any other source.
-  ```yaml
-  ---
-  apiVersion: config.istio.io/v1alpha2
-  kind: handler
-  metadata:
-    name: allowlist01
-  spec:
-    compiledAdapter: listchecker
-    params:
-      overrides: ["frontend"]            it can be toggled to blacklisting.
-      blacklist: true                <·· Istio provides also handlers to perform checks
-  ---                                    for quota management, simple denials, ...
-  apiVersion: config.istio.io/v1alpha2
-  kind: instance
-  metadata:
-    name: appsource
-  spec:
-    compiledTemplate: listentry
-    params:
-      value: source.labels["app"]
-  ---
-  apiVersion: config.istio.io/v1alpha2
-  kind: rule
-  metadata:
-    name: checksrc
-  spec:
-    match: destination.labels["app"] == "webapp"
-    actions:
-    - handler: allowlist01
-      instances: [ appsource ]
-
-  $ curl http://10.152.183.230/ # will fail
-  $ curl $http_frontend_service # will work
-  ```
-[[}]]
-
-# Troubleshooting  [[{troubleshooting]]
+# Troubleshooting  [[{troubleshooting.istio,]]
 ## istioctl analyze
-```
-$ istioctl analyze
-✔ No validation issues found when analyzing namespace: default.
-```
+
+ ```
+ | $ istioctl analyze
+ | ✔ No validation issues found when analyzing namespace: default.
+ ```
+
 ## k8s best-patterns for istio  [[{]]
 * Istio routing requires names for k8s Service.spec.ports.name following:
+  ```
   $protocol[-$suffix] format.
    ^^^^^^^^
    tcp tls udp
    http http2 https grpc
    mysql mongo redis
+  ```
 * Deployment.metadata.labels must contain a label "version" to allow
   Istio do routing based on application version.
 * Pods exposed ports must be declared in the Deployment template
@@ -1266,87 +1365,289 @@ $ istioctl analyze
   - istio-sidecar-injector: Configuration for Istio sidecar, including the location of
                             the Pilot, Kubernetes api-server, etc.
 
-  $ kubectl -n istio-system get \
-      cm istio -o jsonpath="{@.data.mesh}"
-  disablePolicyChecks:  false
-  enableTracing: true
-  accessLogFile: "/dev/stdout"
-  ...
-
-  $kubectl -n istio-system get \
-     cm istio-sidecar-injector -o
-  jsonpath="{@.data.config}"
-  policy: enabled
-  alwaysInjectSelector:
-    []
-  template: |-
-   rewriteAppHTTPProbe: {{ valueOrDefault .Values.sidecarInjector
-   Webhook.rewriteAppHTTPProbe false }}
-    {{- if or (not .Values.istio_cni.enabled) .Values.global.
-    proxy.enableCoreDump }}
-    initContainers:
-  ...
+  ```
+  | $ kubectl -n istio-system get \
+  |     cm istio -o jsonpath="{@.data.mesh}"
+  | disablePolicyChecks:  false
+  | enableTracing: true
+  | accessLogFile: "/dev/stdout"
+  | ...
+  |
+  | $kubectl -n istio-system get \
+  |    cm istio-sidecar-injector -o
+  | jsonpath="{@.data.config}"
+  | policy: enabled
+  | alwaysInjectSelector:
+  |   []
+  | template: |-
+  |  rewriteAppHTTPProbe: {{ valueOrDefault .Values.sidecarInjector
+  |  Webhook.rewriteAppHTTPProbe false }}
+  |   {{- if or (not .Values.istio_cni.enabled) .Values.global.
+  |   proxy.enableCoreDump }}
+  |   initContainers:
+  | ...
+  ```
 [[}]]
 
 ## Check (Envoy) sidecar automatic injection for namespaces [[{]]
-   $ kubectl get namespace -L istio-injection
-   NAME              STATUS   AGE    ISTIO-INJECTION
-   default           Active   221d   enabled
-   istio-system      Active   60d    disabled
-   kube-node-lease   Active   75d
-   kube-public       Active   221d
-   kube-system       Active   221d
+  ```
+  | $ kubectl get namespace -L istio-injection
+  | NAME              STATUS   AGE    ISTIO-INJECTION
+  | default           Active   221d   enabled
+  | istio-system      Active   60d    disabled
+  | kube-node-lease   Active   75d
+  | kube-public       Active   221d
+  | kube-system       Active   221d
+  ```
 
 [[}]]
 
 ## Check Proxy Sync Status [[{]]
-  $ istioctl proxy-status
-  PROXY                                                CDS
-  LDS     EDS     RDS       PILOT                          VERSION
-  istio-ingress-6458b8c98f-7ks48.istio-system          SYNCED
-  SYNCED  SYNCED  NOT SENT  istio-pilot-75bdf98789- n2kqh  1.1.2
-  istio-ingressgateway-7d6874b48f-qxhn5.istio-system   SYNCED
-  webservice-v1-55d4c455db-zjj2m.default               SYNCED
-  SYNCED  SYNCED  SYNCED    istio-pilot-75bdf98789- n2kqh   1.1.2
-  webservice-v2-686bbb668-99j76.default                SYNCED
-  SYNCED  SYNCED  SYNCED    istio-pilot-75bdf98789- tfdvh  1.1.2
-  ...
-  ^^^^^^
-  SYNCED  : sidecar is updated with all changes from Istio pilot
-  STALE   : there are changes, but sidecar has not picked them.
-  NOT SENT: There are no changes.
+
+  ```
+  | $ istioctl proxy-status
+  | PROXY                                                CDS
+  | LDS     EDS     RDS       PILOT                          VERSION
+  | istio-ingress-6458b8c98f-7ks48.istio-system          SYNCED
+  | SYNCED  SYNCED  NOT SENT  istio-pilot-75bdf98789- n2kqh  1.1.2
+  | istio-ingressgateway-7d6874b48f-qxhn5.istio-system   SYNCED
+  | webservice-v1-55d4c455db-zjj2m.default               SYNCED
+  | SYNCED  SYNCED  SYNCED    istio-pilot-75bdf98789- n2kqh   1.1.2
+  | webservice-v2-686bbb668-99j76.default                SYNCED
+  | SYNCED  SYNCED  SYNCED    istio-pilot-75bdf98789- tfdvh  1.1.2
+  | ...
+  | ^^^^^^
+  | SYNCED  : sidecar is updated with all changes from Istio pilot
+  | STALE   : there are changes, but sidecar has not picked them.
+  | NOT SENT: There are no changes.
+  ```
 
   If a proxy is missing in the list, it is not connected to the Istio pilot.
-  We can find out a proxy configuration using the following command:
+We can find out a proxy configuration using the following command:
 
-  $ istioctl proxy-config bootstrap -n istio-egressgateway-9b7866bf5-8p5rt.istio-system
-  {
-    "bootstrap": {
-      "node": {
-        "id": "router~172.30.86.14~ istio-egressgateway-...",
-        "cluster": "istio-ingressgateway",
-        "metadata": { ... }
-        ...
-      },
-      ...
-    }
-  }
+  ```
+  | $ istioctl proxy-config bootstrap -n istio-egressgateway-9b7866bf5-8p5rt.istio-system
+  | {
+  |   "bootstrap": {
+  |     "node": {
+  |       "id": "router~172.30.86.14~ istio-egressgateway-...",
+  |       "cluster": "istio-ingressgateway",
+  |       "metadata": { ... }
+  |       ...
+  |     },
+  |     ...
+  |   }
+  | }
+  ```
 
 * Investigate proxy logs:
-  $ kubectl logs pod/frontend-deployment-  istio-proxy
-  [2019-09-15T20:17:00.310Z] "GET / HTTP/2" 204 - ... "tcp://10.0.2.1:8080"
-  [2019-09-15T20:17:01.102Z] "GET / HTTP/2" 204 - ... "tcp://10.0.2.1:8080"
+  ```
+  | $ kubectl logs pod/frontend-deployment-  istio-proxy
+  | [2019-09-15T20:17:00.310Z] "GET / HTTP/2" 204 - ... "tcp://10.0.2.1:8080"
+  | [2019-09-15T20:17:01.102Z] "GET / HTTP/2" 204 - ... "tcp://10.0.2.1:8080"
+  ```
 [[}]]
 
+## control plane Key Metrics [[{]]
+
+* Full metric list:
+  <https://istio.io/latest/docs/reference/commands/pilot-discovery/#metrics>
+
+* Dump metrics:
+  ```
+  | $ kubectl exec -it -n istio-system \
+  |   deploy/istiod -- \
+  |   curl localhost:15014/metrics
+  ```
+
+Check whether the service is falling outside its service-level
+objectives (SLOs)
+
+- latency: The time needed to update the data plane
+  how the service is performing in the eyes of end users.
+  For Istio’s control plane, latency is measured by how quickly the
+  control plane distributes updates to the data plane.
+  Involved metrics:
+  * pilot_proxy_convergence_time: entire process’s duration
+  * pilot_proxy_queue_time:  wait in queue before being processed.
+    If it increase, scale istiod vertically.
+  * pilot_xds_push_time: time required to push the Envoy config.
+    to workloads. An increase shows that network bandwidth
+    is overloaded by the amount of data being transferred.
+    sidecars can improve it by reducing the size of config.
+    updates and frequency of changes per proxy.
+  Alarm thresholds:
+  * Warning  severity when: latency exceeds 1 sec for more than 10 secs
+  * Critical severity when: latency exceeds 2 sec for more than 10 secs
+
+- saturation metrics: If over 90% of utilization, the service is
+  about to become saturated.
+  SATURATION IS USUALLY CAUSED BY THE MOST CONSTRAINED RESOURCE
+- istiod IS CPU INTENSIVE.
+  Related metrics:
+  * container_cpu_usage_seconds_total  as reported by k8s
+  * process_cpu_seconds_total as reported by Istiod instrumentation.
+
+- errors
+- traffic
+
+
+- Traffic metrics: measure the load the system experiences.
+  related metrics:
+  - pilot_inbound_updates: count of configuration updates
+                           received per istiod instance.
+  - pilot_push_triggers  : total count of events that triggered a push.
+  - pilot_services       : measures the number of services known to the pilot.
+    The more services are known to the pilot, the more processing has to be
+    done for incoming events to generate the Envoy configuration.
+    The metrics for outgoing traffic are as follows:
+  - pilot_xds_pushes     : measures all types of pushes made by the control
+                           plane, such as listener, route, cluster & endpoint
+                           updates.
+
+- Errors metrics: failure rate
+  They are visualized in the Istio Control Plane Dashboard with the
+  title Pilot Errors.
+
+  ```
+  | pilot_total_xds_rejects: count of rejected configuration pushes
+  | └ pilot_xds_eds_reject:
+  | └ pilot_xds_lds_reject:
+  | └ pilot_xds_rds_reject:
+  | └ pilot_xds_cds_reject:
+  | pilot_xds_write_timeout:
+  | pilot_xds_push_context_errors
+  ```
+[[}]]
+
+## Pilot debug endpoints [[{]]
+
+* list ports opened by the Istio Pilot
+  ```
+  | $ kubectl \
+  |   -n istio-system \
+  |   exec -it deploy/istiod \
+  |   -- \
+  |   netstat -tnl
+  |  Active Internet connections (only servers)
+  |  Proto .. Local Address
+  |  tcp      127.0.0.1:9876  
+  |  tcp6     :::15010 xDS APIs and Cert.issuance
+  |  tcp6     :::15012 xDS APIs and Cert.issuance using TLS      
+  |  tcp6     :::15014 control-plane metrics
+  |  tcp6     :::15017 webhook server called k8s API calls to inject
+  |                    sidecars into new pods and validate Istio
+  |                    resources such as Gateways, VirtualServices,...
+  |  tcp6     :::8080  Pilot debug endpoints
+  |                    config&state of the entire service mesh
+  |                    "Are proxies synchronized?"
+  |                    "When was the last push to a proxy performed?"
+  |                    "What’s the state of the xDS APIs?"
+  |                    ...
+  |                    "" We recommend disabling debug endpoints in
+  |                       production (ENABLE_DEBUG_ON_HTTP=false)
+  |                       """
+  |
+  |  tcp6     :::9876  ControlZ introspection information for istiod
+  |       administrative user interface to inspect the current state
+  |       of the Pilot process and some minor configuration possibilities.
+  |       like Logging Scopes, Memory Usage, Environment Variables,
+  |       Process Information, command-line arguments used at startup,
+  |       Version Info, Metrics (yeat another way),
+  |       $ istioctl dashboard controlz deploy/istiod.istio-system
+  |         http://localhost:9876
+  ```
+[[}]]
+
+## Debugging Pod SideCars (Istio agent) [[{]]
+  ```
+  | ┌ POD ──────────────────────────────────────┐
+  | │                     │ App │               │
+  | │            ┌·········┘  └·····┐           │
+  | │      DNS resolution     Outbound traffic  │
+  | │  ┌ SIDECAR─·──────────────────·────────┐  │
+  | │  │  ┌──────v────────┐         ·        │┌····│ Prometheus │
+  | │  │  │     15053     │         ·        │· │
+  | │  │  │15004     15020<···················┘ │
+  | │  │  └ Pilot Agent--─┘         v        │  │
+  | │  │      Process        ┌───  15001 ─┐  │  │
+  | │  │                     15000   15006<······ Inbound  <··· Services
+  | │  │                                     │  │ traffic
+  | │  │                     15090   15021<······ K8s     <··· │ Kubelet │
+  | │  │                     │            │  │  │ readiness
+  | │  │                     └ Envoy ─────┘  │  │ probes
+  | │  └─────────────────────────────────────┘  │
+  | └───────────────────────────────────────────┘
+  |
+  | 15053: Local DNS proxy resolves hostnames for workloads running in different
+  |        clusters of the mesh.
+  |
+  | 15004: Exposes istiod debug endpoints through the pilot agent. Useful to debug
+  |  connections of the agetn to istiod. eg: Query istiod for the sync status of
+  |  pods.
+  |
+  | 15020:  Expose debug & metrics (also by indirectly querying metrics
+  |         in port 15090) as low level debug info(for Istio dev teams)
+  |         /healthz/ready
+  |         /stats/prometheus <·· eg:
+  |         /quitquitquit         $ kubectl exec deploy/webapp \
+  |         /app-health/            -c istio-proxy -- \          <·· container inside Pod
+  |         /debug/ndsz—Lists       curl localhost:15020/stats/prometheus
+  |         /debug/pprof
+  |
+  | 15000: Envoy administration interface
+  | 15090: Exposes metrics generated by Envoy. The pilot agent queries this
+  |        point as well when querying Prometheus stats in port 15020.
+  |        (xDS stats, connection stats, HTTP stats, outlier stats,
+  |         health check stats, circuit-breaker stats, ...)
+  | 15006: Routes inboud traffic (by iptables) to the local application
+  |
+  | 15001: Outbound traffic from app (redirected to this port by Iptable rules)
+  ```
+
+eg: get a shell connection in one of the proxies, then:
+  ```
+  | $ curl -v localhost:15004/debug/syncz
+  | [
+  |   ...
+  |  {
+  |   "@type": "type.googleapis.com/
+  |    envoy.service.status.v3.ClientConfig",
+  |   "genericXdsConfigs": [
+  |    {
+  |      "typeUrl": "type.googleapis.com/
+  |       envoy.config.listener.v3.Listener",
+  |      "configStatus": "SYNCED"
+  |    },
+  |    {
+  |      "typeUrl": "type.googleapis.com/
+  |       envoy.config.route.v3.RouteConfiguration",
+  |      "configStatus": "SYNCED"
+  |    },
+  |    {
+  |      "typeUrl": "type.googleapis.com/
+  |       envoy.config.endpoint.v3.ClusterLoadAssignment",
+  |      "configStatus": "SYNCED"
+  |    },
+  |    {
+  |      "typeUrl": "type.googleapis.com/
+  |       envoy.config.cluster.v3.Cluster",
+  |      "configStatus": "SYNCED"
+  |    }
+  |   ]
+  | }]
+  ```
+[[}]]
 
 [[troubleshooting}]]
 
 
 ## Summary [[{]]
-Istio is composed of a control plane (configuration) and data plane (data flow).
-Control plane  == Mixer + Pilot + Citadel + Galley
 
-Istio is deployed on K8s through k8s Custom Resource Definitions (CDRs).
+* Istio is composed of a control plane (configuration) and data plane (data flow).
+  Control plane  == Mixer + Pilot + Citadel + Galley
+
+* Istio is deployed on K8s through k8s Custom Resource Definitions (CDRs).
 
 * Request routing is done through VirtualService and DestinationRule.
 
@@ -1368,21 +1669,119 @@ Istio is deployed on K8s through k8s Custom Resource Definitions (CDRs).
   We worked with the Mixer component to enable sidecar logs ingestion.
 
 * Policies and Rules Summary
+
 Transport authentication  == mutual TLS  with auto PKI
 Istio supports PERMISSIVE mode to offer plain-text interactions by default
 
-USER AUTHENTICATION == OAuth-based JWT
-RBAC AUTHORIZATION: fine-grained permissions for service/path/HTTP method
-                    and request attributes.
-RULE ENGINE: enforce checks such as denylist, request quotas, etc.
+  ```
+  | USER AUTHENTICATION == OAuth-based JWT
+  | RBAC AUTHORIZATION: fine-grained permissions for service/path/HTTP method
+  |                     and request attributes.
+  | RULE ENGINE: enforce checks such as denylist, request quotas, etc.
+  ```
 [[}]]
 
-# TODO  [[{]]
+[[{network.sdn,doc_has.comparative,PM.low_code,application.observability,application.development]]
+# istio vs linkerd
+* istio.io SERVICE MESH
+  * L7 Software defined network.
+  * istio forwards "any" request from Pod to Pod (for app-to-app) through a set
+    of Envoys (C++) proxies installed on each working node and controlled by istio.
+    This allows istio to control the traffic "globally" (at the cost of some extra
+    "slow-down" in network communications). It can control routing, rate limiting,
+    (distributed microservice traffic) OBSERVABILITY, mTLS, and other capabilities
+    with "zero" development costs, apply global network policies, ...
+  * Network/Applications admins interact with istio through a control pane.
+  * Works within/outside Kubernetes.
+
+* linkerd SERVICE MESH:
+  * GO/Rust based.
+  * Used linkerd2-proxy, faster/lighter than (istio) Envoy.
+  * Similar to istio.io but looks to be lighter and faster for K8s.
+  * Only works in Kubernetes.
+  * Does NOT offer as much options as Istio but is simpler to install.
+[[ $networking }]]
+
+[[{PM.TODO.ISTIO]]
+# ISTIO TODO
 ## EnvoyFilters
 * Envoy proxy-specific filters on top of generic
   Pilot ones. ("advanced" and "non standard", to be used with care)
+* Filters enable Envoy to perform various operations such as routing,
+  translating protocols, generating statistics, etc., on a received
+  message. Each port listener configures its own set of filters. All
+  these filters are combined for a filter chain, which is invoked for
+  every TCP message. Envoy has a large set of out-of-the-box filters.
+  These filters can be broadly classified as follows:
+  * Listener filters (L4): invoked as part of a handshake in a
+    connection request. Responsible for TLS inspection, remote
+    destination ,...
+  * Network filters: invoked for every TCP message after a
+    connection. Responsible for application authorization, rate limiting,
+    TLS authentication,.
+  * Filters for application-specific protocols like MySQL and MongoDB
+    exists in order to gather statistics, perform role-based access, etc.
+  * HTTP filters (L7): gzip compression, gRPC to JSON translation, etc.
 
-[[}]]
+## Mixer endpoints:
+  Mixer exposes a monitoring endpoint (default port: 9093)
+  useful paths to investigate Mixer performance and audit function:
+* /metrics     provides Prometheus metrics on Mixer process +
+               gRPC metrics on API calls+adapter dispatch.
+* /debug/pprof provides an endpoint for profiling data in pprof format.
+* /debug/vars  provides an endpoint exposing server metrics in JSON format.
+
+## TIMESTAMP AND DURATION ATTRIBUTES FORMAT
+
+* RFC 3339 format.
+* When operating with timestamp attributes, `timestamp` function (defined in CEXL)
+  can be used to convert a textual timestamp in RFC 3339 format into TIMESTAMP type
+  eg: `request.time | timestamp("2018-01-01T22:08:41+00:00")`
+      `response.time > timestamp("2020-02-29T00:00:00-08:00")`
+
+* Duration attributes: 
+  ```
+  eg: 1ms, 2.3s, 4m, 5h10m
+  ns nanoseconds    s seconds
+  us microseconds   m minutes
+  ms milliseconds   h hours
+  ```
+
+## Apache Skywalking one-stop solution for observability
+  (Dist tracing + metrics + loggin + log/trace links +...)
+
+  <https://istio.io/latest/docs/ops/integrations/skywalking/>
+
+Features:
+* distributed tracing ability (like Jaeger and Zipkin)
+* metrics ability (like Prometheus and Grafana)
+* logging ability (like Kiali)
+* associates logs with traces
+* collects system events
+* associates events with metrics,
+* service performance profiling based on eBPF
+* ...
 
 
+* Recheck where 'subset' related info appears in VirtualService and DestinationRule config.
 
+* What we want for this problem, however, is a proxy that’s application aware and able to perform application networking on behalf of our services (see Figure 1.4). To do so, this service proxy will need to understand application constructs like messages and requests, unlike more traditional infrastructure proxies, which understand connections and packets. In other words, we need a layer 7 proxy.
+
+*. Since traffic flows through the mesh, we’re able to capture detailed signals about the behavior of the network by tracking metrics like request spikes, latency, throughput, failures, and so on. We can use this telemetry to paint a picture of what’s happening in our system. Finally, since the service mesh controls both ends of the network communication between applications, it can enforce strong security like transport-layer encryption with mutual authentication: specifically, using the mutual Transport Layer Security (mTLS) protocol.
+
+
+* Istio is Greek for “sail”
+
+* Envoy allows fo DYNAMIC CONFIGURING.
+  * APIs for operators to specify desired routing/resilience behavior
+  * APIs for the data plane (sidecars) to consume their configuration
+  * A service discovery abstraction for the data plane
+  * APIs for specifying usage policies
+  * Certificate issuance and rotation
+  * Workload identity assignment
+  * Unified telemetry collection
+  * Service-proxy sidecar injection
+  * Specification of network boundaries and how to access them
+[[PM.TODO.ISTIO}]]
+
+[[istio}]]

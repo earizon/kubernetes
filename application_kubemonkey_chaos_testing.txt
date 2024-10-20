@@ -1,0 +1,13 @@
+[[{qa.testing.chaos,PM.TODO]]
+# Kube-monkey Chaos testing 
+
+- stress test, breaking stuff at random.
+- It works by randomly killing pods in a cluster that you 
+  specifically designate, and can be fine-tuned to operate within 
+  specific time windows.
+
+- See also:
+<https://kubernetes.io/blog/2020/01/22/kubeinvaders-gamified-chaos-engineering-tool-for-kubernetes/>
+[[}]]
+
+

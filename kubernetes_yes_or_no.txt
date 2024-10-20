@@ -1,0 +1,201 @@
+# Kubernetes Reality Check
+## About Kubernetes [[{101,doc_has.keypoint]]
+- Kubernetes gets in charge of managing (up to thousands of!!!) containers in
+  a pool of "node workers". Management takes care of:
+  - distribution of application(container) images.
+  - storage for apps.
+  - networking (including load balancing)
+  - Application life-cycle (launch, scale, upgrade, rollback, ...)
+[[}]]
+
+## WARN! Kubernetes is for you!  [[{]]
+
+- You plan to have a running infrastructure for years,
+  and you know in advance that you will need to automate
+  lot of RESTfull deployments in an standard way.
+
+- You want to bet for a technology that is well known
+  by software industry, so you can hire people that already
+  are familiar with it.
+
+- Distributed systems are complex are is better to skip,
+  but you can not avoid them. Then k8s is the most familiar
+  approach.
+
+- Your company has different isolated teams with random knowledge
+  and skills, from finances, to science, to marketing, .....
+    They all want a common base and future-resistant virtual
+  computing infrastructure.
+    They all want to share computer resources, and balance
+  computation when needed, as well as reuse DevOps knowledge
+  for databases, web servers, networking, ...
+    You known that at least they will be share common support
+  for the Kubernetes cluster.
+
+- Some k8s operator automate all the life-cycle of software
+  management for a given database, CMS, ... You want to profit
+  from such existing operator and the knowledge and experience
+  of the operator developers.
+[[}]]
+
+## WARN! Kubernetes is NOT for you! [[{]]
+* Whatsapp grew from 0 to 1.000 Million users with no need for
+  complex architectures, just Erlang code runing on Erlang machines.
+
+* Kubernetes is designed for microservices architectures.
+  Extracted from <https://pythonspeed.com/articles/dont-need-kubernetes/>
+  """...
+    MICROSERVICES ARE AN ORGANIZATIONAL SCALING TECHNIQUE: WHEN YOU HAVE
+    500 DEVELOPERS WORKING ON ONE LIVE WEBSITE, IT MAKES SENSE TO PAY THE
+    COST OF A LARGE-SCALE DISTRIBUTED SYSTEM IF IT MEANS THE DEVELOPER
+    TEAMS CAN WORK INDEPENDENTLY. SO YOU GIVE EACH TEAM OF 5 DEVELOPERS A
+    SINGLE MICROSERVICE, AND THAT TEAM PRETENDS THE REST OF THE
+    MICROSERVICES ARE EXTERNAL SERVICES THEY CAN’T TRUST.
+
+    IF YOU’RE A TEAM OF 5 AND YOU HAVE 20 MICROSERVICES, AND YOU
+    DON’T HAVE A VERY COMPELLING NEED FOR A DISTRIBUTED SYSTEM,
+    YOU’RE DOING IT WRONG. INSTEAD OF 5 PEOPLE PER SERVICE LIKE THE BIG
+    COMPANY HAS, YOU HAVE 0.25 PEOPLE PER SERVICE.
+  """
+
+- Kubernetes is more complex to manage than standard Linux boxes:
+  Example extracted from Local Persistent Volume documentation:
+  """  Because of these constraints, IT’S BEST TO EXCLUDE NODES WITH
+    LOCAL VOLUMES FROM AUTOMATIC UPGRADES OR REPAIRS, and in fact some
+    cloud providers explicitly mention this as a best practice. """
+
+    Basically most of the benefits of k8s are lost for apps managing
+  storage at App level. This is the case with most modern DDBBs and stream
+  architectures (PostgreSQL, MySQL, kafka, p2p-alike Ethereum, ....).
+   Such apps needs to be running "for always" and the "moving Pods"
+  abstractions of K8s is lost.
+
+- As a reference Google, original creator of K8s, launches
+  2 BILLION CONTAINERS PER WEEK!!! in its infrastructures.
+  This is not excatly a normal IT load.
+
+- Related. Avoid distributed computing and microservices as much as possible.<br/>
+  <https://en.wikipedia.org/wiki/Fallacies_of_distributed_computing>
+  ```
+                                     BEFORE opting for Microservices (and K8s) ...
+                                     ----------------------------------------------
+ 1.- "The network is reliable"   <·· Get sure network SLA > Service SLA contract
+ 2.- "Latency is zero"           <·· Get sure your system can cache data locally
+ 3.- "Bandwidth is infinite"
+ 4.- "The network is secure"     <·· Get sure your traffic uses TLS and PKI is in place.
+ 5.- "Topology doesn't change"
+ 6.─ "There is 1+ administrator" <·· Get sure this in production
+ 7.- "Transport cost is zero"    <·· Get sure system doesn't slow down with REMOTE DATA
+ 8.- "The network is homogeneous"
+  ```
+[[}]]
+
+##  Kubernetes Failure Stories  [[{]]
+A compiled list of links to public failure stories related to
+  Kubernetes. Most recent publications on top.
+  NOTE: no new update since 2021 (written as of 2023-04)
+<https://k8s.af/>
+[[}]]
+
+## Why Coinbase Is Not Using Kubernetes to Run Their Container Workloads [[{]]
+<https://www.infoq.com/news/2020/07/coinbase-kubernetes/>
+- Coinbase uses containers, but they run them in VMs.
+  and Odin for deployments.<br/>
+  """ _Adopting Kubernetes adds unnecessary complexity
+      to their current deployment pipeline.···
+  Managed k8s services from cloud providers, like EKS or GKE,
+  are not mature enough yet._ """
+- For application service discovery, they use Route53 in
+  conjunction with application load balancers and Envoy.
+- They scale their services through auto-scaling groups (ASGs).
+- Odin has all the logic for doing deployments progressively
+  using health checks and can even perform rollbacks when needed.
+
+  """"... they don't think Kubernetes is a bad tool ...
+  Knative or Fargate are increasing the level of abstraction to
+  solve many of these challenges."""
+[[}]]
+
+## Real Problems when applying Readiness Probes [[{]]
+ ... that will not appear when not using Readiness Probes.<br/>
+yes, it can be fixed with better readiness probes, but who knows it!
+
+* <https://github.com/helm/charts/issues/24537><br/>
+  """ _The creation of a new replica fails when the database to replicate is
+  very large. It seems that the pod is restarted by the readiness probe
+  whilst importing the data into the database. As the import and setup
+  are not yet finished the next start fails._
+   
+  _Database creation/import for slave is interrupted because of
+  readiness probe restarting the pod. When the pod has restarted it
+  complains the postgres folder is corrupted (missing postgres version).<br/>
+  How to reproduce it:<br/>
+    Primary with a very large database and add a replica, log follow and
+  see the process being interrupted_
+  """
+* Unfortunately this problem will appear at random depending on storage/CPU speed.
+  It can pass all tests and fail in production due to "parallel" tasks slowing down
+  storage.  [[}]]
+
+## k8s reality check 2019 [[{qa.DONTS,PM.TODO]]
+https://enterprisersproject.com/article/2019/11/kubernetes-reality-check-3-takeaways-kubecon
+* Kubernetes still feels complex to beginners.  Enterprise 
+  distributions can help to abstract away some of this complexity by 
+  making opinionated choices about components and packaging 
+  cloud-native ecosystem into a more consumable form.
+* rapid evolution&change on areas as diverse as service mesh,
+  serverless, policy, monitoring, visualization, and more.
+* One can argue whether KubeCon is wholly an infrastructure conference.
+  But it certainly isn’t an event really aimed at application developers.
+* Operating securely is an important user concern
+* Rushgrove (Cloud Native Computing Foundation (CNCF) Security special interest group)
+  also said that a lot of the interest he sees in that group is in fairly basic topics,
+  such as image scanning and general automation.
+  Plenty of Kubernetes security work remains to be done.
+  * One area concerns default settings that may make the project easier to adopt
+    or use but that aren’t best practice from a security perspective.
+  * policy management: The Open Policy Agent (OPA) is one tool that aims to simplify
+    security policy (like Enarx for Trusted Execution Environments). As the
+    Open Policy Agent (OPA) site states, OPA “has been used to policy-enable software
+    across several different domains across several layers of the stack:
+    container management (Kubernetes), servers (Linux), public cloud infrastructure
+    (Terraform), and microservice APIs (Istio, Linkerd, CloudFoundry).”
+    ... while the tools are falling into place a lot of the actual policy isn’t
+    written yet.
+  * images are downloaded from untrusted sources.
+  * containers are run as root or "too much" open permissions.
+[[}]]
+
+
+## Real Problems require real Solutions  [[{qa.DONTS]]
+* PROBLEM : developers write code that is impossible to deploy because ...
+            it's a BBS (Big Bull ...)
+            Manytime they can not even execute in their own laptops or explain
+            random configuration errors after any small change.
+  SOLUTION: "We encapsulate into containers, emulating their own machine!!!!"
+
+* PROBLEM : Now we have 500 containers!!. Everything is ridicously hard to manage.
+  SOLUTION: "We solve it using containers orchestrators!!!"
+
+* PROBLEM : Container orchestrators are ridicously complex to manage and they
+            are adding another layer of complexity, not to mention the source
+            of exotic problems they have become.
+            (Kubernetes, anyone?)
+  SOLUTION: "We are on it! sure they will surprise us!!!"
+
+* CONCLUSION: REAL WORLD NEEDS REAL SOLUTIONS:
+  Force developers to create FAIL-FAST code.
+  * https://en.wikipedia.org/wiki/Fail-fast
+  * https://whatdidilearn.info/2017/11/19/exceptions-in-elixir.html
+    NOTE: Erlang is designed to build massively scalable soft real-time
+          systems with requirements on high availability.
+          Some of its uses are in telecoms, banking, e-commerce,
+          computer telephony and instant messaging. Erlang's runtime system has
+          built-in support for concurrency, distribution and fault tolerance.
+          Notably is its use at the core of Whatsapp.
+
+  KEY-POINT: REAL PROBLEMS REQUIRE REAL SOLUTIONS
+
+[[}]]
+
+

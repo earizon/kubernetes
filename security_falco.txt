@@ -1,0 +1,53 @@
+[[{security.falco,security.101,security.policies,doc_has.comparative,PM.TODO]]
+## Falco Security
+
+* <https://www.infoq.com/news/2020/01/falco-security-cncf/>
+* Sysdig Falco provides intrusion and abnormality
+  (app|container|VM, ...) detection for Kubernetes, Mesosphere,
+  Cloud Foundry, ...  protecting from malicious activity.
+* 2018: CNCF Sandbox , 2020-01: CNCF Incubation-level.
+* It leverages open source Linux kernel instrumentation to monitor
+  the stream of system calls from the kernel.
+  Running in user-space, it is able to augment the kernel
+  data with other input streams such as container runtime metrics and
+  Kubernetes metrics alerting on any behaviour that makes Linux system
+  calls.
+* alerting rules make use of Sysdig's filtering expressions
+  to identify potentially suspicious activity.
+  (process starting a shell inside a container, container
+   running in privileged mode, or an unexpected read of a sensitive
+   file).
+* Falco can notify via Slack, Fluentd, and NATS.
+* Falco rule:
+  * condition field: filter applied to each system call.
+    e.g.: attempts to start a shell process within a container:
+    ```
+    - rule: shell_in_container
+      desc: notice shell activity within a container
+      condition: container.id != host and proc.name = bash
+      output: shell in a container (user=%user.name
+    container_id=%container.id container_name=%container.name
+    shell=%proc.name parent=%proc.pname cmdline=%proc.cmdline)
+      priority: WARNING
+    ```
+* Falco 0.4.0 communication with Kubernetes and Mesos servers is
+  possible allowing for creation of policies using the context of those
+  frameworks. This allows specifying properties such as container ids,
+  image names, Kubernetes namespaces, services, deployments, or Mesos
+  frameworks.
+* While similar to other tools that allow for declaring security   [comparative]
+  policies such as SELinux, AppArmor, or auditd, Falco has some
+  differences. As Mark Stemm, software engineer at Sysdig, notes:
+  * Tools like seccomp, seccomp-bpf, SELinux, and AppArmor fall into the
+    enforcement category in that they will alter the behaviour of
+    processes if they are found to violate the defined rules. Falco and
+    other tools, such as auditd, fall in the auditing category as they
+    will notify when detecting a violation.
+  * Falco Falco runs in user space, using a kernel module to
+    obtain system calls, while other tools perform system call
+    filtering/monitoring at the kernel level." This allows Falco to have
+    more available data to be used within its policies as noted
+    previously.
+[[}]]
+
+
