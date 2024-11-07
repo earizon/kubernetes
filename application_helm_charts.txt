@@ -29,10 +29,13 @@ Helm allows for provisioning Kubernetes resources in the correct order.
 
   ```
   $ helm get -h
+
   $ helm repo add stable \                  <·· Add repo with name "stable"
     https://kubernetes-charts.storage.googleapis.com/
+
   $ helm repo add brigade \                 <·· Add another repo
     https://brigadecore.github.io/charts
+
   $ helm search repo stable                 <·· alt 1: search charts available in repo named 'stable'
   > NAME                          CHART     APP         DESCRIPTION
   >                               VERSION   VERSION
@@ -48,32 +51,35 @@ Helm allows for provisioning Kubernetes resources in the correct order.
   > https://hub.helm.sh/charts/presslabs/wordpress-...  v0.6.3    v0.6.3  Presslabs WordPress Operator ....
   > ...
 
-  $ helm repo update                          <··  Make sure we get the latest list of charts (sort of "apt update")
-  $ helm show values stable/mysql             <··  Show what params can be customized 
+  $ helm repo update                          # <··  Make sure we get the latest list of charts (sort of "apt update")
+  $ helm show values stable/mysql             # <··  Show what params can be customized 
                                                    during install
   $ editor custom01.yaml
   { mysql.auth.username: ...  }
 
-  $ helm install                  \           <·· Install MySQL (it can take a several minutes)
-         -values custom01.yaml                    <·· (opt) overwrite defaults values
-         --set   a[0].b=v1,b.c=v1                 <·· (opt) overwrite --values and/or defaults
-         --set   name={a, b, c}                   <·· (opt) custom values list
-         --wait                                   <·· (opt)  Waits for: [min. num of Pods in "ready state", PVCs bound]
-         --timeout: 0m20s                         <·· (opt, def: 5m0s)
+  $ helm install                  \           # <·· Install MySQL (it can take a several minutes)
+         -values custom01.yaml                #   <·· (opt) overwrite defaults values
+         --set   a[0].b=v1,b.c=v1             #   <·· (opt) overwrite --values and/or defaults
+         --set   name={a, b, c}               #   <·· (opt) custom values list
+         --wait                               #   <·· (opt)  Waits for: [min. num of Pods in "ready state", PVCs bound]
+         --timeout: 0m20s                     #   <·· (opt, def: 5m0s)
          stable/mysql --generate-name
  
  
-  $ helm show chart stable/mysql              ← get an idea of the chart features
-  $ helm show all   stable/mysql              ← get all information about chart
+  $ helm show chart stable/mysql              # <·· get an idea of the chart features
+
+  $ helm show all   stable/mysql              # <·· get all information about chart
  
-  $ helm install my-nginx ./mynginx           ← Install chart from local dir.
-  $ helm delete --purge my-nginx              ← Clean-up install
+  $ helm install my-nginx ./mynginx           # <·· Install chart from local dir.
+
+  $ helm delete --purge my-nginx              # <·· Clean-up install
  
   Whenever an install is done, a new local-release is created
   allowing to install multiple times into the same cluster.
-  Each local-release can be independently managed and upgraded.
+  Each local-release can be independently managed and upgraded.  [[doc_has.keypoint,qa.versioning]]
 
   To list local released:
+
   $ helm ls --all
   NAME             VERSION   UPDATED        STATUS    CHART
   smiling-penguin  1         Wed Sep 28...  DEPLOYED  mysql-0.1.0
@@ -81,93 +87,104 @@ Helm allows for provisioning Kubernetes resources in the correct order.
   Available through INMUTABLE local DNS name:
   miling-penguin.default.svc.cluster.local (port 3306)
                  └─────┴································· (or any active namespace)
+
   $ kubectl get svc -w smiling-penguin      <·· get service  status("INMUTABLE VIEW" of App -moving pods)
 
   $ helm uninstall smiling-penguin \        <·· Uninstall local-release
-  $      --keep-history                     <·· Allows to rollback deleted install
+         --keep-history                     <·· Allows to rollback deleted install
   Removed smiling-penguin
+
   $ helm status smiling-penguin
   Status: UNINSTALLED                       <·· works only with '--keep-history'
   $ helm rollback smiling-penguin 1         <···┘
   ```
 
-## Creating new Charts  <!-- { $create_new_chart -->
+<!-- { $create_new_chart -->
+## Creating new Charts  
   
 * REFS:
   * <https://www.youtube.com/watch?v=3GPpm2nZb2s>
   * <https://helm.sh/docs/developing_charts/>
 
-```
-  $ helm create myapp    ← alt 1: Create from helm template
-  myapp/             ← template layout
-  ├─ charts/         ← complex apps can consists of many "parallel" charts.
-  │                    (front-end service/s, backend/s, middleware, cache, ...)
-  │
-  │                    Alternatively use requirements.yaml like:
-  │                    $ cat requirements.yaml
-  │                    | dependencies:
-  │                    |   - name: apache
-  │                    |     version: 1.2.3
-  │                    |     repository: http://repo1.com/charts  ← Pre-Setup:
-  │                    |   - name: mysql                            $ helm repo add ...
-  │                    |     version: 4.5.6
-  │                    |     repository: http://repo2.com/charts
-  │                    $ helm dependency update  ← Download deps. to charts/
-  │
-  ├─ Chart.yaml      ← Sort of chart metadata
-  │  ▶│apiversion: v1  ┌Change to 0.2.0 then :
-  │   │name: my-nginx  │  $ helm upgrade  my-nginx .   ← Upgrade  0.1.0 → 0.2.0
-  │   │version: 0.1.0 ←┘  $ helm rollback my-nginx 1   ← Rollback to rev 1 (0.1.0)
-  │   │                   $ helm rollback my-nginx 2   ← Rollback to rev 2 (0.2.0)
-  │   │appVersion: 1.0-SNAPSHOT (e.g: we can have different type of helm
-  │   │                          deployments (versions) with different types of
-  │   │                          replica instances for the same web application)
-  │   │description: "chart -vs app- description"
-  │   │...  ← eubeVersion, maintainers, template engine, deprecated, ...
-  │
-  ├─ values.yaml     ← Default values for parameters in yaml templates
-  │                    (ports, replica counts, max/min, ...) to be replaced as
-  │                    {{ .Values.configKey.subConfigKey.param }}.
-  │                    They can be overloaded at install/upgrade like:
-  │                    $ helm install|upgrade ... --set configKey.subConfigKey.param=...
-  └─ templates
-     ├─ deployment.yaml  ← Can be created manually like:
-     │                     $ kubectl create deploy nginx --image nginx \
-     │                       --dry-run -o yaml > deployment.yaml
-     │ 
-     ├─ service.yaml     ← Can be created manually like:
-     │                     $ kubectl expose deploy mn-nginx -port 80   \
-     │                       --dry-run -o yaml > service.yaml
-     │ 
-     ├─ _helpers.tpl     ← files prefixed with '_' do not create k8s output
-     │                     Used for reusable pieces of template
-     ├─ hpa.yaml
-     ├─ ingress.yaml
-     ├─ NOTES.txt
-     ├─ serviceaccount.yaml
-     └─ tests
-        └── test-connection.yaml
-```
+  ```
+  |  $ helm create myapp    # <·· alt 1: Create from helm template
+  |  $ tree myapp
+  |  myapp/             <·· template layout
+  |  ├─ charts/         <·· directory for Subcharts:
+  |  │                      (front-end chart, backend chart, middleware chart, ...)
+  |  │
+  |  │                      As an alternative/complement to subcharts we can use 
+  |  │                      requirements ("transitive dependencies"):
+  |  │                      $ helm repo add ...  #  <·· add external helm-charts repository
+  |  │ 
+  |  │                      $ cat requirements.yaml
+  |  │                      dependencies:
+  |  │                        - name: apache
+  |  │                          version: 1.2.3
+  |  │                          repository: http://repo1.com/charts  # <·· Pre-Setup:
+  |  │                        - name: mysql                           
+  |  │                          ...
+  |  │
+  |  │                    $ helm dependency update  # <·· Download deps. to charts/
+  |  │
+  |  ├─ Chart.yaml              <·· Sort of chart metadata
+  |  │  └───┬────┘
+  |  │  | apiversion: v1         ┌·· Change to 0.2.0 then :
+  |  │  | name: my-nginx         ·  $ helm upgrade  my-nginx .  # <· Upgrade  0.1.0 to 0.2.0
+  |  │  | version: 0.1.0        <┘  $ helm rollback my-nginx 1  # <· Rollback to rev 1 (0.1.0)
+  |  │  |                           $ helm rollback my-nginx 2  # <· Rollback to rev 2 (0.2.0)
+  |  │  |
+  |  │  | appVersion: 1.0-SNAPSHOT (e.g: we can have different type of helm
+  |  │  |                           deployments (versions) with different types of
+  |  │  |                           replica instances for the same web application)
+  |  │  | description: "chart -vs app- description"
+  |  │  | ...  ← eubeVersion, maintainers, template engine, deprecated, ...
+  |  │
+  |  ├─ values.yaml             <·· - Default values for parameters in yaml templates
+  |  │                                (ports, replica counts, max/min, ...) to be replaced
+  |  │                                as {{ .Values.configKey.subConfigKey.param }}.
+  |  │                              - They can be overloaded at install/upgrade like:
+  |  │                                $ helm install|upgrade ... \
+  |  │                                  --set configKey.subConfigKey.param=...
+  |  └─ templates
+  |     ├─ deployment.yaml      <·· Can be created manually, for example, like:
+  |     │                           $ kubectl create deploy nginx --image nginx \
+  |     │                             --dry-run -o yaml > deployment.yaml
+  |     │ 
+  |     ├─ service.yaml         <·· Can be created manually like:
+  |     │                           $ kubectl expose deploy mn-nginx -port 80   \
+  |     │                             --dry-run -o yaml > service.yaml
+  |     │ 
+  |     ├─ _helpers.tpl         <··files prefixed with '_' do not create k8s output
+  |     │                          Used for reusable pieces of template
+  |     ├─ hpa.yaml
+  |     ├─ ingress.yaml         <·· "deprecated" in favor of Gateway API (2023+)
+  |     ├─ NOTES.txt
+  |     ├─ serviceaccount.yaml
+  |     └─ tests
+  |        └─ test-connection.yaml
+  ```
 
-```
-./mychart/Chart.yaml
-./mychart/values.yaml
-```
+  ```
+  | ./mychart/Chart.yaml
+  | ./mychart/values.yaml
+  ```
 
-```
-cat ./mychart/templates/_helpers.yaml
- {{/* some helping comment */}}
- {{- define "mychart.v1.labels" }}    <··· embed as:
- labels:                              {{- include "mychart.v1.labels" . | indent 2 }}
-   generator: helm
-   date: {{ now | htmlDate }}
-   chart: {{ .Chart.Name }}
-   version: {{ .Chart.Version }}
- {{- end }}
-```
+  ```
+  | $ cat ./mychart/templates/_helpers.yaml
+  | {{/* some helping comment */}}
+  | {{- define "mychart.v1.labels" }}  <·· use embeded in output templates as:
+  |                                        {{- include "mychart.v1.labels" . | indent 2 }}
+  | labels:
+  |   generator: helm
+  |   date: {{ now | htmlDate }}
+  |   chart: {{ .Chart.Name }}
+  |   version: {{ .Chart.Version }}
+  | {{- end }}
+  ```
 
-```
-cat ./mychart/templates/configmap.yaml
+  ```
+  | $ cat ./mychart/templates/configmap.yaml
   | apiVersion: v1
   | kind: ConfigMap
   | metadata:
@@ -203,10 +220,10 @@ cat ./mychart/templates/configmap.yaml
   |         {{ .Files.Get "config1.toml" | b64enc }}
   |   some-file.txt: {{ range .Files.Lines "foo/bar.txt" }}
   |     {{ . }}{{ end }}
-```
-
-```
-cat ./chart/templates/NOTES.txt
+  ```
+  
+  ```
+  | $ cat ./chart/templates/NOTES.txt
   | Thank you for installing {{ .Chart.Name }}.
   |
   | Your release is named {{ .Release.Name }}.
@@ -215,25 +232,25 @@ cat ./chart/templates/NOTES.txt
   |
   |   $ helm status {{ .Release.Name }}
   |   $ helm get all {{ .Release.Name }}
-```
+  ```
 
 
-```
-cat ./mychart/charts/subchartX/Values.yaml <·· Subcharts are considered 
- ...                         "stand-alone". depends on parent charts__
- keyA: valueA           <·· modify in parent as --set mysubchart/keyA=...
- global:                <·· Use global to reuse same var in chart/subcharts.
-   language: en             as .Values.global.salad
-                            In parent we will just just --set global.language=...
-                            and it will also be applied to subchart.
-```
+  ```
+  $ cat ./mychart/charts/subchartX/Values.yaml <·· Subcharts are considered 
+  | ...                         "stand-alone". depends on parent charts__
+  | keyA: valueA           <·· modify in parent as --set mysubchart/keyA=...
+  | global:                <·· Use global to reuse same var in chart/subcharts.
+  |   language: en             as .Values.global.salad
+  |                            In parent we will just just --set global.language=...
+  |                            and it will also be applied to subchart.
+  ```
 
-```
-./mychart/.helmignore
-  | .git
-  | /*.txt
-  | ...
-```
+  ```
+  | $ cat ./mychart/.helmignore
+  |  .git
+  |  /*.txt
+  |  ...
+  ```
 
 ```
 $ helm install --debug \         # [[{application.helm.debug,troubleshooting]]
@@ -281,10 +298,12 @@ $ helm install --dry-run --debug CHART | schelm OUTPUT_DIR
 
 ### Recipes
 
-* To delete a default value set it to null (not nil) in values.yaml or --set flag.
-* look up resources in RUNNING cluster with function:
+* To delete a default value, set it to null (not nil) in values.yaml or --set flag.
+* look up resources in RUNNING cluster with template function:
+  ```
   lookup $apiVersion $kind $namespace $name -> resource or resource list
   (similar to kubectl get $inkd $name -n $namespace)
+  ```
 
 ## Boolean Fun.
 

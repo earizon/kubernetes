@@ -233,8 +233,8 @@
 * `reclaimPolicy := Delete (default) or Retain`  [[{security.backups}]]
 [[storage.tunning}]]
 
-[[{storage.distributed.rook,storage.101,scalability.storage,01_PM.low_code,01_PM.TODO]]
-## Rook.io
+[[{storage.distributed.rook,storage.101,storage.ceph,scalability.storage,01_PM.low_code,01_PM.TODO]]
+## Rook.io storage operator
 <https://rook.io/>
 <https://www.infoq.com/news/2019/08/rook-v1-release/>
 - Rook turns distributed storage systems into self-managing, self-scaling,
@@ -242,6 +242,18 @@
   ADMINISTRATOR: DEPLOYMENT, BOOTSTRAPPING, CONFIGURATION,
   PROVISIONING, SCALING, UPGRADING, MIGRATION, DISASTER RECOVERY,
   MONITORING, AND RESOURCE MANAGEMENT.
+
+- CNCF graduated project (2020-10).
+
+- Who is who:
+  - Travis Nielsen, Annette Clewett
+  - Blaine Gardner & Subham Rai, IBM
+
+... The panel will discuss various scenarios to show how Rook 
+  configures Ceph to provide stable block, shared file system, and 
+  object storage for your production data. 
+
+
 
 - 2019-08: release v1.0 for production-ready workloads that use file,
   block, and object storage in containers.

@@ -1,0 +1,103 @@
+# K8s Gateway API
+
+[[{networking.101,networking.101,networking.gateway_API]]
+## How to Move from Ingress to Gateway API with Minimal Hassle
+
+- By Keith Mattix, Microsoft
+
+- For many, the Ingress resource was one of the first Kubernetes APIs they used,
+  adding HTTP routing rules and SSL certs for cluster-external traffic.
+- These APIs are used for production in clusters across the world today,
+  configuring ingress gateways serving hundreds of thousands of connections per second.
+- As of October 2023, the Ingress API has been superseded by the Gateway API,
+  a new set of Kubernetes resources with over 20 implementations that enforces 
+  security best practices by design. 
+- Join this session to learn how to make this migration safe by identifying the
+  best migration path, implementing Gateway API best practices, and utilizing
+  community-supported migration tools such as ingress2gateway.
+[[networking.gateway_API}]]
+
+
+
+* <https://gateway-api.sigs.k8s.io/>
+
+* OOSS project, managed by the SIG-NETWORK community.
+  modelling service networking in Kubernetes. 
+
+  ```
+  Main Objects
+  GatewayClass
+  Gateway
+  HTTPRoute, TCPRoute, Service, etc
+  ```
+
+## Gateway API Model
+* Role-oriented: API resources model organizational roles that use 
+                 and configure K8s service networking.
+*      Portable: Just as Ingress, a universal specification with 
+                  numerous implementations.
+*    Expressive: core functionality for things like header-based matching,
+                 traffic weighting, and other capabilities that were only
+                 possible in Ingress through custom annotations.
+*    Extensible: allows for custom resources to be linked at various layers 
+                 of the API.
+
+* TODO: 
+  <https://tetrate.io/blog/why-the-gateway-api-is-the-unified-future-of-ingress-for-kubernetes-and-service-mesh/>
+
+
+[[{]]
+## datawire Ambassador
+
+* Knative API gateway for microservices built on the Envoy Proxy
+
+* <https://github.com/datawire/ambassador>
+
+* TODO: How does it compares/complement/overlaps to Istio or Traeffik?
+[[}]]
+
+<!--
+The detailed process is as follows:
+- The infrastructure provider provides GatewayClass and Gateway 
+  Controller.
+- Platform operator deploy Gateway (multiple deployments possible, or 
+  using different GatewayClasses).
+- Gateway Controller continuously monitors changes to the 
+  GatewayClass and Gateway objects in the Kubernetes API Server.
+- Gateway controller will create the corresponding gateway based on 
+  cluster operations and maintenance configuration.
+- Application developers apply xRoutes and bind them to the service.
+- If in the cloud, the client accesses the load balancer for that 
+  ingress gateway.<br/>
+  The gateway will route to the corresponding back-end service based 
+  on the matching criteria in the traffic request.
+-->
+
+[[{networking.gateway_API.traefik]]
+## Traefik
+
+* ... 2024-10-29 Traefik 3.2 is here: 50% faster with the Fast Proxy 
+  engine and Kubernetes Gateway API v1.2 support.
+
+[[networking.gateway_API.traefik}]]
+
+
+## Extending the Gateway API: The Power and Challenges of Policies 
+
+- Kate Osborn, NGINX
+
+... From the beginning, the Gateway API has been designed to be 
+extensible ... over 25 implementations ... Among the various ways ... 
+Policy Attachment mechanism stands out as the most potent and 
+challenging.
+
+You will learn about:
+- The difference between direct and inherited policies.
+- How policy inheritance and merging works. 
+- Corner cases, such as conflicting policies and invalid target refs.
+- Techniques to verify if a policy has been successfully applied.
+- Strategies for troubleshooting policies. 
+
+
+
+

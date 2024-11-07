@@ -282,6 +282,21 @@ Kubernetes Ephemeral Containers and kubectl debug Command
 See also:
 * <https://kubectl.docs.kubernetes.io/guides/container_debugging/>
   ... port forward to pods, proxying traffic to services ...
+
+
+### `Kubectl Debug` Lacks an `IDE` Option. Let’s Fix That! [[qa.UX]]
+
+(kubeconf 2024 Talk  by Mario Loriedo, Red Hat)
+
+... this talk will present a `kubectl debug` extension that starts an IDE in
+an ephemeral container for debugging purposes. This extension uses the
+DevWorkspace operator, which is capable of running lightweight cloud 
+development environments, including the IDE, in containers. 
+
+.. If you like debugging by adding breakpoints in an IDE rather than 
+inspecting your application's logs, you should attend this talk.
+
+
 [[troubleshooting.101}]]
 
 

@@ -17,6 +17,27 @@
   https://www.kubetools.io/kubernetes/securely-scaling-microservices-on-kubernetes-with-otterize/
 [[}]]
 
+## What Istio Got Wrong: Learnings from the Last Seven Years of Service Mesh
+
+... Although Istio offers a lot of powerful features for application 
+networking,  path to maturity was fraught with challenges.
+
+... its initially complex architecture, an overload of features, 
+premature release of version 1.0, difficulties faced by contributors, 
+and delays in joining the CNCFa
+
+... We will discuss the impact of these mistakes, how these missteps 
+were addressed, and how they have positioned Istio as a leader in the 
+service mesh market.
+
+... it detail how Istio's evolution reflects a shift towards simpler, 
+more modular components that together offer effective solutions for 
+managing APIs and service-to-service communication regardless of 
+platform.
+* Speakers: Louis Ryan CTO, Solo.io, Christian Posta Global Field CTO, Solo.io
+
+
+
 
 ## External Resources
 * Google’s Site Reliability Engineering book

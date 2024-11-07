@@ -78,6 +78,18 @@ https://www.infoq.com/news/2019/11/automated-testing-infrastructure/
 
 ## Harbor Operator [[{01_PM.TODO]]
 https://www.infoq.com/news/2020/03/harbor-kubernetes-operator/
+
+### Harbor: Harbor and the World of SBOMs 
+
+... Discover how integrating SBOM (Software Bill of Materials) with 
+Harbor enhances your software supply chain security. In this 
+lightning talk, we'll cover:
+- What is SBOM?: Quick overview of its role in software transparency.
+- Integration with Harbor: Highlights of the SBOM integration in Harbor v2.11.
+- Security Best Practices: Using SBOM to identify and address vulnerabilities.
+Perfect for software engineers, DevOps professionals, and security enthusiasts looking to strengthen their software supply chain.
+
+
 [[}]]
 
 ## k8s the hard way [[{01_PM.TODO]]
@@ -95,8 +107,10 @@ https://www.infoq.com/news/2020/03/Kubernetes-application-manager/
 [[}]]
 
 ## Cilium [[{network,security,01_PM.TODO]]
-https://github.com/cilium/cilium
-Cilium is open source software for providing and transparently securing network connectivity and loadbalancing between application workloads such as application containers or processes
+* <https://github.com/cilium/cilium>
+Cilium is open source software for providing and transparently 
+securing network connectivity and loadbalancing between application 
+workloads such as application containers or processes
 [[}]]
 
 
@@ -1054,7 +1068,7 @@ development and staging clusters.
 
 [[cloud.billing.AWS}]]
 
-[[{qa.gitops.flux]]
+[[{qa.gitops.flux,qa.101]]
 ## flux
 - flux is the k8s operator that *MAKES GITOPS HAPPEN IN YOUR CLUSTER*.<br/>
   it ensures that the cluster config matches the one in git and
@@ -1063,6 +1077,8 @@ development and staging clusters.
   for each step to ensure deployment is reproducible,
   auditable and revertible. deploy code as fast as your team creates
   it, confident that you can easily revert if required.
+- multi-everything (multi-tenant, multi-cluster, etc.). 
+- Flux works on top of existing tools (like CI and Kubernetes tools).
 
 * Related. Extracted from  <https://github.com/weaveworks/weave-gitops>:
   """...  Weave GitOps defaults are Flux as the GitOps engine, Kustomize,
@@ -1073,6 +1089,22 @@ development and staging clusters.
   Kyverno, etc.<br/>
   ... Multitenancy, multiple Git repositories, multiple clusters.<br/>
   ... Alerts and notifications."""
+
+### GitOps at Production Scale with Flux
+
+ - Leigh Capili, Flox & Priyanka Ravi, G-Research
+...  this session will cover best practices when running Flux at scale in production.
+...with an overview of the scaling capabilities of Flux controllers:
+- Vertical Scaling
+- Horizontal Scaling
+- Sharding 
+
+... how to use them considering multi-tenancy, cluster fleet size, and workload complexity.
+
+...  We'll also introduce the Mean Time To Production benchmarking tool.
+
+... benchmark measures the time it takes for **Flux to deploy thousands of Helm charts**
+and Kustomize overlays on Kubernetes clusters.
 
 * <https://www.weave.works/technologies/gitops/>
 [[qa.gitops.flux}]]
@@ -1539,6 +1571,249 @@ update in case of success.
   appear as virtual services on a single IP address. Therefore, IPVS
   naturally supports Kubernetes Service.
 [[}]]
+
+
+## Observability Day:
+
+  ... cloud-native observability projects including but not 
+necessarily limited to Prometheus, Fluentd, Fluent Bit, 
+OpenTelemetry, and OpenMetrics), as well as vendor-neutral best 
+practices for addressing observability challenges. 
+
+## SIG Storage
+Kubernetes SIG Storage is responsible for ensuring that different 
+types of file and block storage are available wherever a container is 
+scheduled. There is the Container Storage Interface (CSI) for block 
+and file storage that allows storage providers to write CSI drivers. 
+There is also Container Object Storage Interface (COSI) that is 
+adding object storage support in Kubernetes. In this lightning talk, 
+we will highlight some projects that SIG Storage has been working on.
+
+[[{security.secret_mng]]
+## (Secrets Store) CSI Driver and Sync Controller
+
+Q: how do you configure your applications when the source of truth for secrets
+  (passwords, SSH keys and authentication tokens) is an external secret store?
+
+Q: What if you need to store, retrieve and perform zero touch rotation of these secrets securely?
+
+A: Meet the (Secrets Store) CSI Driver and Sync Controller, k8s's SIG-auth subprojects providing
+ a simple way to retrieve secrets from enterprise-grade external stores such as Azure Key Vault,
+ Google Secret Manager and HashiCorp Vault.
+
+* Anish will discuss trade-offs of the CSI driver versus Sync controller.
+[[security.secret_mng}]]
+
+[[{security.eraser,security.auditing,]]
+## Eraser: Cleaning Up Vulnerable Images from Kubernetes Nodes
+
+... It is common for pipelines to push images to the cluster, but uncommon to remove them
+from a node's local store once a CVE has been disclosed. 
+
+.. Kubernetes has no built-in solution to this problem:
+* its garbage collection only responds to disk pressure.
+
+* Eraser, a CNCF sandbox project, is an open source solution that 
+  automates the scanning and removal of non-running images.
+[[security.eraser}]]
+
+[[{network.envoy,qa.API_MNG,dev_stack.wasm]]
+## Highlights of Envoy Gateway v1.1.0 
+
+* Envoy Gateway (EG) 1.1.0, on July 22.... new features,
+
+including Wasm extension, non-k8s support, IP allow/deny list, stateful service support, etc.
+[[network.envoy,qa.API_MNG,dev_stack.wasm}]]
+
+[[{security.images]]
+## Copa: Directly Patch Container Image Vulnerabilities 
+
+To patch images, users face two options:
+1. wait for third-party authors to release updates.
+2. perform a full image rebuild, a time and resource-intensive process.
+
+Project Copacetic (Copa) enhances the image patching process,
+reducing turnaround time and complexity. It integrates easily into existing
+build infrastructure, giving users greater control over their patching 
+timeline and reducing costs.
+[[security.images}]]
+
+
+[[{security.openFGA]]
+## OpenFGA: Fine Grained Authorization 
+[[security.openFGA}]]
+
+[[{security.mTLS,PM.low_code,qa.sidecarless]]
+## Effortless, Sidecar-Less Mutual TLS and Rich Authorization Policies up and Running in 5 Minutes - Lin Sun, solo.io
+Do you need zero trust or mutual TLS (mTLS) among your application pods? You may be able to manage certificates within your applications, but how would you handle automatic periodic certificate rotation? The evolution of sidecar-less service mesh technology enables mTLS among application pods with just a simple namespace label. No sidecars or application pod restarts are required. This approach provides immediate benefits, including cryptographic identity for application pods, and ensures session-based data confidentiality and integrity in pod communications. In just 5 minutes, Lin will demonstrate live how developers and operators can effortlessly enforce mTLS and rich Layer 7 (L7) authorization policies without any sidecars!
+
+
+- Lin Sun: CNCF TOC member and Head of Open-Source at solo.io
+Lin is the Head of Open Source at Solo.io, and a CNCF TOC member and ambassador. She has worked on the Istio service mesh since the beginning of the project in 2017 and serves on the Istio Steering Comm
+[[security.mTLS}]]
+
+[[{qa.UX]]
+## Meshery: Visualizing Kubernetes Resource Relationships
+
+* Meshery and its extensions empower you to navigate cloud native 
+infrastructure in complex environments.  ...  This talk delves into 
+the human-computer interaction (HCI) principles that underpin 
+MeshMap's intuitive visualization of Kubernetes resources and the 
+various forms of inter/relationships with other CNCF projects' 
+resources.
+
+Human-Computer Interaction Principles in Meshery:
+
+- Cognitive Load: How Meshery reduces cognitive load by presenting 
+  complex information in a structured and visually digestible manner.
+- Mental Models: How Meshery aligns with users' mental models of 
+  Kubernetes environments, facilitating comprehension and navigation.
+- Visual Perception: How Meshery leverages visual cues, colors, and 
+  layout to guide users' attention and highlight critical information.
+
+
+[[qa.UX}]]
+
+[[{security.TUF,security.BOM]]
+# The Update Framework (TUF) Secure Distribution Beyond Software 
+
+- The TUF project is constantly improving and this talk will 
+highlight some of these improvements, from recent integrations by 
+groups such as Docker and Github to an effort to provide conformance 
+testing across various TUF implementations.
+
+... As organizations improve their software supply chain, they may 
+encounter an influx of metadata: attestations, SBOMs, VEX statements, 
+and more. Have you ever wondered how to securely distribute all of 
+this information to end users? Enter TUF! The Update Framework (TUF), 
+has paved the way for secure software updates throughout the cloud 
+native ecosystem and beyond, and is being expanded to securely 
+distribute signing keys, attestations, and more. TUF allows 
+organizations to ensure that all of this data is up-to-date and 
+resilient to tampering.
+
+ The TUF project has an active team of maintainers and contributors 
+that make all of these improvements possible, and we will discuss how 
+you can get involved to keep making the project better.
+
+- Marina Moore, Independent
+[[security.TUF}]]
+
+[[{security.AuthZEN,security.OIDC]]
+
+## AuthZEN: The “OpenID Connect” for Authorization - Omri Gazitt, Aserto
+
+* AuthZEN, a new OpenID Foundation working group, created in late 2023 
+  to establish authorization standards.
+
+... In this talk, I'll describe the current state of cloud-native 
+authorization, including the policy-as-code and policy-as-data 
+approaches, and the various open source projects in each camp.
+
+... I'll also share the progress we’ve made creating a single 
+authorization API that works across both policy-as-code (OPA, Topaz) 
+and policy-as-data (Zanzibar-style projects), 
+
+... present the API specs we've created so far, and show off the 
+various interoperable implementations. 
+
+.. **With this foundation in place, engineering teams can be more 
+  confident in externalizing their authorization and picking a provider 
+  without being locked in to a proprietary API**
+
+## Bridging Clouds: TikTok’s Blueprint for Unified OIDC Access on Multi-Cloud Kubernetes 
+
+... At TikTok, we faced the challenge of unifying OpenID Connect (OIDC) access for Kubernetes clusters across GKE, EKS, OKE and on-prem clusters each providing different levels of support and integration.
+
+... we will detail our journey to develop a scalable, centralized OIDC framework using a reverse proxy approach ... highlighting how we leveraged Envoy for request handling and dynamic configuration with external authorization filters to accommodate diverse OIDC implementations.
+
+- Naveen Mogulla, TikTok
+
+
+[[security.AuthZEN,security.OIDC}]]
+
+[[{security.VEX]]
+## Vulnerability Exploitability eXchange (VEX) 
+
+... Breaking Free from Noise ...  Vulnerability scanners  often 
+produce false-positives ..  inability to automatically determine if a 
+vulnerability is actually exploitable.
+
+* Vulnerability Exploitability eXchange (VEX) is an industry-wide 
+initiative that aims to address this issue, but the lack of 
+standardized distribution hinders its effective utilization.
+
+* VEX Hub: central repository that automatically aggregates VEX 
+documents published by open-source projects.  ... it makes it easy 
+and practical for software maintainers to start adopting VEX, while 
+at the same time making it seamless for scanners and users to 
+incorporate VEX in their workflow.
+[[security.VEX}]]
+
+[[{security.CEL]]
+## CEL-Ebrating Simplicity: Mastering Kubernetes Policy Enforcement 
+
+... As Kubernetes deployments grow increasingly complex, robust policy enforcement is crucial.
+
+... The Common Expression Language (CEL) provides a powerful solution, enabling the creation of sophisticated, human-readable expressions for Kubernetes policies.
+
+... simplifying policy definition and enforcement. 
+
+Key takeaways: 
+- Fundamentals of CEL and its Kubernetes integration.
+- Practical use cases for CEL in admission control, resource management, and security.
+- Enhancing policy expressiveness and flexibility with CEL.
+- Introduction to CEL Playground for testing and validating CEL expressions.
+- 
+Anish Ramasekar Principal Software Engineer, Microsoft
+- Kevin Conner, Getup Cloud & Anish Ramasekar, Microsoft
+
+
+## Pushing Authorization Further with CEL, Selectors and Maybe RBAC++
+
+ - by Mo Khan & Rita Zhang, Microsoft; Jordan Liggitt, Google
+
+...  Significant changes have been made to authorization in recent versions of Kubernetes.
+
+... common expression language (CEL) in validating admission policy (VAP) can access
+the authorizer to perform runtime checks during admission.
+
+... Authorization has also been made aware of label and field selectors, which are
+available as extra info to be used by webhooks and CEL expressions in VAP.
+
+... Looking forward, Kubernetes RBAC could be enhanced to take advantage of this new info.
+RBAC++ is a proof of concept design to combine CEL with RBAC to allow for conditional
+bindings at runtime.
+
+... what if authorization (and RBAC++) could directly assert conditions at admission time?
+- Speakers:
+  - Rita Zhang Principal software engineer, Kubernetes SIG Auth co-chair, Security Response Committee, Microsoft
+  - Mo Khan Software Engineer, Microsoft
+  - Jordan Liggitt Software Engineer, Google
+
+
+
+[[security.CEL}]]
+
+[[{security,doc_has.comparative]]
+## Falco, Tetragon or KubeArmor? - Henrik Rexed, Dynatrace
+
+(Henrik Rexed Cloud Native Advocate, Dynatrace)
+What Agent to Trust with Your K8s: 
+ ... In the CNCF landscape we have plenty of ebpf based security solutions that help us protect our k8s cluster from runtime vulnerabilities.
+
+ On paper though Falco, Tetragon and KubeArmor look very similar.
+... We have run extensive benchmarks against those three solutions and will answer the following questions that came out of our testing:
+
+- What are the different featuresets?
+- What about the performance impact of each agent?
+- Which privileges does each solution need?
+- What are the pros and cons across the three options?
+[[security}]]
+
+## Inspektor Gadget:  Enhancing Kubernetes Debugging and Observability
+
+* ... collection of eBPF tools (Gadgets) and a systems inspection framework for Kubernetes, containers, and Linux hosts.
 
 
 
