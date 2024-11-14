@@ -1,0 +1,80 @@
+# Cert-Manager
+
+[[{security.certmanager,security.101,security.secret_mng]]
+##  Going Secretless with Cert-Manager
+
+ ...managing secrets securely is a challenge. Traditional methods often involve
+complex configurations with secret vaults, secret syncing and secret backups.
+... secrets always come with a risk of being leaked.
+
+**Most of the secrets used in traditional applications can be replaced by short-lived certificates
+ Applications can prove to be the owner of a certificate without sharing any secrets** 
+ In Kubernetes, cert-manager can be used to provision these certificates to all applications
+without sharing any secret information.  [[doc_has.keypoint]] 
+
+Table of contents: 
+- Do we actually need secrets? Comparing authentication methods: 
+  - static secrets vs short-lived secrets and proof of ownership
+  - How to issue certificates using cert-manager without using [S|s]ecrets
+- Compatibility and other challenges
+
+- Who is who:
+  - Ashley Davis & Tim Ramlot, Venafi
+[[security.certmanager}]]
+
+
+[[{security.SPIFFE,security.certmanager,security.X509,security.JWT,PM.low_code]]
+## SPIFFE: Universal X509 and JWT Identities Using Cert-Manager
+
+ ..SPIFFE is incredible. **Each workload is assigned its own universal identity**,
+simplifying the security and management of communications in distributed systems.
+
+ While SPIRE (the reference SPIFFE implementation) is exceptionally powerful, 
+it is also quite complex. ... it requires StatefulSets, which can be challenging 
+and frustrating.
+
+...  Many cloud vendors are starting to offer vendor lock-in SPIFFE solutions
+
+...  In this talk, we will demonstrate how to use the Cloud Native cert-manager 
+solution to implement SPIFFE (x509 and JWT) with low operational overhead for
+all Kubernetes workloads.
+
+- The session includes all you need to know to issue X.509 SVIDs, use them and validate them.
+- we will introduce an experimental solution to convert x509 SVIDs into JWT SVIDs.
+- The demo will highlight how to authenticate to third-party APIs (such as AWS, GCP,
+  Azure, and others) using these JWT SVIDs.
+
+- Who is Who:
+  - Ashley Davis Staff Software Engineer, Venafi
+  - Tim Ramlot Senior Software Engineer - cert-manager maintainer, Venafi
+
+- Example: Istio use the SPIFFE spec to distribute mTLS certificates.
+
+
+## Poster Session (PS06): What's Happening with SPIFFE and WIMSE? - Daniel Feldman, Qusaic
+
+... This session will be a very brief overview of what's going on with 
+  the SPIFFE and WIMSE identity standards projects.
+
+... WIMSE is an IETF effort to build on the SPIFFE foundation.
+
+... In particular, it adds a new, unique token format that allows securely recording multi-hop identity information. 
+
+... Implementors will be able to use this token format to build complete, end-to-end, cryptographically auditable identity records.
+
+
+## SPIRE project
+
+### Intro & In-Depth Exploration of the Upcoming Forced Rotation and Revocation Feature
+
+( by Agustín Martínez Fayó & Marcos Yacob, Hewlett Packard Enterprise)
+
+... foundational aspects of SPIRE, detailing its architecture, capabilities, and the problems it solves
+
+... focus on the highly anticipated forced rotation and revocation feature that will provide a rapid,
+reliable, and automated mechanism for recovering from key compromise.
+
+
+
+
+[[security.X509}]]

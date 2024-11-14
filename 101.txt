@@ -288,19 +288,18 @@
           ...
         ui.properties:
 
-    ┌──────────────────────────────┐
-    │kind: Pod                     │
-    │...                           │
-    │spec:                         │
-    │ containers:                  │
-    │  ─ name: test-container      │
-    │    ...                       │
-    │    env:                      │   STEP 4) Declare config1 to be injected in Pod.
-    │     ─ name: config1          <·· INJECT "config1" ConfigMap into Pod.
-    │       valueFrom:             │
-    │         configMapKeyRef:     │
-    │           name: game-config  <·· Subconfig in ConfigMap
-    │           key: enemies.cheat │
+    $ cat deployment.yaml            STEP 4) Declare config1 to be injected in Pod.
+    ...
+    spec:                         
+     containers:                  
+      - name: test-container      
+        ...                       
+        env:                          
+         - name: config1          <·· INJECT "config1" ConfigMap into Pod.
+           valueFrom:             
+             configMapKeyRef:     
+               name: game-config  <·· Subconfig in ConfigMap
+               key: enemies.cheat
     ...
   ```
 
@@ -670,15 +669,29 @@ Sealed Secrets is composed of two parts:
   |   - 10.43.221.56
   |   internalTrafficPolicy: Cluster
   |   ipFamilies:
-  |   - IPv4
+  |   - IPv4                                <·· Remove "complexities" of IPv6. Not needed.
   |   ipFamilyPolicy: SingleStack
   |   ports:
   |   - port: 80
   |     protocol: TCP
   |     targetPort: 80
   |   selector:
-  |     app: nginx                         <·· (target) selector for the 
-  |   sessionAffinity: None                    moving pods 
+  |     app: nginx                         <·· (target) selector for the   moving pods 
+  |   sessionAffinity: ClientIP            <·· "Attach" client requests to the same Pod. 
+  |   sessionAffinityConfig:                   There can be performance gains when distributed
+  |     #                                      sessions mechanisms are slow (due to serialization,. 
+  |     #                                      slow network, session persistence, ....
+  |     #                                      Ideally, if Pod life-time is "big" and sessionAffinity
+  |     #                                      is stable we can completly disable distributed 
+  |     #                                      cache in favor of local in memory session with
+  |     #                                      huge performance gains (x100) and increased security
+  |     #                                      (client related session data is never serialized and
+  |     #                                      transported through the network).
+  |     #                                      [[application.scalability]] 
+  |     clientIP:
+  |       timeoutSeconds: 600              <·· Attach for  10 minutes. Good enough for 
+  |                                            some use cases like Authentication sessions (up to 300secs
+  |                                            befor timing out)
   |   type: ClusterIP
   | status:
   |   loadBalancer: {}
